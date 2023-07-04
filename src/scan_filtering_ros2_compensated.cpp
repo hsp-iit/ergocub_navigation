@@ -18,8 +18,8 @@ using std::placeholders::_1;
 class ScanFilter : public rclcpp::Node
 {
 private:
-    const std::string m_referece_frame = "virtual_unicycle_base";
-    const char* m_scan_topic = "/scan";
+    const std::string m_referece_frame = "l_sole";  
+    const char* m_scan_topic = "/scan_local";
     const char* m_pub_topic = "/compensated_pc2";
     laser_geometry::LaserProjection m_projector;
 
@@ -42,7 +42,7 @@ private:
             scan_in->header.frame_id,
             m_referece_frame,
             tf2_ros::fromMsg(scan_in->header.stamp) + tf2::durationFromSec(scan_in->ranges.size() * scan_in->time_increment),
-            tf2::durationFromSec(0.1),  
+            tf2::durationFromSec(0.2),  
             & transform_error ))
         {
             // Converts the scans into cartesian space points
@@ -67,7 +67,7 @@ private:
 
             pcl::fromROSMsg(transformed_cloud, *pcl_cloud);
             // Filter cloud
-            //RCLCPP_INFO(get_logger(), "Original cloud size: %li \n", pcl_cloud->size());
+            RCLCPP_INFO(get_logger(), "Original cloud size: %li \n", pcl_cloud->size());
             // FILTER 1 - PASSTHROUGH
             pcl::PassThrough<pcl::PointXYZ> pass;       // Create the passthrough filtering object
             pass.setInputCloud (pcl_cloud);
@@ -85,7 +85,7 @@ private:
             sensor_msgs::msg::PointCloud2 ros_cloud_debug;
             //pcl::toROSMsg(*cloud_filtered2, ros_cloud_debug);
             //m_debug_pub->publish(ros_cloud_debug);
-            //RCLCPP_INFO(get_logger(), "Cloud size after filter 1: %li \n", cloud_filtered1->size());
+            RCLCPP_INFO(get_logger(), "Cloud size after filter 1: %li \n", cloud_filtered1->size());
             // FILTER 2 - PLANE PROJECTOR
             pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());   // Create a set of planar coefficients with X=Y=0,Z=1, d= 1.5
             coefficients->values.resize(4);
@@ -98,7 +98,7 @@ private:
             proj.setInputCloud (cloud_filtered1);
             proj.setModelCoefficients (coefficients);
             proj.filter (*cloud_filtered2);
-            //RCLCPP_INFO(get_logger(), "Cloud size after filter 2: %li \n", cloud_filtered2->size());
+            RCLCPP_INFO(get_logger(), "Cloud size after filter 2: %li \n", cloud_filtered2->size());
             // Publish PC2
             sensor_msgs::msg::PointCloud2 ros_cloud;
             ros_cloud.header.frame_id = m_referece_frame;

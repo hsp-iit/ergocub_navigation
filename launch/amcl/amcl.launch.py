@@ -10,7 +10,7 @@ from launch.substitutions import LaunchConfiguration
 package_name = 'ergocub_navigation'
 
 def generate_launch_description():
-    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
     
     param_file_name = 'ergoCub_amcl_nav2' + '.yaml'
 
@@ -39,7 +39,7 @@ def generate_launch_description():
             executable='lifecycle_manager',
             name='lifecycle_manager_localization',
             output='screen',
-            parameters=[{'use_sim_time': True},
+            parameters=[{'use_sim_time': use_sim_time},
                         {'autostart': True},
                         {'node_names': ['amcl']}]
         )

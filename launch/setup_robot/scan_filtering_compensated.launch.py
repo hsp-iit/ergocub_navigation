@@ -30,8 +30,8 @@ def generate_launch_description():
             remappings=[('cloud_in', '/compensated_pc2'),
                         ('scan', '/filtered_scan_compensated')],
             parameters=[{
-                'target_frame': 'virtual_unicycle_base',
-                'transform_tolerance': 0.01,        #0.01
+                'target_frame': 'l_sole',    #virtual_unicycle_base
+                'transform_tolerance': 0.03,        #0.01
                 'min_height': -0.2,  #-300
                 'max_height': 3.0,  #300
                 'angle_min': -3.141592653,  # -M_PI
@@ -39,7 +39,7 @@ def generate_launch_description():
                 'angle_increment': 0.003926991,  # 2M_PI/360.0
                 'scan_time': 0.1,
                 'range_min': 0.2,
-                'range_max': 24.0,
+                'range_max': 30.0,
                 'use_inf': True,
                 'inf_epsilon': 1.0
                 #'concurrency_level': 2

@@ -8,14 +8,14 @@ def generate_launch_description():
     map_dir=os.path.join(
             get_package_share_directory('ergocub_navigation'),
             'maps',
-            'map.yaml')
+            'robot_arena_ecub.yaml')
     return LaunchDescription([
         Node(
             package='nav2_map_server',
             executable='map_server',
             parameters=[
                 {'yaml_filename': map_dir},
-                {'use_sim_time': True}]
+                {'use_sim_time': False}]
         ),
         Node(
             package='nav2_lifecycle_manager',
@@ -23,7 +23,7 @@ def generate_launch_description():
             name='map_server_lifecycle_manager',
             output='screen',
             emulate_tty=True,  # https://github.com/ros2/launch/issues/188
-            parameters=[{'use_sim_time': True},
+            parameters=[{'use_sim_time': False},
                         {'autostart': True},
                         {'node_names': ['map_server']}]
         )
