@@ -1,12 +1,12 @@
 amcl:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
     alpha1: 0.1  #0.3
     alpha2: 0.05
     alpha3: 0.05
     alpha4: 0.05
     alpha5: 0.1
-    base_frame_id: "virtual_unicycle_base" #"r_sole" # projection
+    base_frame_id: "r_sole" #"r_sole" # virtual_unicycle_base
     beam_skip_distance: 0.5
     beam_skip_error_threshold: 0.9
     beam_skip_threshold: 0.3
@@ -14,13 +14,13 @@ amcl:
     global_frame_id: "map"
     lambda_short: 0.1
     laser_likelihood_max_dist: 4.0  #2
-    laser_max_range: 24.0
+    laser_max_range: 30.0
     laser_min_range: 0.2
     laser_model_type: "likelihood_field"
     max_beams: 360
     max_particles: 10000
     min_particles: 2000
-    odom_frame_id: "odom"
+    odom_frame_id: "l_sole"
     pf_err: 0.05  #0.05
     pf_z: 0.6
     recovery_alpha_fast: 0.0
@@ -30,7 +30,7 @@ amcl:
     save_pose_rate: 0.5
     sigma_hit: 0.1    #0.2
     tf_broadcast: true
-    transform_tolerance: 0.1  #0.3
+    transform_tolerance: 0.3  #0.1
     update_min_a: 0.1 #0.2
     update_min_d: 0.1 #0.25  
     z_hit: 0.9
@@ -44,8 +44,8 @@ amcl:
 
 amcl_rclcpp_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: false
 
 amcl_map_client:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: false

@@ -12,13 +12,19 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/amcl/map_server.launch.py'])
         )
-    scan_filtering = IncludeLaunchDescription(
+    amcl = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/amcl/amcl.launch.py'])
         )
+    rviz_node = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('ergocub_navigation'), 'launch'),
+            '/ergoCub_rviz.launch.py'])
+        )
 
     return LaunchDescription([
         map_server,
-        scan_filtering
+        amcl,
+        rviz_node
     ])

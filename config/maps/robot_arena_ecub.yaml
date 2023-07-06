@@ -1,7 +1,6 @@
-image: robot_arena_ecub.pgm
-mode: trinary
+image: robot_arena_ecub.png
 resolution: 0.05
 origin: [-13.1, -7.62, 0]
 negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.25
+occupied_thresh: 0.5
+free_thresh: 0.2
