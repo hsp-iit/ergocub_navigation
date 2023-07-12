@@ -1,0 +1,4 @@
+chest_projection:
+  ros_parameters:
+    feet_sensor_threshold: 0.9
+    use_sim_time: false

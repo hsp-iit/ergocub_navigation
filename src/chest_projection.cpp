@@ -7,6 +7,7 @@
 
 #include <yarp/os/Bottle.h>
 #include <yarp/os/Port.h>
+#include <yarp/os/BufferedPort.h>
 #include <yarp/os/Network.h>
 #include <yarp/os/Time.h>
 
@@ -24,7 +25,7 @@ private:
     const std::string m_writer_port_name = "/feetWrenches";
     const double m_loopFreq = 200.0;
     const std::string m_chest_link = "chest";
-    const double m_sensor_treshold = 100.0;
+    double m_sensor_treshold;
     bool m_ok = false;
     /* msgs */
     geometry_msgs::msg::TransformStamped m_TF;
@@ -34,7 +35,7 @@ private:
     std::shared_ptr<tf2_ros::Buffer> m_tf_buffer_in;
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener_{nullptr};
     /* YARP ports*/
-    yarp::os::Port m_wrench_reader_port;
+    yarp::os::BufferedPort<yarp::os::Bottle> m_wrench_reader_port;
     /* ground contact var */
     std::string m_foot_link = "r_sole";
     //timer for loop
@@ -49,6 +50,7 @@ private:
     geometry_msgs::msg::TransformStamped m_virtual_unicycle_base_tf;
 public:
     ChestProjection();
+    ~ChestProjection();
 };
 
 ChestProjection::ChestProjection() : rclcpp::Node("chest_projection_node")
@@ -62,7 +64,7 @@ ChestProjection::ChestProjection() : rclcpp::Node("chest_projection_node")
     } 
     else 
     {
-        RCLCPP_ERROR(this->get_logger(), "[YARP] /feetWrenches NOT PRESENT:\n execute the merge command on the feet wrenches:\n yarp merge --input /wholeBodyDynamics/right_foot_front/cartesianEndEffectorWrench:o /wholeBodyDynamics/left_foot_front/cartesianEndEffectorWrench:o --output /feetWrenches");
+        RCLCPP_ERROR(this->get_logger(), "[YARP] /feetWrenches NOT PRESENT:\n execute the merge command on the feet wrenches:\n yarp merge --input /wholeBodyDynamics/right_foot_rear/cartesianEndEffectorWrench:o /wholeBodyDynamics/left_foot_rear/cartesianEndEffectorWrench:o --output /feetWrenches");
         m_ok = false;
     }
 
@@ -78,6 +80,26 @@ ChestProjection::ChestProjection() : rclcpp::Node("chest_projection_node")
     m_tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
     m_virtual_unicycle_base_tf.child_frame_id = "virtual_unicycle_base";
     m_virtual_unicycle_base_tf.header.frame_id = m_foot_link;
+
+    //Params declaration:
+    if (!this->has_parameter("feet_sensor_threshold")) {
+        this->declare_parameter((std::string)this->get_name() + ".feet_sensor_threshold", rclcpp::ParameterValue(0.8));
+    }
+    this->get_parameter((std::string)this->get_name() + ".feet_sensor_threshold", m_sensor_treshold);
+    //debug
+    RCLCPP_INFO(this->get_logger(), "Sensor threshold at: %f", m_sensor_treshold);
+}
+
+ChestProjection::~ChestProjection()
+{
+    try
+    {
+        m_wrench_reader_port.close();
+    }
+    catch(const std::exception& e)
+    {
+        RCLCPP_ERROR(this->get_logger(), "Error in closing yarp port: %s", e.what());
+    }
 }
 
 void ChestProjection::timer_callback()
@@ -85,14 +107,19 @@ void ChestProjection::timer_callback()
     std::lock_guard<std::mutex> guard(m_mutex);   //lock
     if (!m_ok)
     {
+        RCLCPP_INFO(this->get_logger(), "FAILED TO CONNECT PORTS");
         return;
     }
+    //this->get_parameter((std::string)this->get_name() + ".feet_sensor_threshold", m_sensor_treshold);
+    ////debug
+    //RCLCPP_INFO(this->get_logger(), "Sensor threshold at: %f", m_sensor_treshold);
     
     // Check which foot is on the ground based on the contact sensors
-    yarp::os::Bottle in_bottle;
-    m_wrench_reader_port.read(in_bottle);
+    yarp::os::Bottle* in_bottle = m_wrench_reader_port.read();
+    //m_wrench_reader_port.read(in_bottle);
     //Determine which feet is in contact
-    if (in_bottle.get(2).asFloat64() > m_sensor_treshold && in_bottle.get(8).asFloat64() < m_sensor_treshold)
+    RCLCPP_INFO(this->get_logger(), "Left Foot: %f , Right: %f", in_bottle->get(2).asFloat64(), in_bottle->get(8).asFloat64());
+    if (in_bottle->get(2).asFloat64() > m_sensor_treshold && in_bottle->get(8).asFloat64() < m_sensor_treshold)
     {
         m_foot_link = "l_sole";   //r_sole
         m_projection_TF.header.frame_id = m_foot_link;
@@ -101,7 +128,7 @@ void ChestProjection::timer_callback()
 
         //RCLCPP_INFO(this->get_logger(), "Switching to: %s \n", foot_link);
     }
-    else if (in_bottle.get(8).asFloat64() > m_sensor_treshold && in_bottle.get(2).asFloat64() < m_sensor_treshold)
+    else if (in_bottle->get(8).asFloat64() > m_sensor_treshold && in_bottle->get(2).asFloat64() < m_sensor_treshold)
     {
         m_foot_link = "r_sole";   //l_sole
         m_projection_TF.header.frame_id = m_foot_link;
@@ -109,6 +136,18 @@ void ChestProjection::timer_callback()
         m_virtual_unicycle_base_tf.header.frame_id = m_foot_link;
         //RCLCPP_INFO(this->get_logger(), "Switching to: %s \n", foot_link);
     }
+    else if(in_bottle->get(8).asFloat64() > m_sensor_treshold && in_bottle->get(2).asFloat64() > m_sensor_treshold)   //Both in contact
+    {
+        m_foot_link = "r_sole";   //l_sole
+        m_projection_TF.header.frame_id = m_foot_link;
+        m_virtual_unicycle_base_tf.header.frame_id = m_foot_link;
+    }
+    else
+    {
+        RCLCPP_ERROR(this->get_logger(), "No contacts on both the feets, values are left: %f and right: %f", in_bottle->get(2).asFloat64(), in_bottle->get(8).asFloat64());
+        return;
+    }
+
     // Get TF
     if (!get_TF(m_foot_link, m_chest_link))   
     {
@@ -135,7 +174,7 @@ void ChestProjection::timer_callback()
     {
         if(!get_TF(m_foot_link, "l_sole"))
         {
-            RCLCPP_ERROR(this->get_logger(), "Cannot find TF between: %s & %s \n", m_foot_link, "l_sole");
+            RCLCPP_ERROR(this->get_logger(), "[chest_projection] Cannot find TF between: %s & %s \n", m_foot_link, "l_sole");
             m_tf_pub->sendTransform(m_projection_TF);   //send atleast the available correct tf
             return;
         }
@@ -145,7 +184,7 @@ void ChestProjection::timer_callback()
     {
         if(!get_TF(m_foot_link, "r_sole"))
         {
-            RCLCPP_ERROR(this->get_logger(), "Cannot find TF between: %s & %s \n", m_foot_link, "r_sole");
+            RCLCPP_ERROR(this->get_logger(), "[chest_projection] Cannot find TF between: %s & %s \n", m_foot_link, "r_sole");
             m_tf_pub->sendTransform(m_projection_TF);   //send atleast the available correct tf
             return;
         }
@@ -166,9 +205,9 @@ bool ChestProjection::get_TF(const std::string &target_link, const std::string &
 {
     try
     {
-        m_TF = m_tf_buffer_in->lookupTransform(target_link, source_link, rclcpp::Time(0), 100ms); // target link = chest
-        //RCLCPP_INFO(this->get_logger(), "TF: x %f y %f z %f  - xa %f ya %f za %f wa %f \n", TF.transform.translation.x, TF.transform.translation.y, TF.transform.translation.z,
-        //                                                                                    TF.transform.rotation.x, TF.transform.rotation.y, TF.transform.rotation.z, TF.transform.rotation.w);
+        m_TF = m_tf_buffer_in->lookupTransform(target_link, source_link, rclcpp::Time(0), 200ms); // target link = chest
+        //RCLCPP_INFO(this->get_logger(), "TF: x %f y %f z %f  - xa %f ya %f za %f wa %f \n", m_TF.transform.translation.x, m_TF.transform.translation.y, m_TF.transform.translation.z,
+        //                                                                                    m_TF.transform.rotation.x, m_TF.transform.rotation.y, m_TF.transform.rotation.z, m_TF.transform.rotation.w);
         return true;
     }
     catch (tf2::TransformException &ex)
