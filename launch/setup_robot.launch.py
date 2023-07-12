@@ -37,12 +37,18 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/setup_robot/virtual_unicycle_publisher.launch.py'])
         )
+    amcl = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('ergocub_navigation'), 'launch'),
+            '/setup_localization.launch.py'])
+        )
 
     return LaunchDescription([
         state_publisher,
         projection_node,
-        rviz_node,
+        #rviz_node,
         scan_filtering_compensated,
-        depth_to_pointcloud,
-        virtual_unicycle
+        #depth_to_pointcloud,
+        #virtual_unicycle
+        amcl
     ])
