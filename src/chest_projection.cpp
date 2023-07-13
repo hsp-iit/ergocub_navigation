@@ -83,7 +83,7 @@ ChestProjection::ChestProjection() : rclcpp::Node("chest_projection_node")
 
     //Params declaration:
     if (!this->has_parameter("feet_sensor_threshold")) {
-        this->declare_parameter((std::string)this->get_name() + ".feet_sensor_threshold", rclcpp::ParameterValue(0.8));
+        this->declare_parameter((std::string)this->get_name() + ".feet_sensor_threshold", rclcpp::ParameterValue(100.0));
     }
     this->get_parameter((std::string)this->get_name() + ".feet_sensor_threshold", m_sensor_treshold);
     //debug
@@ -118,7 +118,7 @@ void ChestProjection::timer_callback()
     yarp::os::Bottle* in_bottle = m_wrench_reader_port.read();
     //m_wrench_reader_port.read(in_bottle);
     //Determine which feet is in contact
-    RCLCPP_INFO(this->get_logger(), "Left Foot: %f , Right: %f", in_bottle->get(2).asFloat64(), in_bottle->get(8).asFloat64());
+    //RCLCPP_INFO(this->get_logger(), "Left Foot: %f , Right: %f", in_bottle->get(2).asFloat64(), in_bottle->get(8).asFloat64());
     if (in_bottle->get(2).asFloat64() > m_sensor_treshold && in_bottle->get(8).asFloat64() < m_sensor_treshold)
     {
         m_foot_link = "l_sole";   //r_sole

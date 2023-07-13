@@ -17,6 +17,7 @@
 
 #include <mutex>
 #include <thread>
+#include <chrono>
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -27,7 +28,7 @@ private:
     const std::string port_name = "/virtual_unicycle_publisher/unicycle_states:i";
     yarp::os::BufferedPort<yarp::os::Bottle> port;
     yarp::os::Contact portContact{port_name, "shmem" };
-    const double m_loopFreq = 100.0;
+    const double m_loopFreq = 50.0;
     std::shared_ptr<tf2_ros::TransformBroadcaster> m_tf_broadcaster;
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};
     std::unique_ptr<tf2_ros::Buffer> m_tf_buffer_in;
@@ -36,7 +37,8 @@ private:
 public:
     VirtualUnicyclePub() : rclcpp::Node("virtual_unicycle_publisher_node")
     {   
-        port.open(portContact, true);
+        //port.open(portContact, true);
+        port.open(port_name);
         yarp::os::Network::connect("/navigation_helper/virtual_unicycle_states:o", port_name); 
         //create TF
         m_tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
@@ -52,7 +54,7 @@ public:
         try
         {
             yarp::os::Bottle* data = port.read(true);
-            //std::cout << "publish" << std::endl;
+            std::cout << "publish" << std::endl;
             //std::cout << "Reading virtual_unicycle_simulated: X: " <<  data.get(0).asList()->get(0).asFloat64() << " Y: " <<  data.get(0).asList()->get(1).asFloat64() <<
             //             " Theta: " << data.get(0).asList()->get(2).asFloat64() << std::endl;
             //std::cout << "Reading virtual_unicycle_reference: X: " <<  data.get(1).asList()->get(0).asFloat64() << " Y: " <<  data.get(1).asList()->get(1).asFloat64() <<
@@ -62,10 +64,15 @@ public:
             //             " Z: " << data.get(3).asList()->get(2).asFloat64() << " x: " << data.get(3).asList()->get(3).asFloat64() <<
             //             " y: " << data.get(3).asList()->get(4).asFloat64() << " z: " << data.get(3).asList()->get(5).asFloat64() <<
             //              std::endl;
-            //std::cout << "Time: " << now().seconds() << " " << now().nanoseconds() << std::endl;
+            long long sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+            long long ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+            ns = ns%((long long)10e9);
+            std::cout << "Time: " << sec << " " << ns << std::endl;
             std::vector<geometry_msgs::msg::TransformStamped> tfBuffer;
             geometry_msgs::msg::TransformStamped tf, tfReference;
-            tf.header.stamp = now();
+            //tf.header.stamp = this->get_clock()->now();
+            tf.header.stamp.sec = sec;
+            tf.header.stamp.nanosec = ns;
             tfReference.header.stamp = tf.header.stamp;
             geometry_msgs::msg::TransformStamped tf_fromOdom, tfReference_fromOdom; //position of the virtual unicycle computed from the walking-controller in the odom frame
             tf_fromOdom.header.stamp = tfReference_fromOdom.header.stamp = tf.header.stamp;
@@ -81,7 +88,7 @@ public:
                 tfReference.header.frame_id = "l_sole";
                 tf.child_frame_id = "virtual_unicycle_simulated";
                 tfReference.child_frame_id = "virtual_unicycle_reference";
-                tf.transform.translation.y = - 0.07;
+                tf.transform.translation.y = - 0.07; //TODO PARAMETRIZE
             }
             else
             {

@@ -6,7 +6,7 @@ amcl:
     alpha3: 0.05
     alpha4: 0.05
     alpha5: 0.1
-    base_frame_id: "r_sole" #"r_sole" # virtual_unicycle_base
+    base_frame_id: "virtual_unicycle_base" #"r_sole" # virtual_unicycle_base
     beam_skip_distance: 0.5
     beam_skip_error_threshold: 0.9
     beam_skip_threshold: 0.3
@@ -20,7 +20,7 @@ amcl:
     max_beams: 360
     max_particles: 10000
     min_particles: 2000
-    odom_frame_id: "l_sole"
+    odom_frame_id: "odom"
     pf_err: 0.05  #0.05
     pf_z: 0.6
     recovery_alpha_fast: 0.0
@@ -30,7 +30,7 @@ amcl:
     save_pose_rate: 0.5
     sigma_hit: 0.1    #0.2
     tf_broadcast: true
-    transform_tolerance: 0.3  #0.1
+    transform_tolerance: 2.3  #0.1
     update_min_a: 0.1 #0.2
     update_min_d: 0.1 #0.25  
     z_hit: 0.9

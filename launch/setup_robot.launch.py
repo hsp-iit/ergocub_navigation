@@ -49,6 +49,6 @@ def generate_launch_description():
         #rviz_node,
         scan_filtering_compensated,
         #depth_to_pointcloud,
-        #virtual_unicycle
+        virtual_unicycle,
         amcl
     ])
