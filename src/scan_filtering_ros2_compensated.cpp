@@ -76,12 +76,12 @@ private:
             // Filtering
             pass.filter (*cloud_filtered1);
             // FILTER 1B removing the back part of Lidar (simulating the support crane on the real robot)
-            pcl::PassThrough<pcl::PointXYZ> pass_back;       
-            pass_back.setInputCloud (cloud_filtered1);
-            pass_back.setFilterFieldName ("x");
-            pass_back.setFilterLimits(0.0, 25.0);
-            // Filtering
-            pass_back.filter (*cloud_filtered1);
+            //pcl::PassThrough<pcl::PointXYZ> pass_back;       
+            //pass_back.setInputCloud (cloud_filtered1);
+            //pass_back.setFilterFieldName ("x");
+            //pass_back.setFilterLimits(0.0, 25.0);
+            //// Filtering
+            //pass_back.filter (*cloud_filtered1);
             sensor_msgs::msg::PointCloud2 ros_cloud_debug;
             //pcl::toROSMsg(*cloud_filtered2, ros_cloud_debug);
             //m_debug_pub->publish(ros_cloud_debug);
