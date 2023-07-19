@@ -20,8 +20,8 @@
               <elem name="ergocub_laser"> recev </elem>
            </paramlist>
         </action>
-     
-        <param name ="node_name"> cer_laser_local </param>
+    
+        <param name ="node_name"> ergocub_laser_local </param>
         <param name ="topic_name"> /scan_local</param>
         <param name ="frame_id"> head_laser_frame </param>
      
