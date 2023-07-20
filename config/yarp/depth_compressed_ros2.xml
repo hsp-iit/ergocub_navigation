@@ -29,14 +29,14 @@
            <action phase="shutdown" level="5" type="detach" />
        </device>
 
-       <device xmlns:xi="http://www.w3.org/2001/XInclude"  name="pc_nws_ros" type="rgbdSensor_nws_ros2">
+       <device xmlns:xi="http://www.w3.org/2001/XInclude"  name="rgbd_nws_ros" type="rgbdSensor_nws_ros2">
            <param name="period">0.1</param>
            <param name="node_name">rgbd_ros2_node</param>
            <param name="depth_topic_name">/camera/rgbd/depth</param>
-           <param name="color_topic_name">/camera/rgbd/color</param>
+           <param name="color_topic_name">/camera/rgbd/img</param>
            <param name="depth_frame_id">realsense_rgb_frame</param>
            <param name="color_frame_id">realsense_rgb_frame</param> 
-           <param name="forceInfoSync">true</param>
+           <param name="forceInfoSync">false</param>
            <action phase="startup" level="5" type="attach">
                <paramlist name="networks">
                    <elem name="the_device"> depth_nwc_yarp </elem>
