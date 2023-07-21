@@ -4,12 +4,11 @@ bt_navigator:
     global_frame: map
     robot_base_frame: virtual_unicycle_base #projection   #base_link
     odom_topic: estimated_odom
-    #default_bt_xml_filename: "/home/user1/ros2_workspace/install/ergocub_nav2_nodes/share/ergocub_nav2_nodes/replan_on_bool.xm" #"navigate_w_replanning_and_recovery.xml"
-    default_nav_to_pose_bt_xml: "/home/user1/ros2_workspace/src/ergoCub_ros2/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml" #"/home/user1/ros2_workspace/install/ergocub_nav2_nodes/share/ergocub_nav2_nodes/replan_on_bool.xml"
+    default_nav_to_pose_bt_xml: /usr/local/src/robot/ros2_ws/src/ergocub_navigation/config/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml #"/home/user1/ros2_workspace/src/ergoCub_ros2/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml"
     bt_loop_duration: 10
     goal_reached_tol: 0.25
     default_server_timeout: 4000
-    transform_tolerance: 0.3
+    transform_tolerance: 0.5  #0.3
     #enable_groot_monitoring: True
     #groot_zmq_publisher_port: 1666
     #groot_zmq_server_port: 1667
@@ -45,7 +44,7 @@ bt_navigator:
     - nav2_planner_selector_bt_node
     - nav2_controller_selector_bt_node
     - nav2_goal_checker_selector_bt_node
-    - ergocub_nav2_nodes_core
+    - bt_nav2_ergocub_core
     - is_goal_reached
     - is_path_valid
     #error_code_names:
@@ -241,7 +240,7 @@ local_costmap:
         observation_sources: pointcloud_mark pointcloud_clear
         combination_method: 1
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /camera_rgbd/depth/points
+          topic: /camera/depth/color/points
           max_obstacle_height: 2.0
           min_obstacle_height: 0.15
           obstacle_max_range: 5.0
@@ -252,7 +251,7 @@ local_costmap:
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /camera_rgbd/depth/points
+          topic: /camera/depth/color/points
           max_obstacle_height: 4.8
           min_obstacle_height: -4.8
           obstacle_max_range: 5.0
@@ -307,21 +306,21 @@ global_costmap:
           data_type: "LaserScan"
           inf_is_valid: false
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /camera_rgbd/depth/points
+          topic: /camera/depth/color/points
           max_obstacle_height: 2.0
           min_obstacle_height: 0.15
-          obstacle_max_range: 5.0
+          obstacle_max_range: 6.0
           obstacle_min_range: 0.4
-          raytrace_max_range: 6.0
+          raytrace_max_range: 7.0
           raytrace_min_range: 0.0
           clearing: false
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /camera_rgbd/depth/points
-          max_obstacle_height: 4.8
-          min_obstacle_height: -4.8
-          obstacle_max_range: 5.0
+          topic: /camera/depth/color/points
+          max_obstacle_height: 3.8
+          min_obstacle_height: -3.8
+          obstacle_max_range: 7.0
           obstacle_min_range: 0.0
           raytrace_max_range: 12.0
           raytrace_min_range: 0.0

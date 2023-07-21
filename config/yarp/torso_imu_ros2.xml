@@ -18,7 +18,7 @@
            </paramlist>
         </action>
      
-        <param name ="node_name"> filtered_torso_imu_local </param>
+        <param name ="node_name"> torso_imu_local </param>
         <param name ="topic_name"> /torso_imu_filtered</param>
         <param name ="sensor_name"> torso_imu </param>
         <param name ="frame_id"> torso_imu_0 </param>
