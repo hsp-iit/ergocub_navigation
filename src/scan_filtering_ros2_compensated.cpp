@@ -18,7 +18,7 @@ using std::placeholders::_1;
 class ScanFilter : public rclcpp::Node
 {
 private:
-    const std::string m_referece_frame = "r_sole";  
+    const std::string m_referece_frame = "virtual_unicycle_base";  
     const char* m_scan_topic = "/scan_local";
     const char* m_pub_topic = "/compensated_pc2";
     laser_geometry::LaserProjection m_projector;
@@ -26,8 +26,11 @@ private:
     const float m_filter_z_low = 0.2;
     const float m_filter_z_high = 3.0;
     const float m_sensor_height = 1.5;
+    const double m_close_threshold = 0.3;
     const char* m_right_sole_frame = "r_sole";
     const char* m_left_sole_frame = "l_sole";
+
+    bool m_robot_on_crane = true;
 
     geometry_msgs::msg::TransformStamped m_compensation_TF;
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener_{nullptr};
@@ -48,7 +51,6 @@ private:
             // Converts the scans into cartesian space points
             sensor_msgs::msg::PointCloud2 original_cloud;
             sensor_msgs::msg::PointCloud2 transformed_cloud;
-            //projector_.transformLaserScanToPointCloud(referece_frame, *scan_in, cloud, *tf_buffer_in); //-> by documentation should be used with fixed frame
             m_projector.projectLaser(*scan_in, original_cloud);
             //transform cloud from lidar frame to virtual_unicycle_base
             try
@@ -66,6 +68,18 @@ private:
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered2 (new pcl::PointCloud<pcl::PointXYZ>);
 
             pcl::fromROSMsg(transformed_cloud, *pcl_cloud);
+            // Exlude the points too close to the center for the crane
+            if(m_robot_on_crane)
+            {
+                for(auto it=pcl_cloud->begin(); it==pcl_cloud->end(); ++it)
+                {
+                    if (std::sqrt(std::pow(it->x, 2) + std::sqrt(std::pow(it->y, 2))) < m_close_threshold)
+                    {
+                        pcl_cloud->erase(it);
+                    }
+                }
+            }
+            
             // Filter cloud
             //RCLCPP_INFO(get_logger(), "Original cloud size: %li \n", pcl_cloud->size());
             // FILTER 1 - PASSTHROUGH
@@ -75,17 +89,7 @@ private:
             pass.setFilterLimits(m_filter_z_low, m_filter_z_high);
             // Filtering
             pass.filter (*cloud_filtered1);
-            // FILTER 1B removing the back part of Lidar (simulating the support crane on the real robot)
-            //pcl::PassThrough<pcl::PointXYZ> pass_back;       
-            //pass_back.setInputCloud (cloud_filtered1);
-            //pass_back.setFilterFieldName ("x");
-            //pass_back.setFilterLimits(0.0, 25.0);
-            //// Filtering
-            //pass_back.filter (*cloud_filtered1);
-            sensor_msgs::msg::PointCloud2 ros_cloud_debug;
-            //pcl::toROSMsg(*cloud_filtered2, ros_cloud_debug);
-            //m_debug_pub->publish(ros_cloud_debug);
-            //RCLCPP_INFO(get_logger(), "Cloud size after filter 1: %li \n", cloud_filtered1->size());
+            
             // FILTER 2 - PLANE PROJECTOR
             pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());   // Create a set of planar coefficients with X=Y=0,Z=1, d= 1.5
             coefficients->values.resize(4);
