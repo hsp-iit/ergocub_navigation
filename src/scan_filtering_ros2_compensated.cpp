@@ -18,15 +18,15 @@ using std::placeholders::_1;
 class ScanFilter : public rclcpp::Node
 {
 private:
-    const std::string m_referece_frame = "virtual_unicycle_base";  
+    const std::string m_referece_frame = "geometric_unicycle";  //virtual_unicycle_base
     const char* m_scan_topic = "/scan_local";
-    const char* m_pub_topic = "/compensated_pc2";
+    const std::string m_pub_topic = "/compensated_pc2";
     laser_geometry::LaserProjection m_projector;
 
     const float m_filter_z_low = 0.2;
     const float m_filter_z_high = 3.0;
     const float m_sensor_height = 1.5;
-    const double m_close_threshold = 0.3;
+    const double m_close_threshold = 0.5;
     const char* m_right_sole_frame = "r_sole";
     const char* m_left_sole_frame = "l_sole";
 
@@ -35,7 +35,7 @@ private:
     geometry_msgs::msg::TransformStamped m_compensation_TF;
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener_{nullptr};
     std::unique_ptr<tf2_ros::Buffer> m_tf_buffer_in;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_pointcloud_pub, m_debug_pub;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_pointcloud_pub, m_second_pub, m_third_pub;
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr m_raw_scan_sub;
 
     void scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan_in)
@@ -109,6 +109,8 @@ private:
             ros_cloud.header.stamp = scan_in->header.stamp;
             pcl::toROSMsg(*cloud_filtered2, ros_cloud);
             m_pointcloud_pub->publish(ros_cloud);
+            m_second_pub->publish(ros_cloud);
+            m_third_pub->publish(ros_cloud);
         }
         else
         {
@@ -120,7 +122,8 @@ public:
     ScanFilter() : Node("scan_compensating_node")
     {
         m_pointcloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic, 10);
-        m_debug_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("debug_pc2", 10);
+        m_second_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic + "_2", 10);
+        m_third_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic + "_3", 10);
         m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
         m_tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
 

@@ -27,8 +27,9 @@ class VirtualUnicyclePub : public rclcpp::Node
 private:
     const std::string port_name = "/virtual_unicycle_publisher/unicycle_states:i";
     yarp::os::BufferedPort<yarp::os::Bottle> port;
-    yarp::os::Contact portContact{port_name, "shmem" };
+    //yarp::os::Contact portContact{port_name, "shmem" };
     const double m_loopFreq = 50.0;
+    const double m_nominalWidth = 0.2;
     std::shared_ptr<tf2_ros::TransformBroadcaster> m_tf_broadcaster;
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};
     std::unique_ptr<tf2_ros::Buffer> m_tf_buffer_in;
@@ -37,7 +38,6 @@ private:
 public:
     VirtualUnicyclePub() : rclcpp::Node("virtual_unicycle_publisher_node")
     {   
-        //port.open(portContact, true);
         port.open(port_name);
         yarp::os::Network::connect("/navigation_helper/virtual_unicycle_states:o", port_name); 
         //create TF
@@ -54,23 +54,11 @@ public:
         try
         {
             yarp::os::Bottle* data = port.read(true);
-            std::cout << "publish" << std::endl;
-            //std::cout << "Reading virtual_unicycle_simulated: X: " <<  data.get(0).asList()->get(0).asFloat64() << " Y: " <<  data.get(0).asList()->get(1).asFloat64() <<
-            //             " Theta: " << data.get(0).asList()->get(2).asFloat64() << std::endl;
-            //std::cout << "Reading virtual_unicycle_reference: X: " <<  data.get(1).asList()->get(0).asFloat64() << " Y: " <<  data.get(1).asList()->get(1).asFloat64() <<
-            //             " Theta: " << data.get(1).asList()->get(2).asFloat64() << std::endl;
-            //std::cout << "Reading stance foot: " << data.get(2).asString() << std::endl;
-            //std::cout << "Reading Transform: X: " <<  data.get(3).asList()->get(0).asFloat64() << " Y: " <<  data.get(3).asList()->get(1).asFloat64() <<
-            //             " Z: " << data.get(3).asList()->get(2).asFloat64() << " x: " << data.get(3).asList()->get(3).asFloat64() <<
-            //             " y: " << data.get(3).asList()->get(4).asFloat64() << " z: " << data.get(3).asList()->get(5).asFloat64() <<
-            //              std::endl;
             long long sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
             long long ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
             ns = ns%((long long)10e9);
-            std::cout << "Time: " << sec << " " << ns << std::endl;
             std::vector<geometry_msgs::msg::TransformStamped> tfBuffer;
             geometry_msgs::msg::TransformStamped tf, tfReference;
-            //tf.header.stamp = this->get_clock()->now();
             tf.header.stamp.sec = sec;
             tf.header.stamp.nanosec = ns;
             tfReference.header.stamp = tf.header.stamp;
@@ -81,14 +69,13 @@ public:
             tf_fromOdom.header.frame_id = "odom";
             tfReference_fromOdom.header.frame_id = "odom";
 
-
             if (data->get(2).asString() == "left")
             {
                 tf.header.frame_id = "l_sole";
                 tfReference.header.frame_id = "l_sole";
                 tf.child_frame_id = "virtual_unicycle_simulated";
                 tfReference.child_frame_id = "virtual_unicycle_reference";
-                tf.transform.translation.y = - 0.07; //TODO PARAMETRIZE
+                tf.transform.translation.y = - m_nominalWidth/2;
             }
             else
             {
@@ -96,7 +83,7 @@ public:
                 tfReference.header.frame_id = "r_sole";
                 tf.child_frame_id = "virtual_unicycle_simulated"; 
                 tfReference.child_frame_id = "virtual_unicycle_reference";   
-                tf.transform.translation.y = 0.07;        
+                tf.transform.translation.y = m_nominalWidth/2;        
             }
 
             tf.transform.translation.x = 0;
@@ -120,7 +107,6 @@ public:
             odomTf.transform.rotation.z = qOdom.z();
             odomTf.transform.rotation.w = qOdom.w();
             tfBuffer.push_back(odomTf);
-            //m_tf_broadcaster->sendTransform(odomTf);
 
             //Virtual unicycle base pub in odom frame
             tf_fromOdom.transform.translation.x = data->get(0).asList()->get(0).asFloat64();
@@ -169,16 +155,11 @@ public:
             tfReference.transform.rotation.y = qRef.y();
             tfReference.transform.rotation.z = qRef.z();
             tfReference.transform.rotation.w = qRef.w();
-            //std::cout << "Publishing tf X: " <<  tf.transform.translation.x << " Y: " <<  tf.transform.translation.y << std::endl;
 
             tfBuffer.push_back(tf);
             tfBuffer.push_back(tfReference);
             tfBuffer.push_back(tf_fromOdom);
             tfBuffer.push_back(tfReference_fromOdom);
-            //m_tf_broadcaster->sendTransform(tf);
-            //m_tf_broadcaster->sendTransform(tfReference);
-            //m_tf_broadcaster->sendTransform(tf_fromOdom);
-            //m_tf_broadcaster->sendTransform(tfReference_fromOdom);
 
             //Geometrical virtual unicycle approach
             geometry_msgs::msg::TransformStamped geometrycalVirtualUnicycle;    //tf to broadcast
@@ -237,11 +218,11 @@ public:
                 //otherwise I keep the unicycle on the stance foot
                 if (stanceFoot == "l_sole")
                 {
-                    geometrycalVirtualUnicycle.transform.translation.y = -0.07; //depends by the nominalWidth/2 parameter in the walking-controller
+                    geometrycalVirtualUnicycle.transform.translation.y = -m_nominalWidth/2; //depends by the nominalWidth/2 parameter in the walking-controller
                 }
                 else
                 {
-                    geometrycalVirtualUnicycle.transform.translation.y = 0.07;
+                    geometrycalVirtualUnicycle.transform.translation.y = m_nominalWidth/2;
                 }
                 geometrycalVirtualUnicycle.transform.translation.x = 0.0;
                 geometrycalVirtualUnicycle.transform.translation.z = 0.0;
@@ -250,7 +231,6 @@ public:
                 geometrycalVirtualUnicycle.transform.rotation.z = 0;
                 geometrycalVirtualUnicycle.transform.rotation.w = 1;
             }
-            //std::cout << " Rotation: w " << geometrycalVirtualUnicycle.transform.rotation.w << std::endl;
             tfBuffer.push_back(geometrycalVirtualUnicycle);
             m_tf_broadcaster->sendTransform(tfBuffer);         
 
@@ -273,11 +253,6 @@ int main(int argc, char** argv)
     // Start listening in polling
     if (rclcpp::ok())
     {
-        //YarpDataProcessor processor;
-        //yarp::os::Port port;
-        //port.open(port_name);
-        //yarp::os::Network::connect("/walking-coordinator/virtual_unicycle_states:o", port_name); 
-        //port.setReader(processor);
         auto node = std::make_shared<VirtualUnicyclePub>();
         rclcpp::spin(node);
     }

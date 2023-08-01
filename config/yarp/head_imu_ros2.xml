@@ -8,7 +8,7 @@
         <param name="local">   /head_imu_client:i </param>
         <param name="remote">  /ergocub/head/inertials  </param>
         <!--<param name="carrier">  fast_tcp+send.portmonitor+file.bottle_compression_zlib+recv.portmonitor+file.bottle_compression_zlib+type.dll  </param>-->
-        <!--<param name="timout">  10.0  </param>-->
+        <!--<param name="timeout">  10.0  </param>-->
 
         <action phase="shutdown" level="5" type="detach" />
     </device>
