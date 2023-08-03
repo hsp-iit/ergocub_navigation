@@ -28,7 +28,7 @@ private:
     const std::string port_name = "/virtual_unicycle_publisher/unicycle_states:i";
     yarp::os::BufferedPort<yarp::os::Bottle> port;
     //yarp::os::Contact portContact{port_name, "shmem" };
-    const double m_loopFreq = 50.0;
+    const double m_loopFreq = 100.0;
     const double m_nominalWidth = 0.2;
     std::shared_ptr<tf2_ros::TransformBroadcaster> m_tf_broadcaster;
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};

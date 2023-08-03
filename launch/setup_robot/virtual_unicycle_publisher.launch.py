@@ -4,7 +4,7 @@ from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
-    use_sim_time = LaunchConfiguration('use_sim_time', default='True')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
 
     return LaunchDescription([
         DeclareLaunchArgument(

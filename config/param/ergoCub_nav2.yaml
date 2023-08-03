@@ -438,7 +438,7 @@ recoveries_server:
     wait:
       plugin: "nav2_recoveries/Wait"
     global_frame: odom
-    robot_base_frame: virtual_unicycle_base #projection
+    robot_base_frame: geometric_unicycle #virtual_unicycle_base
     transform_timeout: 0.1
     use_sim_time: True
     simulate_ahead_time: 2.0
