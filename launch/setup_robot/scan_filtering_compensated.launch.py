@@ -21,7 +21,7 @@ def generate_launch_description():
         ),
         Node(
             package='ergocub_navigation',
-            executable='scan_filter_compensated',
+            executable='scan_filter',
             output='screen',
             parameters=[{'use_sim_time': use_sim_time}]
         ),

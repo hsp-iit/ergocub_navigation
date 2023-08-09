@@ -13,7 +13,7 @@ def generate_launch_description():
             description='Use simulation (Gazebo) clock if true'),
         Node(
             package='ergocub_navigation',
-            executable='footsteps_viewer',
+            executable='footsteps_viewer_',
             output='screen',
             parameters=[{'use_sim_time': use_sim_time}]
         )

@@ -13,7 +13,7 @@ def generate_launch_description():
             description='Use simulation (Gazebo) clock if true'),
         Node(
             package='ergocub_navigation',
-            executable='virtual_unicycle_publisher',
+            executable='odom_node',
             output='screen',
             parameters=[{'use_sim_time': use_sim_time}]
         )
