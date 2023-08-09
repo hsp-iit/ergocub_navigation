@@ -61,14 +61,14 @@ add_definitions(${PCL_DEFINITIONS})
 #)
 #target_link_libraries(scan_filter_compensated ${PCL_LIBRARIES})
 
-add_executable(chest_projection src/chest_projection.cpp)
-ament_target_dependencies(chest_projection
-  "std_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "YARP"
-  "rclcpp"
-)
+#add_executable(chest_projection src/chest_projection.cpp)
+#ament_target_dependencies(chest_projection
+#  "std_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "YARP"
+#  "rclcpp"
+#)
 
 #add_executable(footsteps_viewer src/footsteps_viewer.cpp)
 #ament_target_dependencies(footsteps_viewer
@@ -138,6 +138,25 @@ ament_target_dependencies(footsteps_viewer_
   "visualization_msgs"
 )
 
+add_executable(base_projector src/BaseProjector.cpp)
+ament_target_dependencies(base_projector
+  "std_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "YARP"
+  "rclcpp"
+)
+
+add_executable(odom_node src/OdomNode.cpp)
+ament_target_dependencies(odom_node
+  "YARP"
+  "rclcpp"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "tf2_kdl"
+)
+
 set(dependencies
   rclcpp
   geometry_msgs
@@ -164,13 +183,15 @@ endif()
 
 install(TARGETS
 #  scan_filter_compensated
-  chest_projection
+#  chest_projection
 #  footsteps_viewer
-  virtual_unicycle_publisher
+#  virtual_unicycle_publisher
+  odom_node
   planner_trigger_server
   interpolation_walking_controller_talker
   scan_filter
   footsteps_viewer_
+  base_projector
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
