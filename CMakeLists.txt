@@ -42,24 +42,24 @@ include_directories(/opt/ros/humble/include/tf2)
 include_directories(/opt/ros/humble/include/tf2_ros)
 include_directories(/opt/ros/humble/include/laser_geometry)
 include_directories(/opt/ros/humble/include/pcl_conversions)
+include_directories(include)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-nav2_package()
 
-add_executable(scan_filter_compensated src/scan_filtering_ros2_compensated.cpp)
-ament_target_dependencies(scan_filter_compensated
-  "std_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "rclcpp"
-  "laser_geometry"
-  "pcl_conversions"
-  "geometry_msgs"
-  "sensor_msgs"
-)
-target_link_libraries(scan_filter_compensated ${PCL_LIBRARIES})
+#add_executable(scan_filter_compensated src/scan_filtering_ros2_compensated.cpp)
+#ament_target_dependencies(scan_filter_compensated
+#  "std_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "rclcpp"
+#  "laser_geometry"
+#  "pcl_conversions"
+#  "geometry_msgs"
+#  "sensor_msgs"
+#)
+#target_link_libraries(scan_filter_compensated ${PCL_LIBRARIES})
 
 add_executable(chest_projection src/chest_projection.cpp)
 ament_target_dependencies(chest_projection
@@ -70,18 +70,18 @@ ament_target_dependencies(chest_projection
   "rclcpp"
 )
 
-add_executable(footsteps_viewer src/footsteps_viewer.cpp)
-ament_target_dependencies(footsteps_viewer
-  "YARP"
-  "rclcpp"
-  "nav_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "tf2"
-  "nav2_util"
-  "nav_2d_msgs"
-  "visualization_msgs"
-)
+#add_executable(footsteps_viewer src/footsteps_viewer.cpp)
+#ament_target_dependencies(footsteps_viewer
+#  "YARP"
+#  "rclcpp"
+#  "nav_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "tf2"
+#  "nav2_util"
+#  "nav_2d_msgs"
+#  "visualization_msgs"
+#)
 
 add_executable(virtual_unicycle_publisher src/virtual_unicycle_publisher.cpp)
 ament_target_dependencies(virtual_unicycle_publisher
@@ -112,6 +112,32 @@ ament_target_dependencies(interpolation_walking_controller_talker
   "nav_2d_msgs"
 )
 
+add_executable(scan_filter src/ScanFilter.cpp)
+ament_target_dependencies(scan_filter
+  "std_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "rclcpp"
+  "laser_geometry"
+  "pcl_conversions"
+  "geometry_msgs"
+  "sensor_msgs"
+)
+target_link_libraries(scan_filter ${PCL_LIBRARIES})
+
+add_executable(footsteps_viewer_ src/FootstepsViewer/main.cpp src/FootstepsViewer/FootstepsViewerYarp.cpp src/FootstepsViewer/FootstepsViewerRos.cpp)
+ament_target_dependencies(footsteps_viewer_
+  "YARP"
+  "rclcpp"
+  "nav_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "nav2_util"
+  "nav_2d_msgs"
+  "visualization_msgs"
+)
+
 set(dependencies
   rclcpp
   geometry_msgs
@@ -137,12 +163,14 @@ if(BUILD_TESTING)
 endif()
 
 install(TARGETS
-  scan_filter_compensated
+#  scan_filter_compensated
   chest_projection
-  footsteps_viewer
+#  footsteps_viewer
   virtual_unicycle_publisher
   planner_trigger_server
   interpolation_walking_controller_talker
+  scan_filter
+  footsteps_viewer_
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
@@ -166,5 +194,10 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}/
 )
 
+install(DIRECTORY include/
+  DESTINATION include/
+)
+
+ament_export_include_directories(include)
 
 ament_package()
