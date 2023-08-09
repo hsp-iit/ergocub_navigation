@@ -49,12 +49,8 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_pointcloud_pub, m_second_pub, m_third_pub;
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr m_raw_scan_sub;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr m_imu_sub;
-    sensor_msgs::msg::Imu m_imuState;
+    geometry_msgs::msg::Vector3 m_imu_angular_velocity;
     std::mutex m_imu_mutex;
-
-    //using clock = std::chrono::system_clock;
-    //using duration_msec = std::chrono::duration<double, std::milli>;
-    //using tps = std::chrono::time_point<clock, duration_msec>;
 
     void scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan_in)
     {
@@ -70,9 +66,9 @@ private:
         //IMU -> should be put first and return before computing laser scan stuff
         {
             std::lock_guard<std::mutex>lock(m_imu_mutex);
-            if (std::abs(m_imuState.angular_velocity.x) > m_imuVel_x_threshold || std::abs(m_imuState.angular_velocity.y) > m_imuVel_y_threshold)
+            if (std::abs(m_imu_angular_velocity.x) > m_imuVel_x_threshold || std::abs(m_imu_angular_velocity.y) > m_imuVel_y_threshold)
             {
-                RCLCPP_INFO(this->get_logger(), "Imu detected high velocities: x: %f y: %f", m_imuState.angular_velocity.x, m_imuState.angular_velocity.y);
+                RCLCPP_INFO(this->get_logger(), "Imu detected high velocities: x: %f y: %f", m_imu_angular_velocity.x, m_imu_angular_velocity.y);
                 m_last_vibration_detection = std::chrono::system_clock::now();
                 return;
             }
@@ -158,7 +154,8 @@ private:
     void imuCallback(const sensor_msgs::msg::Imu::ConstPtr& imu_msg)
     {
         std::lock_guard<std::mutex>lock(m_imu_mutex);
-        m_imuState = *imu_msg;
+        //RCLCPP_INFO(this->get_logger(), "Got imu message with vel x: %f y: %f z: %f", imu_msg->angular_velocity.x, imu_msg->angular_velocity.y, imu_msg->angular_velocity.z);
+        m_imu_angular_velocity = imu_msg->angular_velocity;
     };
 
 public:
