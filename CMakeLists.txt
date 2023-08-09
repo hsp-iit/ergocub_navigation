@@ -83,15 +83,15 @@ add_definitions(${PCL_DEFINITIONS})
 #  "visualization_msgs"
 #)
 
-add_executable(virtual_unicycle_publisher src/virtual_unicycle_publisher.cpp)
-ament_target_dependencies(virtual_unicycle_publisher
-  "YARP"
-  "rclcpp"
-  "tf2_ros"
-  "tf2_msgs"
-  "tf2"
-  "tf2_kdl"
-)
+#add_executable(virtual_unicycle_publisher src/virtual_unicycle_publisher.cpp)
+#ament_target_dependencies(virtual_unicycle_publisher
+#  "YARP"
+#  "rclcpp"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "tf2"
+#  "tf2_kdl"
+#)
 
 add_executable(planner_trigger_server src/planner_trigger_server.cpp)
 ament_target_dependencies(planner_trigger_server
@@ -100,17 +100,17 @@ ament_target_dependencies(planner_trigger_server
   "std_srvs"
 )
 
-add_executable(interpolation_walking_controller_talker src/interpolation_walking_controller_talker.cpp)
-ament_target_dependencies(interpolation_walking_controller_talker
-  "YARP"
-  "rclcpp"
-  "nav_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "tf2"
-  "nav2_util"
-  "nav_2d_msgs"
-)
+#add_executable(interpolation_walking_controller_talker src/interpolation_walking_controller_talker.cpp)
+#ament_target_dependencies(interpolation_walking_controller_talker
+#  "YARP"
+#  "rclcpp"
+#  "nav_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "tf2"
+#  "nav2_util"
+#  "nav_2d_msgs"
+#)
 
 add_executable(scan_filter src/ScanFilter.cpp)
 ament_target_dependencies(scan_filter
@@ -157,6 +157,18 @@ ament_target_dependencies(odom_node
   "tf2_kdl"
 )
 
+add_executable(path_converter src/PathConverter.cpp)
+ament_target_dependencies(path_converter
+  "YARP"
+  "rclcpp"
+  "nav_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "nav2_util"
+  "nav_2d_msgs"
+)
+
 set(dependencies
   rclcpp
   geometry_msgs
@@ -188,10 +200,11 @@ install(TARGETS
 #  virtual_unicycle_publisher
   odom_node
   planner_trigger_server
-  interpolation_walking_controller_talker
+# interpolation_walking_controller_talker
   scan_filter
   footsteps_viewer_
   base_projector
+  path_converter
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
