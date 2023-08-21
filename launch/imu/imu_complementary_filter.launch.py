@@ -10,7 +10,8 @@ def generate_launch_description():
         [
             Node(
                 package='imu_complementary_filter',
-                remappings=[('imu/data_raw', 'head_imu/data_raw')],
+                remappings=[('imu/data_raw', 'head_imu'),
+                            ('imu/data', 'head_imu/filtered')],
                 executable='complementary_filter_node',
                 name='complementary_filter_gain_node',
                 output='screen',
@@ -18,3 +19,4 @@ def generate_launch_description():
             )
         ]
     )
+    

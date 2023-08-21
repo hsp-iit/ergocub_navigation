@@ -14,7 +14,8 @@ def generate_launch_description():
         [
             launch_ros.actions.Node(
                 package='imu_filter_madgwick',
-                remappings=[('imu/data_raw', 'head_imu/data_raw')],
+                remappings=[('imu/data_raw', 'head_imu'),
+                            ('imu/data', 'head_imu/filtered')],
                 executable='imu_filter_madgwick_node',
                 name='imu_filter',
                 output='screen',
