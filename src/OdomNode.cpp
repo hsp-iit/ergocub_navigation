@@ -1,4 +1,5 @@
 #include "OdomNode/OdomNode.hpp"
+#include "yarp/os/Stamp.h"
 
 
 OdomNode::OdomNode() : rclcpp::Node("virtual_unicycle_publisher_node")
@@ -9,6 +10,8 @@ OdomNode::OdomNode() : rclcpp::Node("virtual_unicycle_publisher_node")
     m_tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
     m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
+    m_odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(m_odom_topic_name, 10);
+    m_control_pub = this->create_publisher<geometry_msgs::msg::Twist>("/planned_vel", 10);
     auto duration = std::chrono::duration<double>(1/m_loopFreq);
     m_timer = this->create_wall_timer(duration, std::bind(&OdomNode::PublishOdom, this));
 }
@@ -18,10 +21,14 @@ void OdomNode::PublishOdom()
         try
         {
             yarp::os::Bottle* data = port.read(true);
+            yarp::os::Stamp stamp;
+            port.getEnvelope(stamp);
+            double time = stamp.getTime();
             //TODO use time stamp from YARP
             long long sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
             long long ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
             ns = ns%((long long)10e9);
+            RCLCPP_INFO(this->get_logger(), "from yarp TS: %f ; from local clock: %i s - %i ns", time, sec, ns);
             std::vector<geometry_msgs::msg::TransformStamped> tfBuffer;
             geometry_msgs::msg::TransformStamped tf, tfReference;
             tf.header.stamp.sec = sec;
@@ -73,6 +80,59 @@ void OdomNode::PublishOdom()
             odomTf.transform.rotation.w = qOdom.w();
             tfBuffer.push_back(odomTf);
 
+            //odom msg publishing
+            nav_msgs::msg::Odometry odom_msg;
+            odom_msg.header.frame_id = "odom";
+            odom_msg.header.stamp = odomTf.header.stamp;
+            odom_msg.pose.pose.position.x = odomTf.transform.translation.x;
+            odom_msg.pose.pose.position.y = odomTf.transform.translation.y;
+            odom_msg.pose.pose.position.z = 0.0;
+            tf2::Quaternion tmp_quat;
+            tmp_quat.setRPY(0, 0, data->get(3).asList()->get(5).asFloat64());
+            odom_msg.pose.pose.orientation=tf2::toMsg(tmp_quat);
+            odom_msg.pose.covariance = m_pose_cov_matrix;
+
+            odom_msg.twist.twist.linear.x = 0.0;
+            odom_msg.twist.twist.linear.y = 0.0;
+            odom_msg.twist.twist.linear.z = 0.0;
+            odom_msg.twist.twist.angular.x = 0.0;
+            odom_msg.twist.twist.angular.y = 0.0;
+            odom_msg.twist.twist.angular.z = 0.0;
+
+            //Publish measured vel of the CoM
+            //geometry_msgs::msg::Twist measured_vel;
+            try
+            {
+                odom_msg.twist.twist.linear.x = data->get(5).asList()->get(0).asFloat64();
+                odom_msg.twist.twist.linear.y = data->get(5).asList()->get(1).asFloat64();
+                //odom_msg.twist.twist.linear.z = 0.0;    //data->get(5).asList()->get(2).asFloat64();
+                //odom_msg.twist.twist.angular.x = 0.0;   //data->get(5).asList()->get(3).asFloat64();
+                //odom_msg.twist.twist.angular.y = 0.0;   //data->get(5).asList()->get(4).asFloat64();
+                odom_msg.twist.twist.angular.z = data->get(5).asList()->get(5).asFloat64();
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
+            m_odom_pub->publish(odom_msg);
+
+            //Should also publish the planned velocity for the root_link or CoM
+            geometry_msgs::msg::Twist planned_vel;
+            try
+            {
+                planned_vel.linear.x = data->get(4).asList()->get(0).asFloat64();
+                planned_vel.linear.y = data->get(4).asList()->get(1).asFloat64();
+                planned_vel.linear.z = 0.0;
+                planned_vel.angular.x = 0.0;
+                planned_vel.angular.y = 0.0;
+                planned_vel.angular.z = 0.0; //data->get(4).asList()->get(2).asFloat64();
+                m_control_pub->publish(planned_vel);
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
+            
             //Virtual unicycle base pub in odom frame
             tf_fromOdom.transform.translation.x = data->get(0).asList()->get(0).asFloat64();
             tf_fromOdom.transform.translation.y = data->get(0).asList()->get(1).asFloat64();
