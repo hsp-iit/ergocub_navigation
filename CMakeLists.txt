@@ -155,6 +155,7 @@ ament_target_dependencies(odom_node
   "tf2_msgs"
   "tf2"
   "tf2_kdl"
+  "nav_msgs"
 )
 
 add_executable(path_converter src/PathConverter.cpp)
