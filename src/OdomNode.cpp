@@ -28,11 +28,12 @@ void OdomNode::PublishOdom()
             long long sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
             long long ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
             ns = ns%((long long)10e9);
-            RCLCPP_INFO(this->get_logger(), "from yarp TS: %f ; from local clock: %i s - %i ns", time, sec, ns);
+            //RCLCPP_INFO(this->get_logger(), "from yarp TS: %f ; from local clock: %i s - %i ns", time, sec, ns);
             std::vector<geometry_msgs::msg::TransformStamped> tfBuffer;
             geometry_msgs::msg::TransformStamped tf, tfReference;
-            tf.header.stamp.sec = sec;
-            tf.header.stamp.nanosec = ns;
+            tf.header.stamp.sec = (long int)time;
+            tf.header.stamp.nanosec = (time - (long int)time) * 1E9;
+            //RCLCPP_INFO(this->get_logger(), "from yarp TS: %f ; to STAMP: %i s - %i ns", time, tf.header.stamp.sec, tf.header.stamp.nanosec);
             tfReference.header.stamp = tf.header.stamp;
             geometry_msgs::msg::TransformStamped tf_fromOdom, tfReference_fromOdom; //position of the virtual unicycle computed from the walking-controller in the odom frame
             tf_fromOdom.header.stamp = tfReference_fromOdom.header.stamp = tf.header.stamp;
