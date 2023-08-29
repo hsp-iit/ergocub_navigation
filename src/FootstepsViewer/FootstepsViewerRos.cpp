@@ -7,8 +7,8 @@ FootstepsViewerRos::FootstepsViewerRos() : rclcpp::Node("footstep_viewer_node")
 };
 
 bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
-        std::cout << "publishMarkers" << std::endl;
-        std::cout << data.size() << std::endl;
+        //std::cout << "publishMarkers" << std::endl;
+        //std::cout << data.size() << std::endl;
         auto leftSteps = data.get(0).asList();
         auto rightSteps = data.get(1).asList();
         if (leftSteps->size() == 0 || rightSteps->size()==0)
@@ -34,7 +34,7 @@ bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
         right_marker_array.markers.clear();
         builtin_interfaces::msg::Time timestamp = now();
         //LEFT
-        std::cout << "Left Loop" << std::endl;
+        //std::cout << "Left Loop" << std::endl;
         //RCLCPP_INFO(this->get_logger(), "Left Loop");
         for (size_t i = 0; i < leftSteps->size(); ++i)
         {
@@ -74,11 +74,11 @@ bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
             left_marker_array.markers.push_back(tmp_marker_msg);
         }
         //RCLCPP_INFO(this->get_logger(), "Publishing Left");
-        std::cout << "Left Publish" << std::endl;
+        //std::cout << "Left Publish" << std::endl;
         m_leftFootprintsMarkersPub->publish(left_marker_array);
 
         //RIGHT
-        std::cout << "Right Loop" << std::endl;
+        //std::cout << "Right Loop" << std::endl;
         //RCLCPP_INFO(this->get_logger(), "Right Loop");
 
         //tmp_marker_msg.points.clear();
@@ -121,8 +121,8 @@ bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
         }
 
         //RCLCPP_INFO(this->get_logger(), "Publishing Right");
-        std::cout << "Right Publish" << std::endl;
+        //std::cout << "Right Publish" << std::endl;
         //publish
         m_rightFootprintsMarkersPub->publish(right_marker_array);
-        std::cout << "Exiting" << std::endl;
+        std::cout << "Exiting Pub" << std::endl;
 };

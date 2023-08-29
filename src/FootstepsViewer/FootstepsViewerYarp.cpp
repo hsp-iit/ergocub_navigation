@@ -9,7 +9,7 @@ bool FootstepsViewerYarp::read(yarp::os::ConnectionReader& t_connection)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
-    std::cout << "New message received" << std::endl;
+    //std::cout << "New message received" << std::endl;
     yarp::os::Bottle b;
     bool ok = b.read(t_connection);
     if (!ok) {
@@ -24,7 +24,7 @@ bool FootstepsViewerYarp::read(yarp::os::ConnectionReader& t_connection)
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            //std::cerr << e.what() << '\n';
         }
     }
     else
