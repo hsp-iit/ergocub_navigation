@@ -8,6 +8,11 @@ using std::placeholders::_1;
 
 void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan_in)
     {
+        try
+        {
+            /* code */
+        
+        
         auto tp = std::chrono::system_clock::now();
         double delta_t = (std::chrono::duration<double, std::milli>(tp.time_since_epoch()).count() - std::chrono::duration<double, std::milli>(m_last_vibration_detection.time_since_epoch()).count());
         if (delta_t < m_ms_wait) 
@@ -39,10 +44,11 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
             sensor_msgs::msg::PointCloud2 original_cloud;
             sensor_msgs::msg::PointCloud2 transformed_cloud;
             m_projector.projectLaser(*scan_in, original_cloud);
+            original_cloud.header.frame_id = scan_in->header.frame_id;
             //transform cloud from lidar frame to virtual_unicycle_base
             try
             {
-                transformed_cloud = m_tf_buffer_in->transform(original_cloud, m_referece_frame);
+                transformed_cloud = m_tf_buffer_in->transform(original_cloud, m_referece_frame, tf2::durationFromSec(0.02));
             }
             catch(const std::exception& e)
             {
@@ -104,12 +110,25 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
         //{
         //    RCLCPP_ERROR(get_logger(), "Could not transform message: %s", transform_error.c_str());
         //}
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
     };
 
 void ScanFilter::imuCallback(const sensor_msgs::msg::Imu::ConstPtr& imu_msg)
 {
+    try
+    {
+
     std::lock_guard<std::mutex>lock(m_imu_mutex);
     m_imu_angular_velocity = imu_msg->angular_velocity;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
 };
 
 ScanFilter::ScanFilter() : Node("scan_compensating_node")
