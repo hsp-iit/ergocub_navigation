@@ -25,7 +25,6 @@
         <param name ="node_name"> filtered_head_imu_local </param>
         <param name ="topic_name"> /head_imu</param>
         <param name ="sensor_name"> head_imu </param>
-        <param name ="frame_id"> head_imu_0 </param>
      
         <action phase="shutdown" level="5" type="detach" />
     </device>

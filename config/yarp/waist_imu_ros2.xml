@@ -24,7 +24,6 @@
         <param name ="node_name"> waist_imu_local </param>
         <param name ="topic_name"> /waist_imu_raw</param>
         <param name ="sensor_name"> waist_imu </param>
-        <param name ="frame_id"> waist_imu_0 </param>
      
         <action phase="shutdown" level="5" type="detach" />
     </device>
