@@ -33,7 +33,7 @@ BaseProjector::BaseProjector() : rclcpp::Node("chest_projection_node")
 
     //Params declaration:
     if (!this->has_parameter("feet_sensor_threshold")) {
-        this->declare_parameter((std::string)this->get_name() + ".feet_sensor_threshold", rclcpp::ParameterValue(100.0));
+        this->declare_parameter((std::string)this->get_name() + ".feet_sensor_threshold", rclcpp::ParameterValue(80.0));
     }
     this->get_parameter((std::string)this->get_name() + ".feet_sensor_threshold", m_sensor_treshold);
     //debug
