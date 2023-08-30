@@ -34,7 +34,7 @@ bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
         right_marker_array.markers.clear();
         builtin_interfaces::msg::Time timestamp = now();
         //LEFT
-        //std::cout << "Left Loop" << std::endl;
+        std::cout << "Left Loop" << std::endl;
         //RCLCPP_INFO(this->get_logger(), "Left Loop");
         for (size_t i = 0; i < leftSteps->size(); ++i)
         {
@@ -73,13 +73,13 @@ bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
             //save marker in the array
             left_marker_array.markers.push_back(tmp_marker_msg);
         }
-        //RCLCPP_INFO(this->get_logger(), "Publishing Left");
+        RCLCPP_INFO(this->get_logger(), "Publishing Left");
         //std::cout << "Left Publish" << std::endl;
         m_leftFootprintsMarkersPub->publish(left_marker_array);
 
         //RIGHT
         //std::cout << "Right Loop" << std::endl;
-        //RCLCPP_INFO(this->get_logger(), "Right Loop");
+        RCLCPP_INFO(this->get_logger(), "Right Loop");
 
         //tmp_marker_msg.points.clear();
         for (size_t i = 0; i < rightSteps->size(); ++i)
@@ -120,7 +120,7 @@ bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
             right_marker_array.markers.push_back(tmp_marker_msg);
         }
 
-        //RCLCPP_INFO(this->get_logger(), "Publishing Right");
+        RCLCPP_INFO(this->get_logger(), "Publishing Right");
         //std::cout << "Right Publish" << std::endl;
         //publish
         m_rightFootprintsMarkersPub->publish(right_marker_array);
