@@ -31,7 +31,7 @@ private:
     const double m_close_threshold = 0.5;
     const double m_imuVel_x_threshold = 0.4;
     const double m_imuVel_y_threshold = 0.4;
-    const double m_ms_wait = 500.0;
+    const double m_ms_wait = 400.0;
     std::chrono::system_clock::time_point m_last_vibration_detection;
 
     const char* m_right_sole_frame = "r_sole";

@@ -10,14 +10,12 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
     {
         try
         {
-            /* code */
-        
         
         auto tp = std::chrono::system_clock::now();
         double delta_t = (std::chrono::duration<double, std::milli>(tp.time_since_epoch()).count() - std::chrono::duration<double, std::milli>(m_last_vibration_detection.time_since_epoch()).count());
         if (delta_t < m_ms_wait) 
         {
-            RCLCPP_INFO(this->get_logger(), "Exiting scan callback, time passed: %f vs timeout: %f", delta_t, m_ms_wait);
+            //RCLCPP_INFO(this->get_logger(), "Exiting scan callback, time passed: %f vs timeout: %f", delta_t, m_ms_wait);
             return;
         }
         
@@ -26,7 +24,7 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
             std::lock_guard<std::mutex>lock(m_imu_mutex);
             if (std::abs(m_imu_angular_velocity.x) > m_imuVel_x_threshold || std::abs(m_imu_angular_velocity.y) > m_imuVel_y_threshold)
             {
-                RCLCPP_INFO(this->get_logger(), "Imu detected high velocities: x: %f y: %f", m_imu_angular_velocity.x, m_imu_angular_velocity.y);
+                //RCLCPP_INFO(this->get_logger(), "Imu detected high velocities: x: %f y: %f", m_imu_angular_velocity.x, m_imu_angular_velocity.y);
                 m_last_vibration_detection = std::chrono::system_clock::now();
                 return;
             }
@@ -52,7 +50,7 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
             }
             catch(const std::exception& e)
             {
-               RCLCPP_ERROR(this->get_logger(), "Cannot transform %s to %s: %s \n", original_cloud.header.frame_id, m_referece_frame, e.what());
+               RCLCPP_WARN(this->get_logger(), "Cannot transform %s to %s: %s \n", original_cloud.header.frame_id, m_referece_frame, e.what());
                return;
             }
             //PCL Clouds
