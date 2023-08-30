@@ -170,6 +170,18 @@ ament_target_dependencies(path_converter
   "nav_2d_msgs"
 )
 
+add_executable(pointcloud_filter src/PointcloudFilter.cpp)
+ament_target_dependencies(pointcloud_filter
+  "std_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "rclcpp"
+  "pcl_conversions"
+  "geometry_msgs"
+  "sensor_msgs"
+)
+target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
+
 set(dependencies
   rclcpp
   geometry_msgs
@@ -195,17 +207,13 @@ if(BUILD_TESTING)
 endif()
 
 install(TARGETS
-#  scan_filter_compensated
-#  chest_projection
-#  footsteps_viewer
-#  virtual_unicycle_publisher
   odom_node
   planner_trigger_server
-# interpolation_walking_controller_talker
   scan_filter
   footsteps_viewer_
   base_projector
   path_converter
+  pointcloud_filter
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory

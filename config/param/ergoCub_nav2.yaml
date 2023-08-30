@@ -240,7 +240,7 @@ local_costmap:
         observation_sources: pointcloud_mark pointcloud_clear
         combination_method: 1
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /camera/depth/color/points
+          topic: /imu_filtered_depth
           max_obstacle_height: 2.0
           min_obstacle_height: 0.15
           obstacle_max_range: 7.0
@@ -251,7 +251,7 @@ local_costmap:
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /camera/depth/color/points
+          topic: /imu_filtered_depth
           max_obstacle_height: 4.8
           min_obstacle_height: -4.8
           obstacle_max_range: 8.0
@@ -306,9 +306,9 @@ global_costmap:
           data_type: "LaserScan"
           inf_is_valid: false
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /camera/depth/color/points
+          topic: /imu_filtered_depth
           max_obstacle_height: 2.0
-          min_obstacle_height: 0.15
+          min_obstacle_height: 0.2  #0.15
           obstacle_max_range: 6.0
           obstacle_min_range: 0.3
           raytrace_max_range: 7.0
@@ -317,7 +317,7 @@ global_costmap:
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /camera/depth/color/points
+          topic: /imu_filtered_depth
           max_obstacle_height: 3.5
           min_obstacle_height: -3.5
           obstacle_max_range: 7.0
