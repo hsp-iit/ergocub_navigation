@@ -7,7 +7,6 @@
                 "/opt/ros/humble/include/**",
                 "/usr/include/eigen3/**",
                 "/usr/include/pcl-1.12/**",
-                //"/home/user1/nav2_ws/**",
                 "/usr/local/src/robot/robotology-superbuild/build/install/include/",
                 "/opt/ros/humble/include/nav_msgs"
             ],
