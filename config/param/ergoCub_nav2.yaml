@@ -231,7 +231,7 @@ local_costmap:
         enabled: true
         footprint_clearing_enabled: true
         max_obstacle_height: 2.0
-        publish_voxel_map: true
+        publish_voxel_map: false
         origin_z: 0.0
         z_resolution: 0.2
         z_voxels: 8
@@ -240,7 +240,7 @@ local_costmap:
         observation_sources: pointcloud_mark pointcloud_clear
         combination_method: 1
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
+          topic: /imu_unfiltered_depth
           max_obstacle_height: 2.0
           min_obstacle_height: 0.15
           obstacle_max_range: 7.0
@@ -251,7 +251,7 @@ local_costmap:
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
+          topic: /imu_unfiltered_depth
           max_obstacle_height: 4.8
           min_obstacle_height: -4.8
           obstacle_max_range: 8.0
@@ -286,13 +286,20 @@ global_costmap:
       - static_layer
       - obstacle_layer
       - inflation_layer
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+        enabled: True
+        subscribe_to_updates: True
+        transform_tolerance: 0.2
+
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
         footprint_clearing_enabled: True
         max_obstacle_height: 2.0
         combination_method: 1
-        observation_sources: scan pointcloud_mark pointcloud_clear scan_clear_right scan_clear_left
+        observation_sources: scan scan_clear_right scan_clear_left pointcloud_mark pointcloud_clear
         scan:
           topic: /filtered_scan_compensated
           obstacle_max_range: 20.0
@@ -305,28 +312,6 @@ global_costmap:
           marking: true
           data_type: "LaserScan"
           inf_is_valid: false
-        pointcloud_mark:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
-          max_obstacle_height: 2.0
-          min_obstacle_height: 0.2  #0.15
-          obstacle_max_range: 6.0
-          obstacle_min_range: 0.3
-          raytrace_max_range: 7.0
-          raytrace_min_range: 0.0
-          clearing: false
-          marking: true
-          data_type: "PointCloud2"
-        pointcloud_clear:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
-          max_obstacle_height: 3.5
-          min_obstacle_height: -3.5
-          obstacle_max_range: 7.0
-          obstacle_min_range: 0.0
-          raytrace_max_range: 7.5
-          raytrace_min_range: 0.0
-          clearing: true
-          marking: false
-          data_type: "PointCloud2"
         scan_clear_right:
           topic: /rear_scan_compensated_right
           obstacle_max_range: 20.0
@@ -351,12 +336,29 @@ global_costmap:
           marking: false
           data_type: "LaserScan"
           inf_is_valid: false
-      static_layer:
-        plugin: "nav2_costmap_2d::StaticLayer"
-        map_subscribe_transient_local: True
-        enabled: True
-        subscribe_to_updates: True
-        transform_tolerance: 0.2
+        pointcloud_mark:  # no frame set, uses frame from message
+          topic: /imu_unfiltered_depth
+          max_obstacle_height: 2.0
+          min_obstacle_height: 0.3  #0.15
+          obstacle_max_range: 6.0
+          obstacle_min_range: 0.4
+          raytrace_max_range: 7.0
+          raytrace_min_range: 0.0
+          clearing: false
+          marking: true
+          data_type: "PointCloud2"
+        pointcloud_clear:  # no frame set, uses frame from message
+          topic: /imu_unfiltered_depth
+          max_obstacle_height: 3.5
+          min_obstacle_height: -3.5
+          obstacle_max_range: 7.0
+          obstacle_min_range: 0.0
+          raytrace_max_range: 7.5
+          raytrace_min_range: 0.0
+          clearing: true
+          marking: false
+          data_type: "PointCloud2"
+
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
