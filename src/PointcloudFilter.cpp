@@ -2,8 +2,9 @@
 
 #include "pcl_conversions/pcl_conversions.h"
 #include "pcl/point_types.h"
-#include "pcl/filters/statistical_outlier_removal.h"
+#include "pcl/filters/crop_box.h"
 #include "pcl/ModelCoefficients.h"
+#include <pcl/filters/extract_indices.h>
 
 #include <cmath>
 #include <chrono>
@@ -34,21 +35,39 @@ void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::Const
                     return;
                 }
             }
-            /* //TOO SLOW
+             //TOO SLOW
             pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud (new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
             pcl::fromROSMsg(*pc_in, *in_cloud);
 
             // Create the filtering object
-            pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
-            sor.setInputCloud (in_cloud);
-            sor.setMeanK (50);
-            sor.setStddevMulThresh (1.0);
-            sor.filter (*cloud_filtered);
+            pcl::CropBox<pcl::PointXYZ> cropBoxFilter (true);
+            cropBoxFilter.setInputCloud (in_cloud);
+            Eigen::Vector4f min_pt (-0.5f, -0.4f, -0.5f, 1.0f);
+            Eigen::Vector4f max_pt (0.5f, 0.4f, 0.5f, 1.0f);
+
+            // Cropbox slighlty bigger then bounding box of points
+            cropBoxFilter.setMin (min_pt);
+            cropBoxFilter.setMax (max_pt);
+            cropBoxFilter.setNegative(true);
+
+            // Indices
+            //pcl::PointIndices indices;
+            //cropBoxFilter.filter(indices);
+
+            //pcl::ExtractIndices<pcl::PointXYZ> extract;
+            //extract.setInputCloud(in_cloud);
+            //extract.setIndices(indices);
+            //extract.setNegative(true);
+            //extract.filter(*p_obstacles);
+            // Cloud
+            pcl::PointCloud<pcl::PointXYZ> cloud_out;
+            cropBoxFilter.filter(cloud_out);
+            
             sensor_msgs::msg::PointCloud2 pc_out;
-            pcl::toROSMsg(*cloud_filtered, pc_out);
+            pcl::toROSMsg(cloud_out, pc_out);
             m_filtered_pointcloud_pub->publish(pc_out);
-            */
+            
  
             //Echo the message
             sensor_msgs::msg::PointCloud2 pc_out_unfiltered;
