@@ -10,7 +10,7 @@ def generate_launch_description():
     map_dir=os.path.join(
             get_package_share_directory('ergocub_navigation'),
             'maps',
-            'robot_arena_ecub.yaml')
+            'robot_arena_ecub_modded.yaml')
     return LaunchDescription([
         DeclareLaunchArgument(
             'use_sim_time',
