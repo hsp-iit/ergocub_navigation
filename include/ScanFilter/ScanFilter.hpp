@@ -26,7 +26,7 @@ private:
     laser_geometry::LaserProjection m_projector;
 
     const float m_filter_z_low = 0.2;
-    const float m_filter_z_high = 3.0;
+    const float m_filter_z_high = 2.5;
     const float m_sensor_height = 1.5;
     const double m_close_threshold = 0.5;
     const double m_imuVel_x_threshold = 0.4;
