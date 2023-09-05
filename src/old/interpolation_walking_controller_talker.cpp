@@ -62,7 +62,7 @@ private:
             if (msg_in->header.frame_id != m_reference_frame)
             {
                 geometry_msgs::msg::TransformStamped TF = m_tf_buffer->lookupTransform(m_reference_frame, msg_in->header.frame_id, rclcpp::Time(0));
-                transformed_plan = transformPlan(msg_in, TF, false);    //true
+                transformed_plan = transformPlan(msg_in, TF, false);
             }
             
             if (transformed_plan.poses.size()>0)
@@ -145,7 +145,9 @@ private:
         }
     }
 
-    nav_msgs::msg::Path transformPlan(const nav_msgs::msg::Path::ConstPtr& path, geometry_msgs::msg::TransformStamped & t_tf, bool t_prune = true)
+    nav_msgs::msg::Path transformPlan(const nav_msgs::msg::Path::ConstPtr& path, 
+                                      geometry_msgs::msg::TransformStamped & t_tf, 
+                                      bool t_prune = true)
     {
         if (path->poses.empty()) {
             std::cerr << "Received plan with zero length" << std::endl;

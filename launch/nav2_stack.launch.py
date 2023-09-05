@@ -75,7 +75,7 @@ def generate_launch_description():
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='True',
+        default_value='False',
         description='Use simulation (Gazebo) clock if true')
 
     param_dir=os.path.join(
@@ -167,7 +167,7 @@ def generate_launch_description():
                 output='screen',
                 parameters=[{'use_sim_time': use_sim_time},
                             {'autostart': autostart},
-                            {'node_names': lifecycle_nodes}]),
+                            {'node_names': lifecycle_nodes}])
         ]
     )
 
@@ -220,7 +220,33 @@ def generate_launch_description():
                              'node_names': lifecycle_nodes}]),
         ],
     )
+    
+    start_lifecycle_manager_cmd = Node(
+             package='nav2_lifecycle_manager',
+             executable='lifecycle_manager',
+             name='lifecycle_manager_costmap_filters',
+             output='screen',
+             emulate_tty=True,
+             parameters=[{'use_sim_time': use_sim_time},
+                         {'autostart': True},
+                         {'node_names': ['filter_mask_server', 'costmap_filter_info_server']}])
 
+    start_map_server_cmd = Node(
+             package='nav2_map_server',
+             executable='map_server',
+             name='filter_mask_server',
+             output='screen',
+             emulate_tty=True,
+             parameters=[params_file])
+
+    start_costmap_filter_info_server_cmd = Node(
+             package='nav2_map_server',
+             executable='costmap_filter_info_server',
+             name='costmap_filter_info_server',
+             output='screen',
+             emulate_tty=True,
+             parameters=[params_file])
+    
     # Create the launch description and populate
     ld = LaunchDescription()
 
@@ -235,6 +261,10 @@ def generate_launch_description():
     ld.add_action(declare_use_composition_cmd)
     ld.add_action(declare_container_name_cmd)
     ld.add_action(declare_use_respawn_cmd)
+    
+    ld.add_action(start_lifecycle_manager_cmd)
+    ld.add_action(start_map_server_cmd)
+    ld.add_action(start_costmap_filter_info_server_cmd)
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(load_nodes)
