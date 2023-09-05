@@ -1,4 +1,4 @@
-image: robot_arena_ecub_modded.png
+image: robot_arena_keepout_zones.png
 resolution: 0.05
 #origin: [-13.1, -7.62, 0]
 origin: [-12.4, -14.525, 0]
