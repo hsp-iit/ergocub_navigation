@@ -149,11 +149,11 @@ controller_server:
       include_last_point: true
 
       # Critics
-      critics:
       #- RotateToGoal
       #- Oscillation
-      - BaseObstacle
       #- GoalAlign
+      critics:
+      - BaseObstacle
       - PathAlign
       - PathDist
       - GoalDist
@@ -240,7 +240,7 @@ local_costmap:
         observation_sources: pointcloud_mark pointcloud_clear
         combination_method: 1
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /imu_unfiltered_depth
+          topic: /imu_filtered_depth
           max_obstacle_height: 2.0
           min_obstacle_height: 0.15
           obstacle_max_range: 7.0
@@ -251,7 +251,7 @@ local_costmap:
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /imu_unfiltered_depth
+          topic: /imu_filtered_depth
           max_obstacle_height: 4.8
           min_obstacle_height: -4.8
           obstacle_max_range: 8.0
@@ -277,7 +277,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: geometric_unicycle #virtual_unicycle_base 
       use_sim_time: True
-      robot_radius: 0.4
+      robot_radius: 0.3   #0.4
       resolution: 0.05
       trinary_costmap: true
       always_send_full_costmap: True
@@ -303,13 +303,13 @@ global_costmap:
         scan:
           topic: /filtered_scan_compensated
           obstacle_max_range: 20.0
-          obstacle_min_range: 0.3
+          obstacle_min_range: 0.5
           raytrace_max_range: 22.2
           raytrace_min_range: 0.2
           max_obstacle_height: 2.0
           min_obstacle_height: 0.0
           clearing: false
-          marking: true
+          marking: false
           data_type: "LaserScan"
           inf_is_valid: false
         scan_clear_right:
@@ -320,7 +320,7 @@ global_costmap:
           raytrace_min_range: 0.2
           max_obstacle_height: 2.0
           min_obstacle_height: 0.0
-          clearing: true
+          clearing: false
           marking: false
           data_type: "LaserScan"
           inf_is_valid: false
@@ -332,12 +332,12 @@ global_costmap:
           raytrace_min_range: 0.2
           max_obstacle_height: 2.0
           min_obstacle_height: 0.0
-          clearing: true
+          clearing: false
           marking: false
           data_type: "LaserScan"
           inf_is_valid: false
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /imu_unfiltered_depth
+          topic: /imu_filtered_depth
           max_obstacle_height: 2.0
           min_obstacle_height: 0.3  #0.15
           obstacle_max_range: 6.0
@@ -348,7 +348,7 @@ global_costmap:
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /imu_unfiltered_depth
+          topic: /imu_filtered_depth
           max_obstacle_height: 3.5
           min_obstacle_height: -3.5
           obstacle_max_range: 7.0
@@ -363,7 +363,7 @@ global_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
         cost_scaling_factor: 1.5    #2.5
-        inflation_radius: 3.5    #0.55
+        inflation_radius: 1.5    #0.55
         inflate_unknown: false
         inflate_around_unknown: false
 
