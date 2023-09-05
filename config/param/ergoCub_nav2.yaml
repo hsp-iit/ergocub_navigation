@@ -286,7 +286,7 @@ global_costmap:
       - static_layer
       - obstacle_layer
       - inflation_layer
-      filters: ["keepout_filter"]
+      filters: ["keepout_filter", "inflation_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True

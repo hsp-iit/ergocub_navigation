@@ -12,11 +12,6 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/setup_robot.launch.py'])
         )
-    keepout = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/keepout_zones.launch.py'])
-        )
     navigation = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ergocub_navigation'), 'launch'),
@@ -26,6 +21,5 @@ def generate_launch_description():
 
     return LaunchDescription([
         setup,
-        #keepout,
         navigation
     ])
