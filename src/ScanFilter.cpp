@@ -51,7 +51,7 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
                 }
                 catch(const std::exception& e)
                 {
-                   RCLCPP_WARN(this->get_logger(), "Cannot transform %s to %s: %s \n", original_cloud.header.frame_id, m_referece_frame, e.what());
+                   //RCLCPP_WARN(this->get_logger(), "Cannot transform %s to %s: %s \n", original_cloud.header.frame_id, m_referece_frame, e.what());
                    return;
                 }
                 //PCL Clouds
@@ -110,12 +110,12 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
             }
             else
             {
-                RCLCPP_ERROR(get_logger(), "Could not transform message: %s", transform_error.c_str());
+                //RCLCPP_ERROR(get_logger(), "Could not transform message: %s", transform_error.c_str());
             }
         }
         catch(const std::exception& e)
         {
-            RCLCPP_ERROR(get_logger(), e.what());
+            //RCLCPP_ERROR(get_logger(), e.what());
         }
     };
 
