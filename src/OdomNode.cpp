@@ -79,7 +79,11 @@ void OdomNode::PublishOdom()
             odomTf.transform.rotation.y = qOdom.y();
             odomTf.transform.rotation.z = qOdom.z();
             odomTf.transform.rotation.w = qOdom.w();
-            tfBuffer.push_back(odomTf);
+            if (!m_ekf_enabled)
+            {
+                tfBuffer.push_back(odomTf);
+            }
+            
 
             //odom msg publishing
             nav_msgs::msg::Odometry odom_msg;
@@ -87,10 +91,11 @@ void OdomNode::PublishOdom()
             odom_msg.header.stamp = odomTf.header.stamp;
             odom_msg.pose.pose.position.x = odomTf.transform.translation.x;
             odom_msg.pose.pose.position.y = odomTf.transform.translation.y;
-            odom_msg.pose.pose.position.z = 0.0;
+            odom_msg.pose.pose.position.z = odomTf.transform.translation.z ;
             tf2::Quaternion tmp_quat;
             tmp_quat.setRPY(0, 0, data->get(3).asList()->get(5).asFloat64());
-            odom_msg.pose.pose.orientation=tf2::toMsg(tmp_quat);
+            //odom_msg.pose.pose.orientation=tf2::toMsg(tmp_quat);
+            odom_msg.pose.pose.orientation=tf2::toMsg(qOdom);
             odom_msg.pose.covariance = m_pose_cov_matrix;
 
             odom_msg.twist.twist.linear.x = 0.0;
