@@ -79,7 +79,9 @@
         "valarray": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp",
-        "slist": "cpp"
+        "slist": "cpp",
+        "coroutine": "cpp",
+        "source_location": "cpp"
     },
     "cmake.configureOnOpen": false
 }
