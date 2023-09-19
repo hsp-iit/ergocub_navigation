@@ -21,11 +21,23 @@ import os
 def generate_launch_description():
     return LaunchDescription([
         launch_ros.actions.Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            output="screen" ,
+            arguments=["0", "0", "0", "0", "0", "0", "head_imu_0", "rfeimu_gyro"]
+        ),
+        launch_ros.actions.Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            output="screen" ,
+            arguments=["0", "0", "0", "0", "0", "0", "waist_imu_0", "sensor_imu_xsensmt"]
+        ),
+        launch_ros.actions.Node(
             package='robot_localization',
-            remappings=[('cmd_vel', 'planned_vel')],
+            #remappings=[('cmd_vel', 'planned_vel')],
             executable='ekf_node',
             name='ekf_filter_node',
             output='screen',
-            parameters=[os.path.join(get_package_share_directory("ergocub_navigation"), 'params', 'ekf.yaml')],
+            parameters=[os.path.join(get_package_share_directory("ergocub_navigation"), 'param', 'ekf.yaml')],
            ),
 ])

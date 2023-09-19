@@ -25,6 +25,7 @@ using std::placeholders::_1;
 class OdomNode : public rclcpp::Node
 {
 private:
+    bool m_ekf_enabled = false;
     const std::string port_name = "/virtual_unicycle_publisher/unicycle_states:i";
     const std::string m_odom_topic_name = "/odom";
     const std::array<double, 36UL> m_pose_cov_matrix = {0.1, 0.0, 0.0, 0.0, 0.0, 0.0,

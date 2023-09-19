@@ -5,16 +5,9 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /TF1
         - /TF1/Frames1
         - /TF1/Tree1
-        - /LaserScan1
-        - /Path2
-        - /Path3
-        - /Path4
-        - /Marker1
-        - /Marker1/Topic1
-        - /Marker2
+        - /Path1
         - /MarkerArray1
         - /MarkerArray1/Topic1
         - /MarkerArray2
@@ -1605,7 +1598,7 @@ Visualization Manager:
           Class: rviz_default_plugins/Map
           Color Scheme: costmap
           Draw Behind: false
-          Enabled: true
+          Enabled: false
           Name: Local Costmap
           Topic:
             Depth: 1
@@ -1621,7 +1614,7 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /local_costmap/costmap_updates
           Use Timestamp: false
-          Value: true
+          Value: false
         - Alpha: 1
           Buffer Length: 1
           Class: rviz_default_plugins/Path
@@ -1715,65 +1708,9 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz_default_plugins/Path
       Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.029999999329447746
-      Head Length: 0.019999999552965164
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: Arrows
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.009999999776482582
-      Shaft Length: 0.009999999776482582
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /CoM_planned_trajectory_test
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz_default_plugins/Path
-      Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.029999999329447746
-      Head Length: 0.019999999552965164
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 85; 255; 255
-      Pose Style: Arrows
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.009999999776482582
-      Shaft Length: 0.009999999776482582
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /local_plan
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz_default_plugins/Path
-      Color: 25; 255; 0
       Enabled: true
-      Head Diameter: 0.029999999329447746
-      Head Length: 0.019999999552965164
+      Head Diameter: 0.05000000074505806
+      Head Length: 0.05000000074505806
       Length: 0.30000001192092896
       Line Style: Lines
       Line Width: 0.029999999329447746
@@ -1785,8 +1722,8 @@ Visualization Manager:
       Pose Color: 255; 0; 0
       Pose Style: Arrows
       Radius: 0.029999999329447746
-      Shaft Diameter: 0.009999999776482582
-      Shaft Length: 0.009999999776482582
+      Shaft Diameter: 0.019999999552965164
+      Shaft Length: 0.10000000149011612
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -1795,65 +1732,11 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /plan
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz_default_plugins/Path
-      Color: 25; 255; 0
-      Enabled: true
-      Head Diameter: 0.029999999329447746
-      Head Length: 0.019999999552965164
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 0; 0; 255
-      Pose Style: Arrows
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.009999999776482582
-      Shaft Length: 0.009999999776482582
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /CoM_planned_trajectory_test_downsampled
-      Value: true
-    - Class: rviz_default_plugins/Marker
-      Enabled: false
-      Name: Marker
-      Namespaces:
-        {}
-      Topic:
-        Depth: 100
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /unicycle_path_follower/left_footprints
-      Value: false
-    - Class: rviz_default_plugins/Marker
-      Enabled: false
-      Name: Marker
-      Namespaces:
-        {}
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /unicycle_path_follower/right_footprints
-      Value: false
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        my_namespace: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -1865,7 +1748,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        my_namespace: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -1907,6 +1790,19 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /GridBased/robot_footprint_path
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1945,25 +1841,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 9.670748710632324
+      Distance: 6.872379302978516
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.14218226075172424
-        Y: 0.45310211181640625
-        Z: 0.42410337924957275
+        X: -0.7264553308486938
+        Y: 0.4984210133552551
+        Z: 0.48300865292549133
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8047966361045837
+      Pitch: 0.8397966623306274
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 1.3210574388504028
+      Yaw: 1.3810573816299438
     Saved: ~
 Window Geometry:
   Displays:
