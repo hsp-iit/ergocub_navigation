@@ -29,7 +29,7 @@ private:
     yarp::os::Port m_feet_state_port;
     const std::string m_outPortName = "/path_converter_interpolation/path:o";
     const std::string m_inPortName = "/walking-coordinator/goal:i";
-    const std::string m_reference_frame = "virtual_unicycle_base";
+    const std::string m_reference_frame = "geometric_unicycle";  //virtual_unicycle_base
     yarp::os::BufferedPort<yarp::sig::VectorOf<double>> m_port;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr m_setpoint_sub;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr m_state_sub;
