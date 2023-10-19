@@ -23,12 +23,13 @@ class YarpTriggerProcessor : public yarp::os::PortReader
 {
 private:
     std::mutex m_mutex;
-
-
+    int m_footsteps_counter;
+    const int m_step_number = 4;
 public:
     YarpTriggerProcessor()
     {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "[is_on_double_support_srv] Created YarpTriggerProcessor");
+        m_footsteps_counter = 0;
     };
 
     //main loop executed for each port reading of the merged feet status
@@ -45,11 +46,32 @@ public:
             }
 
         
-            state = b.get(0).asBool();
-            if (state)
+            //state = b.get(0).asBool();
+            //if (state)
+            //{
+            //    std::cout << "[is_on_double_support_srv] Red a trigger on YARP port" << std::endl;
+            //}
+            bool in_status = b.get(0).asBool();;
+            if (in_status)
             {
                 std::cout << "[is_on_double_support_srv] Red a trigger on YARP port" << std::endl;
+                ++ m_footsteps_counter;
+                if (m_footsteps_counter >= m_step_number)
+                {
+                    state = true;
+                    std::cout << "[is_on_double_support_srv] Setting Replanning" << std::endl;
+                }
+                else
+                {
+                    state = false;
+                }    
             }
+            else
+            {
+                state = false;
+            }
+            
+            
         }
         catch(const std::exception& e)
         {

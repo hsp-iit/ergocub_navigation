@@ -1,5 +1,4 @@
 #include "yarp/os/Bottle.h"
-#include "yarp/os/Port.h"
 #include "yarp/os/BufferedPort.h"
 #include "yarp/os/Network.h"
 #include "yarp/sig/Vector.h"
@@ -20,19 +19,26 @@
 #include <mutex>
 
 //This class subscribes to the /path topic and will pass it to the walking-controller on a yarp port
-class PathConverter : public rclcpp::Node
+class PathConverter_v2 : public rclcpp::Node
 {
 private:
     const double zero_speed_threshold = 1e-03;
     const std::string m_topic_name = "/plan";
     const std::string m_state_topic = "/is_goal_reached/goal_state";
-    yarp::os::Port m_feet_state_port;
-    const std::string m_outPortName = "/path_converter_interpolation/path:o";
+    const std::string m_outPortName = "/path_converter/path:o";
     const std::string m_inPortName = "/walking-coordinator/goal:i";
     const std::string m_reference_frame = "geometric_unicycle";  //virtual_unicycle_base
     yarp::os::BufferedPort<yarp::sig::VectorOf<double>> m_port;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr m_setpoint_sub;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr m_state_sub;
+
+    //Shifting path
+    const double m_shift = 0.15;
+    bool m_shiftLeft;
+    bool m_shiftFlag = false;
+    yarp::os::BufferedPort<yarp::sig::VectorOf<double>> m_shift_port;
+    const std::string m_shift_portName = "/path_converter/shift_command:i";
+    const std::string m_shift_portConnectionName = "/TODO/shift_command:o";
 
     int msg_counter = 0;
     bool msg_num_reached = false;
@@ -51,6 +57,9 @@ private:
                                       geometry_msgs::msg::TransformStamped & t_tf, 
                                       bool t_prune = true);
 
+    nav_msgs::msg::Path shiftPlan(const nav_msgs::msg::Path &path,
+                                    bool directionLeft);
+
 public:
-    PathConverter();
+    PathConverter_v2();
 };
