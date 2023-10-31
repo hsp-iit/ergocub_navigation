@@ -118,6 +118,7 @@ ament_target_dependencies(scan_filter
   "tf2_ros"
   "tf2_msgs"
   "rclcpp"
+  "rclcpp_lifecycle"
   "laser_geometry"
   "pcl_conversions"
   "geometry_msgs"
