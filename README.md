@@ -37,12 +37,19 @@ yarp rpc /walking-coordinator/rpc
 
 2- Launch the ROS2 yarp devices by typing each of the following commands inside the folder: `cd $ROBOT_CODE && cd /ros2_ws/src/ergocub_navigation/config/yarp` and typing each of the following commands in a separate terminal:
 
-     `yarprobotinterface --config depth_compressed_ros2.xml`
-     `yarprobotinterface --config head_imu_ros2.xml`  
-     `yarprobotinterface --config lidar_compressed_ros2.xml`
+`yarprobotinterface --config depth_compressed_ros2.xml`
 
-3- 
-  
+`yarprobotinterface --config head_imu_ros2.xml`  
+
+`yarprobotinterface --config lidar_compressed_ros2.xml`
+
+3- Run the BT interface with the walking-controllers by: `ros2 run ergocub_navigation planner_trigger_server`
+
+4- Launch the navigation stack using: `ros2 launch ergocub_navigation launch_all.launch.py`
+
+5- Run the navigation interface with the walking-controller by: `ros2 run ergocub_navigation path_converter`
+
+6- (optional) To display planned footsteps on RViz: `ros2 launch ergocub_navigation footsteps_planner_viewer`
 
 ## ROS2 setup
 
