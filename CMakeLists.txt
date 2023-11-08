@@ -152,6 +152,7 @@ add_executable(odom_node src/OdomNode.cpp)
 ament_target_dependencies(odom_node
   "YARP"
   "rclcpp"
+  "rclcpp_lifecycle"
   "tf2_ros"
   "tf2_msgs"
   "tf2"

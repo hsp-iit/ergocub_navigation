@@ -1,34 +1,119 @@
 #include "OdomNode/OdomNode.hpp"
 #include "yarp/os/Stamp.h"
 
+using std::placeholders::_1;
+using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-OdomNode::OdomNode() : rclcpp::Node("virtual_unicycle_publisher_node")
+OdomNode::OdomNode(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("virtual_unicycle_publisher_node", options)
 {   
-    port.open(port_name);
-    yarp::os::Network::connect("/navigation_helper/virtual_unicycle_states:o", port_name); 
+    declare_parameter("in_port_name", "/virtual_unicycle_publisher/unicycle_states:i");
+    declare_parameter("out_port_name", "/navigation_helper/virtual_unicycle_states:o");
+    declare_parameter("odom_topic_name", "/odom");
+    declare_parameter("vel_topic", "/planned_vel");
+    declare_parameter("loop_freq", 100.0);
+    declare_parameter("nominal_width", 0.2);
+    declare_parameter("odom_frame_name", "odom");
+    declare_parameter("delta_x", 0.1);
+    declare_parameter("ekf_enabled", false);
+    
     //create TF
     m_tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
     m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
+}
+
+CallbackReturn OdomNode::on_configure(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Configuring");
+
+    //Param Init
+    m_in_port_name = this->get_parameter("in_port_name").as_string();
+    m_out_port_name = this->get_parameter("out_port_name").as_string();
+    m_odom_topic_name = this->get_parameter("odom_topic_name").as_string();
+    m_vel_topic = this->get_parameter("vel_topic").as_string();
+    m_loopFreq = this->get_parameter("loop_freq").as_double();
+    m_nominalWidth = this->get_parameter("nominal_width").as_double();
+    m_delta_x = this->get_parameter("delta_x").as_double();
+    m_ekf_enabled = this->get_parameter("ekf_enabled").as_bool();
+
+    //YARP Ports
+    port.open(m_in_port_name);
+    if(!yarp::os::Network::connect(m_out_port_name, m_in_port_name))
+    {
+        RCLCPP_INFO(get_logger(), "Failed to connect YARP ports");
+        return CallbackReturn::FAILURE;
+    }
+
+    //Publishers
     m_odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(m_odom_topic_name, 10);
-    m_control_pub = this->create_publisher<geometry_msgs::msg::Twist>("/planned_vel", 10);
+    m_control_pub = this->create_publisher<geometry_msgs::msg::Twist>(m_vel_topic, 10);
+
+    //Timer for looping thread
     auto duration = std::chrono::duration<double>(1/m_loopFreq);
     m_timer = this->create_wall_timer(duration, std::bind(&OdomNode::PublishOdom, this));
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn OdomNode::on_activate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Activating");
+
+    m_odom_pub->on_activate();
+    m_control_pub->on_activate();
+
+    return CallbackReturn::SUCCESS;
+}
+
+
+CallbackReturn OdomNode::on_deactivate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Deactivating");
+
+    m_odom_pub->on_deactivate();
+    m_control_pub->on_deactivate();
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn OdomNode::on_cleanup(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Cleaning Up");
+    m_odom_pub.reset();
+    m_control_pub.reset();
+    port.close();
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn OdomNode::on_shutdown(const rclcpp_lifecycle::State & state)
+{
+  RCLCPP_INFO(get_logger(), "Shutting Down from %s", state.label().c_str());
+
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn OdomNode::on_error(const rclcpp_lifecycle::State & state)
+{
+    RCLCPP_FATAL(get_logger(), "Error Processing from %s", state.label().c_str());
+
+    return CallbackReturn::SUCCESS;
 }
 
 void OdomNode::PublishOdom()
     {
         try
         {
+            if (!(m_odom_pub->is_activated()))
+            {
+                RCLCPP_INFO(get_logger(), "Exiting PublishOdom: ublisher not active");
+                return;
+            }
+            
             yarp::os::Bottle* data = port.read(true);
             yarp::os::Stamp stamp;
             port.getEnvelope(stamp);
             double time = stamp.getTime();
-            //TODO use time stamp from YARP
-            long long sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-            long long ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-            ns = ns%((long long)10e9);
-            //RCLCPP_INFO(this->get_logger(), "from yarp TS: %f ; from local clock: %i s - %i ns", time, sec, ns);
             std::vector<geometry_msgs::msg::TransformStamped> tfBuffer;
             geometry_msgs::msg::TransformStamped tf, tfReference;
             tf.header.stamp.sec = (long int)time;
@@ -39,8 +124,8 @@ void OdomNode::PublishOdom()
             tf_fromOdom.header.stamp = tfReference_fromOdom.header.stamp = tf.header.stamp;
             tf_fromOdom.child_frame_id = "odom_virtual_unicycle_simulated";
             tfReference_fromOdom.child_frame_id = "odom_virtual_unicycle_reference";
-            tf_fromOdom.header.frame_id = "odom";
-            tfReference_fromOdom.header.frame_id = "odom";
+            tf_fromOdom.header.frame_id = m_odom_frame_name;
+            tfReference_fromOdom.header.frame_id = m_odom_frame_name;
 
             if (data->get(2).asString() == "left")
             {
@@ -61,12 +146,12 @@ void OdomNode::PublishOdom()
 
             tf.transform.translation.x = 0;
             tf.transform.translation.z = 0;
-            tfReference.transform.translation.x = tf.transform.translation.x + 0.1;
+            tfReference.transform.translation.x = tf.transform.translation.x + m_delta_x;
             tfReference.transform.translation.y = tf.transform.translation.y;
             tfReference.transform.translation.z = 0.0;
             //Odom Computation
             geometry_msgs::msg::TransformStamped odomTf;
-            odomTf.header.frame_id = "odom";
+            odomTf.header.frame_id = m_odom_frame_name;
             odomTf.child_frame_id = "root_link";
             odomTf.header.stamp = tf.header.stamp;
             odomTf.transform.translation.x = data->get(3).asList()->get(0).asFloat64();
@@ -87,7 +172,7 @@ void OdomNode::PublishOdom()
 
             //odom msg publishing
             nav_msgs::msg::Odometry odom_msg;
-            odom_msg.header.frame_id = "odom";
+            odom_msg.header.frame_id = m_odom_frame_name;
             odom_msg.header.stamp = odomTf.header.stamp;
             odom_msg.pose.pose.position.x = odomTf.transform.translation.x;
             odom_msg.pose.pose.position.y = odomTf.transform.translation.y;
@@ -278,12 +363,14 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
     //Init YARP
     yarp::os::Network yarp;
-    const std::string port_name = "/virtual_unicycle_publisher/unicycle_state:i";
     // Start listening in polling
     if (rclcpp::ok())
     {
-        auto node = std::make_shared<OdomNode>();
-        rclcpp::spin(node);
+        rclcpp::executors::SingleThreadedExecutor executor;
+        rclcpp::NodeOptions options;
+        std::shared_ptr<OdomNode> node = std::make_shared<OdomNode>(options);
+        executor.add_node(node->get_node_base_interface());
+        executor.spin();
     }
     std::cout << "Shutting down" << std::endl;
     rclcpp::shutdown();
