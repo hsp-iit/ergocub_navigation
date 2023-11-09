@@ -160,17 +160,17 @@ ament_target_dependencies(odom_node
   "nav_msgs"
 )
 
-add_executable(path_converter src/PathConverter.cpp)
-ament_target_dependencies(path_converter
-  "YARP"
-  "rclcpp"
-  "nav_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "tf2"
-  "nav2_util"
-  "nav_2d_msgs"
-)
+#add_executable(path_converter src/PathConverter.cpp)
+#ament_target_dependencies(path_converter
+#  "YARP"
+#  "rclcpp"
+#  "nav_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "tf2"
+#  "nav2_util"
+#  "nav_2d_msgs"
+#)
 
 add_executable(pointcloud_filter src/PointcloudFilter.cpp)
 ament_target_dependencies(pointcloud_filter
@@ -183,6 +183,18 @@ ament_target_dependencies(pointcloud_filter
   "sensor_msgs"
 )
 target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
+
+add_executable(path_converter src/PathConverter_v2.cpp)
+ament_target_dependencies(path_converter
+  "YARP"
+  "rclcpp"
+  "nav_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "nav2_util"
+  "rclcpp_lifecycle"
+)
 
 set(dependencies
   rclcpp
