@@ -22,6 +22,7 @@ find_package(laser_geometry REQUIRED)
 find_package(pcl_conversions REQUIRED)
 FIND_PACKAGE(YARP COMPONENTS os sig REQUIRED)
 find_package(PCL 1.2 REQUIRED)
+find_package(pcl_ros REQUIRED)
 
 find_package(nav2_common REQUIRED)
 find_package(nav2_core REQUIRED)
@@ -181,6 +182,9 @@ ament_target_dependencies(pointcloud_filter
   "pcl_conversions"
   "geometry_msgs"
   "sensor_msgs"
+  "rclcpp_lifecycle"
+  "tf2_ros"
+  "pcl_ros"
 )
 target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
 
