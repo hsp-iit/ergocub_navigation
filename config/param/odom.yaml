@@ -9,3 +9,4 @@ odom_node:
     odom_frame_name: "odom"
     delta_x: 0.1
     ekf_enabled: false
+    expose_ulterior_frames: false

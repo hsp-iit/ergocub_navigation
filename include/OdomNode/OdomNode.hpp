@@ -38,7 +38,7 @@ private:
     double m_nominalWidth;
     std::string m_odom_frame_name;
     double m_delta_x = 0.1;
-    
+    bool m_expose_ulterior_frames;
 
     std::array<double, 36UL> m_pose_cov_matrix = {0.1, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                         0.0, 0.1, 0.0, 0.0, 0.0, 0.0,
