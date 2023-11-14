@@ -5,9 +5,9 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
-//#include "yarp/os/BufferedPort.h"
-//#include "yarp/sig/Vector.h"
-//#include "yarp/os/Network.h"
+#include "yarp/os/BufferedPort.h"
+#include "yarp/sig/Vector.h"
+#include "yarp/os/Network.h"
 
 #include <memory>
 #include <chrono>
@@ -60,8 +60,8 @@ private:
     double m_joint_state;
     bool m_startup;
     const std::string m_out_port_name = "/neck_controller/setpoints:o";
-    const std::string m_in_port_name = "/tmp/tmp:i";
-    //yarp::os::BufferedPort<yarp::sig::VectorOf<double>> m_port;
+    const std::string m_in_port_name = "/ergocubSim/head/command:i";
+    yarp::os::BufferedPort<yarp::sig::Vector> m_port;
 
     //Debug only
     int m_counter_rightSteps, m_counter_leftSteps;

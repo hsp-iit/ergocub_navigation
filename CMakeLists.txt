@@ -182,6 +182,17 @@ ament_target_dependencies(pointcloud_filter
 )
 target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
 
+add_executable(phase_detector src/PhaseDetector.cpp)
+ament_target_dependencies(phase_detector
+  "YARP"
+  "rclcpp"
+  "nav_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "sensor_msgs"
+)
+
 set(dependencies
   rclcpp
   geometry_msgs
@@ -214,6 +225,7 @@ install(TARGETS
   base_projector
   path_converter
   pointcloud_filter
+  phase_detector
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory

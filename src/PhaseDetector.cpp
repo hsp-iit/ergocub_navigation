@@ -33,12 +33,13 @@ PhaseDetector::PhaseDetector() : Node("phase_detector_node"), m_tfListener(nullp
     //Neck Controller
     m_joint_state = 0.0;
     m_startup = true;
-    //yarp::os::Connect(m_out_port_name, m_in_port_name);
-    //if(yarp::os::Network::isConnected(m_out_port_name, m_in_port_name)){
-    //    RCLCPP_INFO(this->get_logger(), "YARP Ports connected successfully");
-    //} else {
-    //    RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
-    //}
+    m_port.open(m_out_port_name);
+    yarp::os::Network::connect(m_out_port_name, m_in_port_name);
+    if(yarp::os::Network::isConnected(m_out_port_name, m_in_port_name)){
+        RCLCPP_INFO(this->get_logger(), "YARP Ports connected successfully");
+    } else {
+        RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
+    }
 
     m_debug_pub = this->create_publisher<geometry_msgs::msg::PointStamped>("/swing_foot_height_debug", 10);
 }
@@ -232,7 +233,12 @@ bool PhaseDetector::gazePattern(bool directionLeft)
         {
             double setpoint = std::abs((double(i*2)/period) - 2.0*(std::trunc((double(i*2)/period) - std::trunc(double(i)/period)))) * m_joint_limit_deg;
             std::cout << "[gazePattern] LEFT Setting yaw setpoint of " << setpoint << std::endl;
-            //RCLCPP_INFO(this->get_logger(), "[gazePattern] Setting yaw setpoint of %d degrees while looking LEFT", setpoint);
+            
+            auto &data = m_port.prepare();
+            data.clear();
+            data = {0.0, 0.0, setpoint, 0.0};
+            m_port.write();
+
             this->get_clock()->sleep_for(m_time_increment);
         }
     }
@@ -241,8 +247,13 @@ bool PhaseDetector::gazePattern(bool directionLeft)
         for (int i = 1; i <= period; ++i)
         {
             double setpoint = - std::abs((double(i*2)/period) - 2.0*(std::trunc((double(i*2)/period) - std::trunc(double(i)/period)))) * m_joint_limit_deg;
-            //RCLCPP_INFO(this->get_logger(), "[gazePattern] Setting yaw setpoint of %d degrees while looking RIGHT", setpoint);
             std::cout << "[gazePattern] RIGHT Setting yaw setpoint of " << setpoint << std::endl;
+
+            auto &data = m_port.prepare();
+            data.clear();
+            data = {0.0, 0.0, setpoint, 0.0};
+            m_port.write();
+
             this->get_clock()->sleep_for(m_time_increment);
         }
     }
@@ -276,6 +287,7 @@ void PhaseDetector::gazeCallback(bool directionLeft)
 
 int main(int argc, char** argv)
 {
+    yarp::os::Network::init();
     rclcpp::init(argc, argv);
     if (rclcpp::ok())
     {
