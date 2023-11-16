@@ -19,8 +19,8 @@
 class ScanFilter : public rclcpp::Node
 {
 private:
-    const std::string m_referece_frame = "geometric_unicycle";  //virtual_unicycle_base
-    const char* m_scan_topic = "/scan_local";
+    const std::string m_referece_frame = "geometric_unicycle"; // virtual_unicycle_base
+    const char *m_scan_topic = "/scan";
     const std::string m_pub_topic = "/compensated_pc2";
     const std::string m_imu_topic = "/head_imu";
     laser_geometry::LaserProjection m_projector;
@@ -34,8 +34,8 @@ private:
     const double m_ms_wait = 400.0;
     std::chrono::system_clock::time_point m_last_vibration_detection;
 
-    const char* m_right_sole_frame = "r_sole";
-    const char* m_left_sole_frame = "l_sole";
+    const char *m_right_sole_frame = "r_sole";
+    const char *m_left_sole_frame = "l_sole";
 
     bool m_robot_on_crane = true;
 
@@ -47,10 +47,10 @@ private:
     geometry_msgs::msg::Vector3 m_imu_angular_velocity;
     std::mutex m_imu_mutex;
 
-    void scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan_in);
+    void scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr &scan_in);
 
-    void imuCallback(const sensor_msgs::msg::Imu::ConstPtr& imu_msg);
+    void imuCallback(const sensor_msgs::msg::Imu::ConstPtr &imu_msg);
 
 public:
     ScanFilter();
-};  // End of class ScanFilter node
+}; // End of class ScanFilter node

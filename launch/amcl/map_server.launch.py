@@ -6,15 +6,15 @@ from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument
 
 def generate_launch_description():
-    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     map_dir=os.path.join(
             get_package_share_directory('ergocub_navigation'),
             'maps',
-            'robot_arena_ecub_modded.yaml')
+            'docker_sim_v1_map.yaml')
     return LaunchDescription([
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',
+            default_value='true',
             description='Use simulation (Gazebo) clock if true'),
         Node(
             package='nav2_map_server',
