@@ -79,7 +79,7 @@ controller_server:
     #- goal_checker
     #checker_plugins:  #new
     #- progress_checker
-    controller_plugins: ["FollowPath"]
+    controller_plugins: ["ShiftAndManipulate"]
     #- FollowPath
 
     # Progress checker parameters
@@ -179,6 +179,17 @@ controller_server:
       #RotateToGoal.scale: 32.0
       #RotateToGoal.slowing_factor: 5.0
       #RotateToGoal.lookahead_time: -1.0
+
+    ShiftAndManipulate:
+      plugin: ergocub_local_controller::ErgocubLocalController
+      desired_linear_vel: 0.3
+      lookahead_dist: 2.0
+      max_angular_velocity: 1.0
+      transform_tolerance: 0.5
+      desired_safe_distance: 0.3
+
+
+
 
 local_costmap:
   local_costmap:
