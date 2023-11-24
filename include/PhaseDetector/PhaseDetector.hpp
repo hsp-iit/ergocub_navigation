@@ -9,6 +9,8 @@
 #include "yarp/sig/Vector.h"
 #include "yarp/os/Network.h"
 
+#include "PhaseDetector/MotorControl.hpp"
+
 #include <memory>
 #include <chrono>
 #include <mutex>
@@ -54,14 +56,14 @@ private:
     void gazeCallback(bool directionLeft);   //Main loop
     bool gazePattern(bool directionLeft);   //true for positive rotations = left
     const double m_joint_limit_deg = 20.0;   //swing around 0 +- this limit
-    const std::string m_joint_name = "neck_yaw";
+    std::vector<std::string> m_joint_name{"neck_yaw"};
     const double m_joint_increment = 5.0;    //increase the joint sepoint by a constant quantity
     const rclcpp::Duration m_time_increment = 200ms;
     double m_joint_state;
     bool m_startup;
     const std::string m_out_port_name = "/neck_controller/setpoints:o";
-    const std::string m_in_port_name = "/ergocubSim/head/command:i";
-    yarp::os::BufferedPort<yarp::sig::Vector> m_port;
+    std::vector<std::string> m_in_port_name {"/ergocubSim/head"};
+    MotorControl m_jointInterface;
 
     //Debug only
     int m_counter_rightSteps, m_counter_leftSteps;
@@ -71,4 +73,5 @@ private:
 
 public:
     PhaseDetector();
+    ~PhaseDetector();
 };

@@ -2,7 +2,9 @@
 
 using std::placeholders::_1;
 
-PhaseDetector::PhaseDetector() : Node("phase_detector_node"), m_tfListener(nullptr)
+PhaseDetector::PhaseDetector() : Node("phase_detector_node"), 
+                                m_tfListener(nullptr), 
+                                m_jointInterface(m_joint_name, m_in_port_name)
 {
     m_rightFoot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
                                                 m_rightFoot_topic,
@@ -33,15 +35,20 @@ PhaseDetector::PhaseDetector() : Node("phase_detector_node"), m_tfListener(nullp
     //Neck Controller
     m_joint_state = 0.0;
     m_startup = true;
-    m_port.open(m_out_port_name);
-    yarp::os::Network::connect(m_out_port_name, m_in_port_name);
-    if(yarp::os::Network::isConnected(m_out_port_name, m_in_port_name)){
-        RCLCPP_INFO(this->get_logger(), "YARP Ports connected successfully");
-    } else {
-        RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
-    }
+    //m_port.open(m_out_port_name);
+    //yarp::os::Network::connect(m_out_port_name, m_in_port_name);
+    //if(yarp::os::Network::isConnected(m_out_port_name, m_in_port_name)){
+    //    RCLCPP_INFO(this->get_logger(), "YARP Ports connected successfully");
+    //} else {
+    //    RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
+    //}
 
     m_debug_pub = this->create_publisher<geometry_msgs::msg::PointStamped>("/swing_foot_height_debug", 10);
+}
+
+PhaseDetector::~PhaseDetector()
+{
+    m_jointInterface.close();
 }
 
 void PhaseDetector::rightFootCallback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg)
@@ -232,12 +239,14 @@ bool PhaseDetector::gazePattern(bool directionLeft)
         for (int i = 1; i <= period; ++i)
         {
             double setpoint = std::abs((double(i*2)/period) - 2.0*(std::trunc((double(i*2)/period) - std::trunc(double(i)/period)))) * m_joint_limit_deg;
-            std::cout << "[gazePattern] LEFT Setting yaw setpoint of " << setpoint << std::endl;
+            std::cout << "[gazePattern] LEFT Setting yaw setpoint of " << setpoint*M_PI/180 << std::endl;
             
-            auto &data = m_port.prepare();
-            data.clear();
-            data = {0.0, 0.0, setpoint, 0.0};
-            m_port.write();
+            //auto &data = m_port.prepare();
+            //data.clear();
+            //data = {0.0, 0.0, setpoint, 0.0};
+            //m_port.write();
+
+            m_jointInterface.send_joint_commands(std::vector<double>{setpoint*M_PI/180});
 
             this->get_clock()->sleep_for(m_time_increment);
         }
@@ -247,12 +256,14 @@ bool PhaseDetector::gazePattern(bool directionLeft)
         for (int i = 1; i <= period; ++i)
         {
             double setpoint = - std::abs((double(i*2)/period) - 2.0*(std::trunc((double(i*2)/period) - std::trunc(double(i)/period)))) * m_joint_limit_deg;
-            std::cout << "[gazePattern] RIGHT Setting yaw setpoint of " << setpoint << std::endl;
+            std::cout << "[gazePattern] RIGHT Setting yaw setpoint of " << setpoint*M_PI/180 << std::endl;
 
-            auto &data = m_port.prepare();
-            data.clear();
-            data = {0.0, 0.0, setpoint, 0.0};
-            m_port.write();
+            //auto &data = m_port.prepare();
+            //data.clear();
+            //data = {0.0, 0.0, setpoint, 0.0};
+            //m_port.write();
+
+            m_jointInterface.send_joint_commands(std::vector<double>{setpoint*M_PI/180});
 
             this->get_clock()->sleep_for(m_time_increment);
         }
