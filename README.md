@@ -1,6 +1,11 @@
 # ergocub_navigation
 Run these following commands on the robot laptop, if not explicitily expressed to SSH to other locations.
 
+## Before Starting
+Be assured that ROS2 is properly set up and all the PCs clocks are synchronized (use `ntpdate -b <IP_TO_NTP_SERVER>` on ergoCubSN000 is 10.0.2.1).
+
+The ROS2 setup must use `cyclone_dds` as DDS, instead of the ROS2 default, and use the `cyclonedds.xml` config file on each PC, with the proper IPs set (guide here: https://cyclonedds.io/docs/cyclonedds/latest/config/index.html)
+
 ## How to run on ergoCubSN000
 
 0- Turn on the robot and use the `yarpmanager` to run the yarpserver while the robot is suspended on the crane.
