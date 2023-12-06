@@ -1,5 +1,6 @@
 odom_node:
   ros__parameters: 
+    use_sim_time: true
     in_port_name: "/virtual_unicycle_publisher/unicycle_states:i"
     out_port_name: "/navigation_helper/virtual_unicycle_states:o"
     odom_topic_name: "/odom"

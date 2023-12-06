@@ -1,5 +1,6 @@
 pointcloud_filter_node:
   ros__parameters:
+    use_sim_time: true
     depth_topic: "/camera/depth/color/points"
     pub_topic: "/imu_filtered_depth"
     pub_unfiltered_topic: "/imu_unfiltered_depth"

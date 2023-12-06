@@ -1,5 +1,6 @@
 scan_node:
   ros__parameters:
+    use_sim_time: true
     referece_frame: "geometric_unicycle"
     scan_topic: "/scan_local"
     pub_topic: "/compensated_pc2"

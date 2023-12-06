@@ -33,8 +33,7 @@ def generate_launch_description():
             package='ergocub_navigation',
             executable='path_converter',
             output='screen',
-            parameters=[path_converter_param_dir,
-                        use_sim_time]
+            parameters=[path_converter_param_dir]
         )
     
     to_inactive = launch.actions.EmitEvent(

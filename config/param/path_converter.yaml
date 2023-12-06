@@ -1,5 +1,6 @@
 odom_node:
   ros__parameters:
+    use_sim_time: true
     topic_name: "/plan"
     state_topic: "/is_goal_reached/goal_state"
     outPortName: "/path_converter/path:o"

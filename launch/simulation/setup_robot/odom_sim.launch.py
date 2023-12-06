@@ -33,8 +33,7 @@ def generate_launch_description():
             package='ergocub_navigation',
             executable='odom_node',
             output='screen',
-            parameters=[odom_param_dir,
-                        use_sim_time]
+            parameters=[odom_param_dir]
         )
     
     to_inactive = launch.actions.EmitEvent(

@@ -33,8 +33,7 @@ def generate_launch_description():
             package='ergocub_navigation',
             executable='phase_detector',
             output='screen',
-            parameters=[neck_param_dir,
-                        use_sim_time]
+            parameters=[neck_param_dir]
         )
     
     to_inactive = launch.actions.EmitEvent(

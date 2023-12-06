@@ -37,8 +37,7 @@ def generate_launch_description():
             package='ergocub_navigation',
             executable='scan_filter',
             output='screen',
-            parameters=[scan_param_dir,
-                        use_sim_time]
+            parameters=[scan_param_dir]
         )
     
     to_inactive = launch.actions.EmitEvent(
