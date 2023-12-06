@@ -22,8 +22,8 @@ PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
     declare_parameter("joint_name", "neck_yaw");
     declare_parameter("joint_increment", 5.0);
     declare_parameter("time_increment", 0.2);
-    declare_parameter("out_port_name", "/phase_detector/setpoints:o");
-    declare_parameter("in_port_name", "/tmp/tmp:i");
+    declare_parameter("out_port_name", "/neck_controller/setpoints:o");
+    declare_parameter("in_port_name", "/ergocubSim/head");
     
     m_tfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tfListener = std::make_shared<tf2_ros::TransformListener>(*m_tfBuffer);
@@ -54,11 +54,11 @@ CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
     m_imu_threshold_y = this->get_parameter("imu_threshold_y").as_double();
     m_tf_height_threshold_m = this->get_parameter("tf_height_threshold_m").as_double();
     m_joint_limit_deg = this->get_parameter("joint_limit_deg").as_double();
-    m_joint_name = this->get_parameter("joint_name").as_string();
+    m_joint_name.push_back(this->get_parameter("joint_name").as_string());
     m_joint_increment = this->get_parameter("joint_increment").as_double();
     m_time_increment = rclcpp::Duration::from_seconds(this->get_parameter("time_increment").as_double());
     m_out_port_name = this->get_parameter("out_port_name").as_string();
-    m_in_port_name = this->get_parameter("in_port_name").as_string();
+    m_in_port_name.push_back(this->get_parameter("in_port_name").as_string());
     
 
     //Subscribers
@@ -124,11 +124,6 @@ CallbackReturn PhaseDetector::on_error(const rclcpp_lifecycle::State & state)
     RCLCPP_FATAL(get_logger(), "Error Processing from %s", state.label().c_str());
 
     return CallbackReturn::SUCCESS;
-}
-
-PhaseDetector::~PhaseDetector()
-{
-    m_jointInterface.close();
 }
 
 PhaseDetector::~PhaseDetector()

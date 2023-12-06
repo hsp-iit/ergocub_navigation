@@ -39,13 +39,6 @@ private:
     double m_wrench_threshold = 80.0;
     double m_imu_threshold_y = 0.3;
     double m_tf_height_threshold_m = 0.02;    //height setpoint 0.05 m
-
-    double m_joint_limit_deg = 20.0;   //swing around 0 +- this limit
-    std::string m_joint_name = "neck_yaw";
-    double m_joint_increment = 5.0;    //increase the joint sepoint by a constant quantity
-    rclcpp::Duration m_time_increment = 200ms;
-    std::string m_out_port_name = "/neck_controller/setpoints:o";
-    std::string m_in_port_name = "/tmp/tmp:i";
     //yarp::os::BufferedPort<yarp::sig::VectorOf<double>> m_port;
 
     FootState m_rightFootState, m_leftFootState;
@@ -66,14 +59,14 @@ private:
     //Neck controller
     void gazeCallback(bool directionLeft);   //Main loop
     bool gazePattern(bool directionLeft);   //true for positive rotations = left
-    const double m_joint_limit_deg = 20.0;   //swing around 0 +- this limit
-    std::vector<std::string> m_joint_name{"neck_yaw"};
-    const double m_joint_increment = 5.0;    //increase the joint sepoint by a constant quantity
-    const rclcpp::Duration m_time_increment = 200ms;
+    double m_joint_limit_deg;   //swing around 0 +- this limit
+    double m_joint_increment = 5.0;    //increase the joint sepoint by a constant quantity
+    std::vector<std::string> m_joint_name;
+    rclcpp::Duration m_time_increment = 200ms;
     double m_joint_state;
     bool m_startup;
-    const std::string m_out_port_name = "/neck_controller/setpoints:o";
-    std::vector<std::string> m_in_port_name {"/ergocubSim/head"};
+    std::string m_out_port_name = "/neck_controller/setpoints:o";
+    std::vector<std::string> m_in_port_name;
     MotorControl m_jointInterface;
 
     //Debug only
