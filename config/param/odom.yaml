@@ -1,0 +1,12 @@
+odom_node:
+  ros__parameters: 
+    in_port_name: "/virtual_unicycle_publisher/unicycle_states:i"
+    out_port_name: "/navigation_helper/virtual_unicycle_states:o"
+    odom_topic_name: "/odom"
+    vel_topic: "/planned_vel"
+    loop_freq: 100.0
+    nominal_width: 0.2
+    odom_frame_name: "odom"
+    delta_x: 0.1
+    ekf_enabled: false
+    expose_ulterior_frames: false

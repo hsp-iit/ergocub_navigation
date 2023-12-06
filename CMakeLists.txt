@@ -22,6 +22,7 @@ find_package(laser_geometry REQUIRED)
 find_package(pcl_conversions REQUIRED)
 FIND_PACKAGE(YARP COMPONENTS os sig dev REQUIRED)
 find_package(PCL 1.2 REQUIRED)
+find_package(pcl_ros REQUIRED)
 
 find_package(nav2_common REQUIRED)
 find_package(nav2_core REQUIRED)
@@ -118,6 +119,7 @@ ament_target_dependencies(scan_filter
   "tf2_ros"
   "tf2_msgs"
   "rclcpp"
+  "rclcpp_lifecycle"
   "laser_geometry"
   "pcl_conversions"
   "geometry_msgs"
@@ -151,6 +153,7 @@ add_executable(odom_node src/OdomNode.cpp)
 ament_target_dependencies(odom_node
   "YARP"
   "rclcpp"
+  "rclcpp_lifecycle"
   "tf2_ros"
   "tf2_msgs"
   "tf2"
@@ -158,17 +161,17 @@ ament_target_dependencies(odom_node
   "nav_msgs"
 )
 
-add_executable(path_converter src/PathConverter.cpp)
-ament_target_dependencies(path_converter
-  "YARP"
-  "rclcpp"
-  "nav_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "tf2"
-  "nav2_util"
-  "nav_2d_msgs"
-)
+#add_executable(path_converter src/PathConverter.cpp)
+#ament_target_dependencies(path_converter
+#  "YARP"
+#  "rclcpp"
+#  "nav_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "tf2"
+#  "nav2_util"
+#  "nav_2d_msgs"
+#)
 
 add_executable(pointcloud_filter src/PointcloudFilter.cpp)
 ament_target_dependencies(pointcloud_filter
@@ -179,18 +182,22 @@ ament_target_dependencies(pointcloud_filter
   "pcl_conversions"
   "geometry_msgs"
   "sensor_msgs"
+  "rclcpp_lifecycle"
+  "tf2_ros"
+  "pcl_ros"
 )
 target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
 
-add_executable(phase_detector src/PhaseDetector.cpp src/MotorControl.cpp) 
-ament_target_dependencies(phase_detector
+add_executable(path_converter src/PathConverter_v2.cpp)
+ament_target_dependencies(path_converter
   "YARP"
   "rclcpp"
   "nav_msgs"
   "tf2_ros"
   "tf2_msgs"
   "tf2"
-  "sensor_msgs"
+  "nav2_util"
+  "rclcpp_lifecycle"
 )
 
 set(dependencies

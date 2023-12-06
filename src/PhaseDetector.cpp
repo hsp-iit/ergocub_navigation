@@ -1,11 +1,67 @@
 #include <PhaseDetector/PhaseDetector.hpp>
 
 using std::placeholders::_1;
+using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-PhaseDetector::PhaseDetector() : Node("phase_detector_node"), 
+PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("phase_detector_node", options), 
                                 m_tfListener(nullptr), 
-                                m_jointInterface(m_joint_name, m_in_port_name)
+                                m_jointInterface(m_joint_name, m_in_port_name),
+                                m_rightFootState(inContact),
+                                m_leftFootState(inContact)
 {
+    //Params Declaration
+    declare_parameter("leftFoot_topic", "/left_foot_heel_tiptoe_ft");
+    declare_parameter("rightFoot_topic", "/right_foot_heel_tiptoe_ft");
+    declare_parameter("imu_topic", "/head_imu");
+    declare_parameter("referenceFrame_right", "r_sole");
+    declare_parameter("referenceFrame_left", "l_sole");
+    declare_parameter("wrench_threshold", 80.0);
+    declare_parameter("imu_threshold_y", 0.3);
+    declare_parameter("tf_height_threshold_m", 0.02);
+    declare_parameter("joint_limit_deg", 20.0);
+    declare_parameter("joint_name", "neck_yaw");
+    declare_parameter("joint_increment", 5.0);
+    declare_parameter("time_increment", 0.2);
+    declare_parameter("out_port_name", "/phase_detector/setpoints:o");
+    declare_parameter("in_port_name", "/tmp/tmp:i");
+    
+    m_tfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    m_tfListener = std::make_shared<tf2_ros::TransformListener>(*m_tfBuffer);
+
+    m_counter_rightSteps = 0;
+    m_counter_leftSteps = 0;
+    m_last_impact_time_left = std::chrono::high_resolution_clock::now();
+    m_approaching_time_left = std::chrono::high_resolution_clock::now();
+    m_last_impact_time_right = std::chrono::high_resolution_clock::now();
+    m_approaching_time_right = std::chrono::high_resolution_clock::now();
+    
+    //Neck Controller
+    m_joint_state = 0.0;
+    m_startup = true;
+}
+
+CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Configuring");
+
+    //Param Init
+    m_leftFoot_topic = this->get_parameter("leftFoot_topic").as_string();
+    m_rightFoot_topic = this->get_parameter("rightFoot_topic").as_string();
+    m_imu_topic = this->get_parameter("imu_topic").as_string();
+    m_referenceFrame_right = this->get_parameter("referece_frame_right").as_string();
+    m_referenceFrame_left = this->get_parameter("referece_frame_left").as_string();
+    m_wrench_threshold = this->get_parameter("wrench_threshold").as_double();
+    m_imu_threshold_y = this->get_parameter("imu_threshold_y").as_double();
+    m_tf_height_threshold_m = this->get_parameter("tf_height_threshold_m").as_double();
+    m_joint_limit_deg = this->get_parameter("joint_limit_deg").as_double();
+    m_joint_name = this->get_parameter("joint_name").as_string();
+    m_joint_increment = this->get_parameter("joint_increment").as_double();
+    m_time_increment = rclcpp::Duration::from_seconds(this->get_parameter("time_increment").as_double());
+    m_out_port_name = this->get_parameter("out_port_name").as_string();
+    m_in_port_name = this->get_parameter("in_port_name").as_string();
+    
+
+    //Subscribers
     m_rightFoot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
                                                 m_rightFoot_topic,
                                                 10, 
@@ -18,23 +74,9 @@ PhaseDetector::PhaseDetector() : Node("phase_detector_node"),
                                                 m_imu_topic,
                                                 10,
                                                 std::bind(&PhaseDetector::imuCallback, this, _1));
-    m_tfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-    m_tfListener = std::make_shared<tf2_ros::TransformListener>(*m_tfBuffer);
+    //Pub
+    m_debug_pub = this->create_publisher<geometry_msgs::msg::PointStamped>("/swing_foot_height_debug", 10);
 
-    //Initialize Feet State in contact
-    m_rightFootState=inContact;
-    m_leftFootState=inContact;
-
-    m_counter_rightSteps = 0;
-    m_counter_leftSteps = 0;
-    m_last_impact_time_left = std::chrono::high_resolution_clock::now();
-    m_approaching_time_left = std::chrono::high_resolution_clock::now();
-    m_last_impact_time_right = std::chrono::high_resolution_clock::now();
-    m_approaching_time_right = std::chrono::high_resolution_clock::now();
-
-    //Neck Controller
-    m_joint_state = 0.0;
-    m_startup = true;
     //m_port.open(m_out_port_name);
     //yarp::os::Network::connect(m_out_port_name, m_in_port_name);
     //if(yarp::os::Network::isConnected(m_out_port_name, m_in_port_name)){
@@ -42,8 +84,51 @@ PhaseDetector::PhaseDetector() : Node("phase_detector_node"),
     //} else {
     //    RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
     //}
+    
+    return CallbackReturn::SUCCESS;
+}
 
-    m_debug_pub = this->create_publisher<geometry_msgs::msg::PointStamped>("/swing_foot_height_debug", 10);
+CallbackReturn PhaseDetector::on_activate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Activating");
+    m_debug_pub->on_activate();
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PhaseDetector::on_deactivate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Deactivating");
+    m_debug_pub->on_deactivate();
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PhaseDetector::on_cleanup(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Cleaning Up");
+    m_rightFoot_sub.reset();
+    m_imu_sub.reset();
+    m_leftFoot_sub.reset();
+    m_debug_pub.reset();
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PhaseDetector::on_shutdown(const rclcpp_lifecycle::State & state)
+{
+  RCLCPP_INFO(get_logger(), "Shutting Down from %s", state.label().c_str());
+
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PhaseDetector::on_error(const rclcpp_lifecycle::State & state)
+{
+    RCLCPP_FATAL(get_logger(), "Error Processing from %s", state.label().c_str());
+
+    return CallbackReturn::SUCCESS;
+}
+
+PhaseDetector::~PhaseDetector()
+{
+    m_jointInterface.close();
 }
 
 PhaseDetector::~PhaseDetector()
@@ -302,9 +387,12 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
     if (rclcpp::ok())
     {
-        auto node = std::make_shared<PhaseDetector>();
-        std::cout << "Starting up node " << node->get_name() << " \n";
-        rclcpp::spin(node);
+        rclcpp::executors::SingleThreadedExecutor executor;
+        rclcpp::NodeOptions options;
+        std::shared_ptr<PhaseDetector> node = std::make_shared<PhaseDetector>(options);
+
+        executor.add_node(node->get_node_base_interface());
+        executor.spin();
         std::cout << "Shutting down" << std::endl;
         rclcpp::shutdown();
     }

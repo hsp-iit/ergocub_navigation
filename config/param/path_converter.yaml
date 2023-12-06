@@ -1,0 +1,13 @@
+odom_node:
+  ros__parameters:
+    topic_name: "/plan"
+    state_topic: "/is_goal_reached/goal_state"
+    outPortName: "/path_converter/path:o"
+    inPortName: "/walking-coordinator/goal:i"
+    reference_frame: "geometric_unicycle"
+    shift_portName: "/path_converter/shift_command:i"
+    shift_portConnectionName: "/TODO/shift_command:o"
+    zero_speed_threshold: 1e-03
+    shift_enabled: false
+    shift: 0.15
+    max_msg_counter: 4
