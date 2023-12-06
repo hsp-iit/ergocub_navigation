@@ -20,38 +20,38 @@ from launch.substitutions import LaunchConfiguration
 def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     ld = launch.LaunchDescription()
-    odom_param_dir = launch.substitutions.LaunchConfiguration(
-        'odom_param_dir',
+    neck_param_dir = launch.substitutions.LaunchConfiguration(
+        'neck_param_dir',
         default=os.path.join(
             get_package_share_directory('ergocub_navigation'),
             'param',
-            'odom.yaml'))
+            'neck_controller.yaml'))
     
-    odom_node = launch_ros.actions.LifecycleNode(
-            name = 'odom_node',
+    neck_controller_node = launch_ros.actions.LifecycleNode(
+            name = 'neck_controller_node',
             namespace='',
             package='ergocub_navigation',
-            executable='odom_node',
+            executable='phase_detector',
             output='screen',
-            parameters=[odom_param_dir,
+            parameters=[neck_param_dir,
                         use_sim_time]
         )
     
     to_inactive = launch.actions.EmitEvent(
         event=launch_ros.events.lifecycle.ChangeState(
-            lifecycle_node_matcher=launch.events.matches_action(odom_node),
+            lifecycle_node_matcher=launch.events.matches_action(neck_controller_node),
             transition_id=lifecycle_msgs.msg.Transition.TRANSITION_CONFIGURE,
         )
     )
     
     from_unconfigured_to_inactive = launch.actions.RegisterEventHandler(
         launch_ros.event_handlers.OnStateTransition(
-            target_lifecycle_node=odom_node, 
+            target_lifecycle_node=neck_controller_node, 
             goal_state='unconfigured',
             entities=[
                 launch.actions.LogInfo(msg="-- Unconfigured --"),
                 launch.actions.EmitEvent(event=launch_ros.events.lifecycle.ChangeState(
-                    lifecycle_node_matcher=launch.events.matches_action(odom_node),
+                    lifecycle_node_matcher=launch.events.matches_action(neck_controller_node),
                     transition_id=lifecycle_msgs.msg.Transition.TRANSITION_CONFIGURE,
                 )),
             ],
@@ -60,13 +60,13 @@ def generate_launch_description():
 
     from_inactive_to_active = launch.actions.RegisterEventHandler(
         launch_ros.event_handlers.OnStateTransition(
-            target_lifecycle_node=odom_node, 
+            target_lifecycle_node=neck_controller_node, 
             start_state = 'configuring',
             goal_state='inactive',
             entities=[
                 launch.actions.LogInfo(msg="-- Inactive --"),
                 launch.actions.EmitEvent(event=launch_ros.events.lifecycle.ChangeState(
-                    lifecycle_node_matcher=launch.events.matches_action(odom_node),
+                    lifecycle_node_matcher=launch.events.matches_action(neck_controller_node),
                     transition_id=lifecycle_msgs.msg.Transition.TRANSITION_ACTIVATE,
                 )),
             ],
@@ -75,7 +75,7 @@ def generate_launch_description():
 
     ld.add_action(from_unconfigured_to_inactive)
     ld.add_action(from_inactive_to_active)
-    ld.add_action(odom_node)
+    ld.add_action(neck_controller_node)
     ld.add_action(to_inactive)
     
     return LaunchDescription([
