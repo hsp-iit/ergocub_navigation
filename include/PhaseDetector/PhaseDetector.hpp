@@ -5,9 +5,11 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
-//#include "yarp/os/BufferedPort.h"
-//#include "yarp/sig/Vector.h"
-//#include "yarp/os/Network.h"
+#include "yarp/os/BufferedPort.h"
+#include "yarp/sig/Vector.h"
+#include "yarp/os/Network.h"
+
+#include "PhaseDetector/MotorControl.hpp"
 
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
@@ -64,10 +66,15 @@ private:
     //Neck controller
     void gazeCallback(bool directionLeft);   //Main loop
     bool gazePattern(bool directionLeft);   //true for positive rotations = left
-    
+    const double m_joint_limit_deg = 20.0;   //swing around 0 +- this limit
+    std::vector<std::string> m_joint_name{"neck_yaw"};
+    const double m_joint_increment = 5.0;    //increase the joint sepoint by a constant quantity
+    const rclcpp::Duration m_time_increment = 200ms;
     double m_joint_state;
     bool m_startup;
-    
+    const std::string m_out_port_name = "/neck_controller/setpoints:o";
+    std::vector<std::string> m_in_port_name {"/ergocubSim/head"};
+    MotorControl m_jointInterface;
 
     //Debug only
     int m_counter_rightSteps, m_counter_leftSteps;
@@ -86,4 +93,5 @@ public:
     CallbackReturn on_cleanup(const rclcpp_lifecycle::State &);
     CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state);
     CallbackReturn on_error(const rclcpp_lifecycle::State & state);
+    ~PhaseDetector();
 };

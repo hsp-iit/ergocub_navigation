@@ -20,7 +20,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(laser_geometry REQUIRED)
 find_package(pcl_conversions REQUIRED)
-FIND_PACKAGE(YARP COMPONENTS os sig REQUIRED)
+FIND_PACKAGE(YARP COMPONENTS os sig dev REQUIRED)
 find_package(PCL 1.2 REQUIRED)
 find_package(pcl_ros REQUIRED)
 
@@ -232,6 +232,7 @@ install(TARGETS
   base_projector
   path_converter
   pointcloud_filter
+  phase_detector
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory

@@ -4,9 +4,10 @@ using std::placeholders::_1;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("phase_detector_node", options), 
-    m_tfListener(nullptr),
-    m_rightFootState(inContact),
-    m_leftFootState(inContact)
+                                m_tfListener(nullptr), 
+                                m_jointInterface(m_joint_name, m_in_port_name),
+                                m_rightFootState(inContact),
+                                m_leftFootState(inContact)
 {
     //Params Declaration
     declare_parameter("leftFoot_topic", "/left_foot_heel_tiptoe_ft");
@@ -76,12 +77,14 @@ CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
     //Pub
     m_debug_pub = this->create_publisher<geometry_msgs::msg::PointStamped>("/swing_foot_height_debug", 10);
 
-    //yarp::os::Connect(m_out_port_name, m_in_port_name);
+    //m_port.open(m_out_port_name);
+    //yarp::os::Network::connect(m_out_port_name, m_in_port_name);
     //if(yarp::os::Network::isConnected(m_out_port_name, m_in_port_name)){
     //    RCLCPP_INFO(this->get_logger(), "YARP Ports connected successfully");
     //} else {
     //    RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
     //}
+    
     return CallbackReturn::SUCCESS;
 }
 
@@ -121,6 +124,16 @@ CallbackReturn PhaseDetector::on_error(const rclcpp_lifecycle::State & state)
     RCLCPP_FATAL(get_logger(), "Error Processing from %s", state.label().c_str());
 
     return CallbackReturn::SUCCESS;
+}
+
+PhaseDetector::~PhaseDetector()
+{
+    m_jointInterface.close();
+}
+
+PhaseDetector::~PhaseDetector()
+{
+    m_jointInterface.close();
 }
 
 void PhaseDetector::rightFootCallback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg)
@@ -311,8 +324,15 @@ bool PhaseDetector::gazePattern(bool directionLeft)
         for (int i = 1; i <= period; ++i)
         {
             double setpoint = std::abs((double(i*2)/period) - 2.0*(std::trunc((double(i*2)/period) - std::trunc(double(i)/period)))) * m_joint_limit_deg;
-            std::cout << "[gazePattern] LEFT Setting yaw setpoint of " << setpoint << std::endl;
-            //RCLCPP_INFO(this->get_logger(), "[gazePattern] Setting yaw setpoint of %d degrees while looking LEFT", setpoint);
+            std::cout << "[gazePattern] LEFT Setting yaw setpoint of " << setpoint*M_PI/180 << std::endl;
+            
+            //auto &data = m_port.prepare();
+            //data.clear();
+            //data = {0.0, 0.0, setpoint, 0.0};
+            //m_port.write();
+
+            m_jointInterface.send_joint_commands(std::vector<double>{setpoint*M_PI/180});
+
             this->get_clock()->sleep_for(m_time_increment);
         }
     }
@@ -321,8 +341,15 @@ bool PhaseDetector::gazePattern(bool directionLeft)
         for (int i = 1; i <= period; ++i)
         {
             double setpoint = - std::abs((double(i*2)/period) - 2.0*(std::trunc((double(i*2)/period) - std::trunc(double(i)/period)))) * m_joint_limit_deg;
-            //RCLCPP_INFO(this->get_logger(), "[gazePattern] Setting yaw setpoint of %d degrees while looking RIGHT", setpoint);
-            std::cout << "[gazePattern] RIGHT Setting yaw setpoint of " << setpoint << std::endl;
+            std::cout << "[gazePattern] RIGHT Setting yaw setpoint of " << setpoint*M_PI/180 << std::endl;
+
+            //auto &data = m_port.prepare();
+            //data.clear();
+            //data = {0.0, 0.0, setpoint, 0.0};
+            //m_port.write();
+
+            m_jointInterface.send_joint_commands(std::vector<double>{setpoint*M_PI/180});
+
             this->get_clock()->sleep_for(m_time_increment);
         }
     }
@@ -356,6 +383,7 @@ void PhaseDetector::gazeCallback(bool directionLeft)
 
 int main(int argc, char** argv)
 {
+    yarp::os::Network::init();
     rclcpp::init(argc, argv);
     if (rclcpp::ok())
     {
