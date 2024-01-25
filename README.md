@@ -20,7 +20,7 @@ The ROS2 setup must use `cyclone_dds` as DDS, instead of the ROS2 default, and u
 yarp rpc /wholeBodyDynamics/rpc
 >> calib all 300
 ```
-/walking-coordinator/rpc
+
 4- SSH to the torso and launch the `WalkingModue` (after checking out to the proper branch for navigation: simonemic/ergoCubSN000 and making and installing it).
 For further instruction on how to use the walking-controllers, look at this link: https://github.com/robotology/walking-controllers
 
