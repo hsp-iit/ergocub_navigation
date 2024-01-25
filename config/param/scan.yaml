@@ -1,10 +1,10 @@
 scan_node:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
     referece_frame: "geometric_unicycle"
     scan_topic: "/scan_local"
     pub_topic: "/compensated_pc2"
-    imu_topic: "/head_imu"
+    imu_topic: "/head_imu"  # /head_imu
     filter_z_low: 0.2
     filter_z_high: 2.5
     close_threshold: 0.5

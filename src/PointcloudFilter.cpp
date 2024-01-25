@@ -22,7 +22,7 @@ void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::Const
             //wait if a vibration was detected before the timeout
             if (delta_t < m_ms_wait) 
             {
-                //RCLCPP_INFO(this->get_logger(), "Exiting scan callback, time passed: %f vs timeout: %f", delta_t, m_ms_wait);
+                RCLCPP_INFO(this->get_logger(), "Exiting scan callback, time passed: %f vs timeout: %f", delta_t, m_ms_wait);
                 return;
             }
 
