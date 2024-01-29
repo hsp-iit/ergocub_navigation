@@ -81,7 +81,7 @@ def generate_launch_description():
     param_dir=os.path.join(
             get_package_share_directory('ergocub_navigation'),
             'param',
-            'ergoCub_nav2_sim.yaml')
+            'simulation/ergoCub_nav2_sim.yaml')
             
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
