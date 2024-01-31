@@ -29,26 +29,25 @@ class OdomNode : public rclcpp_lifecycle::LifecycleNode
 {
 private:
     //Parameters
-    bool m_ekf_enabled;
-    std::string m_in_port_name;
-    std::string m_out_port_name;
-    std::string m_odom_topic_name;
-    std::string m_vel_topic;
-    double m_loopFreq;
-    double m_nominalWidth;
-    std::string m_odom_frame_name;
-    double m_delta_x = 0.1;
-    bool m_expose_ulterior_frames;
+    bool m_ekf_enabled;             // flag if the extended kalman filter is being externally used
+    std::string m_in_port_name;     // yarp port name of this module
+    std::string m_out_port_name;    // yarp port name of the walking-controller
+    std::string m_odom_topic_name;  // name of the odom topic
+    std::string m_vel_topic;        // name of hte odom vel topic estimated by the walking-controller
+    double m_loopFreq;              // frequency of the node, used by the wall timer
+    double m_nominalWidth;          // nominal width of the robot feet
+    std::string m_odom_frame_name;  // frame name to give to the odom
+    double m_delta_x = 0.1;         // offset used by the walking-controller for the reference of the virtual unicycle
+    bool m_expose_ulterior_frames;  // flag to whether publish uterior frames for debug purposes, about internal measurements used in the walking controller
 
     std::array<double, 36UL> m_pose_cov_matrix = {0.1, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                         0.0, 0.1, 0.0, 0.0, 0.0, 0.0,
                                                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.001};
+                                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.001};    // covariance matrix of the odometry, X, Y and Theta values only
     yarp::os::BufferedPort<yarp::os::Bottle> port;
-    //yarp::os::Contact portContact{port_name, "shmem" };
-    
+
     std::shared_ptr<tf2_ros::TransformBroadcaster> m_tf_broadcaster;
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};
     std::unique_ptr<tf2_ros::Buffer> m_tf_buffer_in;
@@ -68,4 +67,4 @@ public:
     CallbackReturn on_cleanup(const rclcpp_lifecycle::State &);
     CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state);
     CallbackReturn on_error(const rclcpp_lifecycle::State & state);
-};  //End of class VirtualUnicyclePub
+};  //End of class OdomNode
