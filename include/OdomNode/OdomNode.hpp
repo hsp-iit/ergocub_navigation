@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#ifndef ODOM_NODE__HPP
+#define PATH_CONVERTER__V2__HPP
+
 #include "yarp/os/Bottle.h"
 #include "yarp/os/Port.h"
 #include "yarp/os/BufferedPort.h"
@@ -73,3 +76,5 @@ public:
     CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state);
     CallbackReturn on_error(const rclcpp_lifecycle::State & state);
 };  //End of class OdomNode
+
+#endif

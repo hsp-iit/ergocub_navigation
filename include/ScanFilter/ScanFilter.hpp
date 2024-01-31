@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#ifndef SCAN_FILTER__HPP
+#define SCAN_FILTER__HPP
+
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/imu.hpp"
@@ -69,3 +72,5 @@ public:
     CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state);
     CallbackReturn on_error(const rclcpp_lifecycle::State & state);
 };  // End of class ScanFilter node
+
+#endif

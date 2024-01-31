@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#ifndef FOOTSTEPS_VIEWER_YARP__HPP
+#define FOOTSTEPS_VIEWER_YARP__HPP
+
 #include "yarp/os/BufferedPort.h"
 #include "yarp/os/Network.h"
 #include "yarp/sig/Vector.h"
@@ -26,3 +29,5 @@ public:
 
     void runROS();
 };  //End of class FootstepsViewerYarp : public yarp::os::PortReader
+
+#endif

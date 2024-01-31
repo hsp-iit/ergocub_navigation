@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#ifndef PHASE_DETECTOR__HPP
+#define PHASE_DETECTOR__HPP
+
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "geometry_msgs/msg/wrench_stamped.hpp"
@@ -93,3 +96,5 @@ public:
     CallbackReturn on_error(const rclcpp_lifecycle::State & state);
     ~PhaseDetector();
 };
+
+#endif
