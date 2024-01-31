@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #include "yarp/os/BufferedPort.h"
 #include "yarp/os/Network.h"
 #include "yarp/sig/Vector.h"

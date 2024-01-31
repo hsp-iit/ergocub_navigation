@@ -6,6 +6,11 @@
  * @see     https://yarp.it/git-master/group__dev__iface__motor.html
  */
 
+/*
+ * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #ifndef MOTORCONTROL_HPP_
 #define MOTORCONTROL_HPP_
 
