@@ -31,7 +31,6 @@ PathConverter_v2::PathConverter_v2(const rclcpp::NodeOptions & options) : rclcpp
 
 CallbackReturn PathConverter_v2::on_configure(const rclcpp_lifecycle::State &)
 {
-    RCLCPP_INFO(get_logger(), "Configuring Parameters");
     //Parameters reading
     m_topic_name = this->get_parameter("topic_name").as_string();
     m_state_topic = this->get_parameter("state_topic").as_string(); 
@@ -44,6 +43,11 @@ CallbackReturn PathConverter_v2::on_configure(const rclcpp_lifecycle::State &)
     m_shift_enabled = this->get_parameter("shift_enabled").as_bool();
     m_shift = this->get_parameter("shift").as_double();
     m_max_msg_counter = this->get_parameter("max_msg_counter").as_int();
+
+    RCLCPP_INFO(get_logger(), "Configuring with: topic_name: %s state_topic: %s outPortName: %s inPortName: %s reference_frame: %s shift_portName: %s",
+                    m_topic_name, m_state_topic, m_outPortName, m_inPortName, m_reference_frame, m_shift_portName);
+    RCLCPP_INFO(get_logger(), "shift_portConnectionName: %s zero_speed_threshold: %f shift_enabled: %i shift: %f max_msg_counter: %i",
+                    m_shift_portConnectionName, m_zero_speed_threshold, (int)m_shift_enabled, m_shift, m_max_msg_counter);
 
     //Subscribers
     m_setpoint_sub = this->create_subscription<nav_msgs::msg::Path>(

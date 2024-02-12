@@ -47,8 +47,6 @@ PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
 
 CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
 {
-    RCLCPP_INFO(get_logger(), "Configuring");
-
     //Param Init
     m_leftFoot_topic = this->get_parameter("leftFoot_topic").as_string();
     m_rightFoot_topic = this->get_parameter("rightFoot_topic").as_string();
@@ -57,14 +55,18 @@ CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
     m_referenceFrame_left = this->get_parameter("referece_frame_left").as_string();
     m_wrench_threshold = this->get_parameter("wrench_threshold").as_double();
     m_imu_threshold_y = this->get_parameter("imu_threshold_y").as_double();
-    m_tf_height_threshold_m = this->get_parameter("tf_height_threshold_m").as_double();
+    m_tf_height_threshold = this->get_parameter("tf_height_threshold").as_double();
     m_joint_limit_deg = this->get_parameter("joint_limit_deg").as_double();
     m_joint_name.push_back(this->get_parameter("joint_name").as_string());
     m_joint_increment = this->get_parameter("joint_increment").as_double();
     m_time_increment = rclcpp::Duration::from_seconds(this->get_parameter("time_increment").as_double());
     m_out_port_name = this->get_parameter("out_port_name").as_string();
     m_in_port_name.push_back(this->get_parameter("in_port_name").as_string());
-    
+
+    RCLCPP_INFO(get_logger(), "Configuring with: leftFoot_topic: %s rightFoot_topic: %s imu_topic: %s referece_frame_right: %s referece_frame_left: %s out_port_name: %s in_port_name: %s",
+                    m_leftFoot_topic, m_rightFoot_topic, m_imu_topic, m_referenceFrame_right, m_referenceFrame_left, m_out_port_name, m_in_port_name[0]);
+    RCLCPP_INFO(get_logger(), "wrench_threshold: %f imu_threshold_y: %f tf_height_threshold: %f joint_limit_deg: %f joint_name: %s joint_increment: %f time_increment: %f",
+                    m_wrench_threshold, m_imu_threshold_y, m_tf_height_threshold, m_joint_limit_deg, m_joint_name[0], m_joint_increment, m_time_increment);
 
     //Subscribers
     m_rightFoot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
@@ -171,7 +173,7 @@ void PhaseDetector::rightFootCallback(const geometry_msgs::msg::WrenchStamped::C
             data.point.y = 0.0;
             data.point.z = tf.transform.translation.z;
             m_debug_pub->publish(data);
-            if (tf.transform.translation.z >= m_tf_height_threshold_m)
+            if (tf.transform.translation.z >= m_tf_height_threshold)
             {
                 m_rightFootState = apexZone;
                 RCLCPP_INFO(this->get_logger(), "Right Foot apex zone");
@@ -194,7 +196,7 @@ void PhaseDetector::rightFootCallback(const geometry_msgs::msg::WrenchStamped::C
             data.point.y = 0.0;
             data.point.z = tf.transform.translation.z;
             m_debug_pub->publish(data);
-            if (tf.transform.translation.z <= m_tf_height_threshold_m)
+            if (tf.transform.translation.z <= m_tf_height_threshold)
             {
                 m_rightFootState = approachingContact;
                 //TODO benchmarking time
@@ -255,7 +257,7 @@ void PhaseDetector::leftFootCallback(const geometry_msgs::msg::WrenchStamped::Co
             data.point.y = 0.0;
             data.point.z = tf.transform.translation.z;
             m_debug_pub->publish(data);
-            if (tf.transform.translation.z >= m_tf_height_threshold_m)
+            if (tf.transform.translation.z >= m_tf_height_threshold)
             {
                 m_leftFootState = apexZone;
                 RCLCPP_INFO(this->get_logger(), "Left Foot apex zone");
@@ -278,10 +280,10 @@ void PhaseDetector::leftFootCallback(const geometry_msgs::msg::WrenchStamped::Co
             data.point.y = 0.0;
             data.point.z = tf.transform.translation.z;
             m_debug_pub->publish(data);
-            if (tf.transform.translation.z <= m_tf_height_threshold_m)
+            if (tf.transform.translation.z <= m_tf_height_threshold)
             {
                 m_leftFootState = approachingContact;
-                RCLCPP_INFO(this->get_logger(), "Left Foot aproaching contact");
+                RCLCPP_INFO(this->get_logger(), "Left Foot approaching contact");
 
                 m_approaching_time_left = std::chrono::high_resolution_clock::now();
                 auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_last_impact_time_left - m_approaching_time_left);

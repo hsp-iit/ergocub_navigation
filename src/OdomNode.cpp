@@ -31,8 +31,6 @@ OdomNode::OdomNode(const rclcpp::NodeOptions &options) : rclcpp_lifecycle::Lifec
 
 CallbackReturn OdomNode::on_configure(const rclcpp_lifecycle::State &)
 {
-    RCLCPP_INFO(get_logger(), "Configuring");
-
     // Param Init
     m_in_port_name = this->get_parameter("in_port_name").as_string();
     m_out_port_name = this->get_parameter("out_port_name").as_string();
@@ -44,6 +42,11 @@ CallbackReturn OdomNode::on_configure(const rclcpp_lifecycle::State &)
     m_delta_x = this->get_parameter("delta_x").as_double();
     m_ekf_enabled = this->get_parameter("ekf_enabled").as_bool();
     m_expose_ulterior_frames = this->get_parameter("expose_ulterior_frames").as_bool();
+
+    RCLCPP_INFO(get_logger(), "Configuring with: in_port_name: %s out_port_name: %s odom_topic_name: %s vel_topic: %s odom_frame_name: %s",
+                    m_in_port_name, m_out_port_name, m_odom_topic_name, m_vel_topic, m_odom_frame_name);
+    RCLCPP_INFO(get_logger(), "loop_freq: %f nominal_width: %f delta_x: %f ekf_enabled: %i expose_ulterior_frames: %i",
+                    m_loopFreq, m_nominalWidth, m_delta_x, (int)m_ekf_enabled, (int)m_expose_ulterior_frames);
 
     // YARP Ports
     port.open(m_in_port_name);

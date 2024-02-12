@@ -46,7 +46,7 @@ private:
     std::string m_referenceFrame_left = "l_sole";
     double m_wrench_threshold = 80.0;
     double m_imu_threshold_y = 0.3;
-    double m_tf_height_threshold_m = 0.02;    //height setpoint 0.05 m
+    double m_tf_height_threshold = 0.02;    //height setpoint 0.05 m
     //yarp::os::BufferedPort<yarp::sig::VectorOf<double>> m_port;
 
     FootState m_rightFootState, m_leftFootState;

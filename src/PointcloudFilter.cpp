@@ -137,7 +137,6 @@ PointcloudFilter::PointcloudFilter(const rclcpp::NodeOptions & options) : rclcpp
 
 CallbackReturn PointcloudFilter::on_configure(const rclcpp_lifecycle::State &)
 {
-    RCLCPP_INFO(get_logger(), "Configuring");
     //Pass parameters
     m_depth_topic = this->get_parameter("depth_topic").as_string();
     m_pub_topic = this->get_parameter("pub_topic").as_string();
@@ -153,7 +152,12 @@ CallbackReturn PointcloudFilter::on_configure(const rclcpp_lifecycle::State &)
     m_ms_wait = this->get_parameter("ms_wait").as_double();
     m_extract_removed_indices = this->get_parameter("extract_removed_indices").as_bool();
     m_set_negative = this->get_parameter("set_negative").as_bool();
-    
+
+    RCLCPP_INFO(get_logger(), "Configuring with: depth_topic: %s pub_topic: %s pub_unfiltered_topic: %s imu_topic: %s filter_reference_frame: %s",
+                    m_depth_topic, m_pub_topic, m_pub_unfiltered_topic, m_imu_topic, m_filter_reference_frame);
+    RCLCPP_INFO(get_logger(), "box_x: %f box_y: %f box_z: %f box_w: %f imuVel_x_threshold: %f imuVel_y_threshold: %f ms_wait: %f extract_removed_indices: %i set_negative: %i",
+                    m_box_x, m_box_y, m_box_z, m_box_w, m_imuVel_x_threshold, m_imuVel_y_threshold, m_ms_wait, (int)m_extract_removed_indices, (int)m_set_negative);
+
     //Subscribers
     m_raw_depth_sub = this->create_subscription<sensor_msgs::msg::PointCloud2> (
         m_depth_topic,
