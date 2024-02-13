@@ -44,7 +44,7 @@ CallbackReturn OdomNode::on_configure(const rclcpp_lifecycle::State &)
     m_expose_ulterior_frames = this->get_parameter("expose_ulterior_frames").as_bool();
 
     RCLCPP_INFO(get_logger(), "Configuring with: in_port_name: %s out_port_name: %s odom_topic_name: %s vel_topic: %s odom_frame_name: %s",
-                    m_in_port_name, m_out_port_name, m_odom_topic_name, m_vel_topic, m_odom_frame_name);
+                    m_in_port_name.c_str(), m_out_port_name.c_str(), m_odom_topic_name.c_str(), m_vel_topic.c_str(), m_odom_frame_name.c_str());
     RCLCPP_INFO(get_logger(), "loop_freq: %f nominal_width: %f delta_x: %f ekf_enabled: %i expose_ulterior_frames: %i",
                     m_loopFreq, m_nominalWidth, m_delta_x, (int)m_ekf_enabled, (int)m_expose_ulterior_frames);
 

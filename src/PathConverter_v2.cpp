@@ -45,7 +45,7 @@ CallbackReturn PathConverter_v2::on_configure(const rclcpp_lifecycle::State &)
     m_max_msg_counter = this->get_parameter("max_msg_counter").as_int();
 
     RCLCPP_INFO(get_logger(), "Configuring with: topic_name: %s state_topic: %s outPortName: %s inPortName: %s reference_frame: %s shift_portName: %s",
-                    m_topic_name, m_state_topic, m_outPortName, m_inPortName, m_reference_frame, m_shift_portName);
+                    m_topic_name.c_str(), m_state_topic.c_str(), m_outPortName.c_str(), m_inPortName.c_str(), m_reference_frame.c_str(), m_shift_portName.c_str());
     RCLCPP_INFO(get_logger(), "shift_portConnectionName: %s zero_speed_threshold: %f shift_enabled: %i shift: %f max_msg_counter: %i",
                     m_shift_portConnectionName, m_zero_speed_threshold, (int)m_shift_enabled, m_shift, m_max_msg_counter);
 

@@ -51,9 +51,9 @@ CallbackReturn ScanFilter::on_configure(const rclcpp_lifecycle::State &)
     m_ms_wait = this->get_parameter("ms_wait").as_double();
     m_robot_on_crane = this->get_parameter("robot_on_crane").as_bool();
 
-    RCLCPP_INFO(get_logger(), "Configuring with: referece_frame: %s scan_topic: %s pub_topic: %s imu_topic: %s robot_on_crane: %i",
-                    m_referece_frame, m_scan_topic, m_pub_topic, m_imu_topic, (int)m_robot_on_crane);
-    RCLCPP_INFO(get_logger(), "Filter parameters: filter_z_low: %f filter_z_high: %f imuVel_x_threshold: %f imuVel_y_threshold: %f ms_wait: %f close_threshold: %f",
+    RCLCPP_INFO(this->get_logger(), "Configuring with: referece_frame: %s scan_topic: %s pub_topic: %s imu_topic: %s robot_on_crane: %i",
+                    m_referece_frame.c_str(), m_scan_topic.c_str(), m_pub_topic.c_str(), m_imu_topic.c_str(), (int)m_robot_on_crane);
+    RCLCPP_INFO(this->get_logger(), "Filter parameters: filter_z_low: %f filter_z_high: %f imuVel_x_threshold: %f imuVel_y_threshold: %f ms_wait: %f close_threshold: %f",
                     m_filter_z_low, m_filter_z_high, m_imuVel_x_threshold, m_imuVel_y_threshold, m_ms_wait, m_close_threshold);
     //Subscribers
     m_raw_scan_sub = this->create_subscription<sensor_msgs::msg::LaserScan> (
