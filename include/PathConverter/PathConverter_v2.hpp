@@ -46,12 +46,13 @@ private:
     double m_shift = 0.15;      // amount of meter to shift to the left or right
     bool m_shiftLeft;           // if true shift to the left, to the right otherwise
     bool m_shiftFlag = false;   // bool if the shift has been actuated
-    yarp::os::BufferedPort<yarp::sig::VectorOf<double>> m_shift_port;
+    //yarp::os::BufferedPort<yarp::sig::VectorOf<double>> m_shift_port;
+    yarp::os::BufferedPort<yarp::os::Bottle> m_shift_port;
     std::string m_shift_portName = "/path_converter/shift_command:i";
     std::string m_shift_portConnectionName = "/TODO/shift_command:o";
 
     int msg_counter = 0;
-    int m_max_msg_counter = 4;
+    int m_max_msg_counter = 6;
     bool msg_num_reached = false;
 
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};

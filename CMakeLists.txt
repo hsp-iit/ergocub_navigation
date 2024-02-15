@@ -245,6 +245,7 @@ install(TARGETS
   path_converter
   pointcloud_filter
   phase_detector
+  path_converter_v2
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory

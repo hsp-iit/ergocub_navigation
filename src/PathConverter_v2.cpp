@@ -21,8 +21,8 @@ PathConverter_v2::PathConverter_v2(const rclcpp::NodeOptions & options) : rclcpp
     declare_parameter("shift_portConnectionName", "/shift_command:o");
     declare_parameter("zero_speed_threshold", 1e-03);
     declare_parameter("shift_enabled", true);
-    declare_parameter("shift", 0.15);
-    declare_parameter("max_msg_counter", 4);
+    declare_parameter("shift", 0.2);
+    declare_parameter("max_msg_counter", 6);
 
     // TFs
     m_tf_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
@@ -47,7 +47,7 @@ CallbackReturn PathConverter_v2::on_configure(const rclcpp_lifecycle::State &)
     RCLCPP_INFO(get_logger(), "Configuring with: topic_name: %s state_topic: %s outPortName: %s inPortName: %s reference_frame: %s shift_portName: %s",
                     m_topic_name.c_str(), m_state_topic.c_str(), m_outPortName.c_str(), m_inPortName.c_str(), m_reference_frame.c_str(), m_shift_portName.c_str());
     RCLCPP_INFO(get_logger(), "shift_portConnectionName: %s zero_speed_threshold: %f shift_enabled: %i shift: %f max_msg_counter: %i",
-                    m_shift_portConnectionName, m_zero_speed_threshold, (int)m_shift_enabled, m_shift, m_max_msg_counter);
+                    m_shift_portConnectionName.c_str(), m_zero_speed_threshold, (int)m_shift_enabled, m_shift, m_max_msg_counter);
 
     //Subscribers
     m_setpoint_sub = this->create_subscription<nav_msgs::msg::Path>(
@@ -148,17 +148,18 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                 return;
             }
 
-            if(yarp::os::Network::isConnected(m_shift_portConnectionName, m_shift_portName)){
+            //if(yarp::os::Network::isConnected(m_shift_portConnectionName, m_shift_portName)){
                 //Read from port
                 auto data = m_shift_port.read(false);
                 if (data!= nullptr)
                 {
-                    std::cout << data->data()[0] << " " << data->data()[1] << " " << data->data()[2] << " " << std::endl;
-                    if ((data->data()[0])==1)
+                    //std::cout << data->data()[0] << " " << data->data()[1] << " " << data->data()[2] << " " << std::endl;
+                    if (data->get(0).asBool())   //data->data()[0]
                     {
                         std::cout << "Red from port" << std::endl;
                         m_shiftFlag = true;
-                        m_shiftLeft = data->data()[1]==1 ? true : false;
+                        //m_shiftLeft = data->data()[1]==1 ? true : false;
+                        m_shiftLeft = data->get(1).asBool();
                         msg_counter = 0;
                     }
                     else
@@ -166,14 +167,15 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                         m_shiftFlag = false;
                     }
                 }
-                //else    //JUST FOR DEBUG
-                //{
-                //    return; //TODO REMOVE
-                //}
+                else    //JUST FOR DEBUG
+                {
+                    //return; //TODO REMOVE
+                    std::cout << "Received nothing going on " <<  std::endl;
+                }
 
-            } else {
-                RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
-            }
+            //} else {
+            //    RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
+            //}
         }
 
         std::cout << "Original path size: " << msg_in->poses.size() << std::endl;
