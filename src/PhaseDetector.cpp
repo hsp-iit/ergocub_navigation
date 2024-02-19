@@ -25,8 +25,8 @@ PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
     declare_parameter("tf_height_threshold_m", 0.02);
     declare_parameter("joint_limit_deg", 20.0);
     declare_parameter("joint_name", "neck_yaw");
-    declare_parameter("joint_increment", 5.0);
-    declare_parameter("time_increment", 0.2);
+    declare_parameter("joint_increment", 0.50);
+    declare_parameter("time_increment", 0.02);
     declare_parameter("out_port_name", "/neck_controller/setpoints:o");
     declare_parameter("in_port_name", "/ergocubSim/head");
     
