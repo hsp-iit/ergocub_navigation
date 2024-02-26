@@ -10,7 +10,6 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
 
 PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("phase_detector_node", options), 
                                 m_tfListener(nullptr), 
-                                m_jointInterface(m_joint_name, m_in_port_name),
                                 m_rightFootState(inContact),
                                 m_leftFootState(inContact)
 {
@@ -22,7 +21,7 @@ PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
     declare_parameter("referenceFrame_left", "l_sole");
     declare_parameter("wrench_threshold", 80.0);
     declare_parameter("imu_threshold_y", 0.3);
-    declare_parameter("tf_height_threshold_m", 0.02);
+    declare_parameter("tf_height_threshold", 0.02);
     declare_parameter("joint_limit_deg", 20.0);
     declare_parameter("joint_name", "neck_yaw");
     declare_parameter("joint_increment", 0.50);
@@ -47,12 +46,13 @@ PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
 
 CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
 {
+    RCLCPP_INFO(this->get_logger(), "Configuring node...");
     //Param Init
     m_leftFoot_topic = this->get_parameter("leftFoot_topic").as_string();
     m_rightFoot_topic = this->get_parameter("rightFoot_topic").as_string();
     m_imu_topic = this->get_parameter("imu_topic").as_string();
-    m_referenceFrame_right = this->get_parameter("referece_frame_right").as_string();
-    m_referenceFrame_left = this->get_parameter("referece_frame_left").as_string();
+    m_referenceFrame_right = this->get_parameter("referenceFrame_right").as_string();
+    m_referenceFrame_left = this->get_parameter("referenceFrame_left").as_string();
     m_wrench_threshold = this->get_parameter("wrench_threshold").as_double();
     m_imu_threshold_y = this->get_parameter("imu_threshold_y").as_double();
     m_tf_height_threshold = this->get_parameter("tf_height_threshold").as_double();
@@ -64,9 +64,9 @@ CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
     m_in_port_name.push_back(this->get_parameter("in_port_name").as_string());
 
     RCLCPP_INFO(get_logger(), "Configuring with: leftFoot_topic: %s rightFoot_topic: %s imu_topic: %s referece_frame_right: %s referece_frame_left: %s out_port_name: %s in_port_name: %s",
-                    m_leftFoot_topic, m_rightFoot_topic, m_imu_topic, m_referenceFrame_right, m_referenceFrame_left, m_out_port_name, m_in_port_name[0]);
+                    m_leftFoot_topic.c_str(), m_rightFoot_topic.c_str(), m_imu_topic.c_str(), m_referenceFrame_right.c_str(), m_referenceFrame_left.c_str(), m_out_port_name.c_str(), m_in_port_name[0].c_str());
     RCLCPP_INFO(get_logger(), "wrench_threshold: %f imu_threshold_y: %f tf_height_threshold: %f joint_limit_deg: %f joint_name: %s joint_increment: %f time_increment: %f",
-                    m_wrench_threshold, m_imu_threshold_y, m_tf_height_threshold, m_joint_limit_deg, m_joint_name[0], m_joint_increment, m_time_increment);
+                    m_wrench_threshold, m_imu_threshold_y, m_tf_height_threshold, m_joint_limit_deg, m_joint_name[0].c_str(), m_joint_increment, m_time_increment.seconds());
 
     //Subscribers
     m_rightFoot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
@@ -91,20 +91,27 @@ CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
     //} else {
     //    RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
     //}
+    if(!m_jointInterface.init(m_joint_name, m_in_port_name))
+    {
+        RCLCPP_ERROR(this->get_logger(), "Unable to initialize joint interface");
+        return CallbackReturn::FAILURE;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Node configured");
     
     return CallbackReturn::SUCCESS;
 }
 
 CallbackReturn PhaseDetector::on_activate(const rclcpp_lifecycle::State &)
 {
-    RCLCPP_INFO(get_logger(), "Activating");
+    RCLCPP_INFO(this->get_logger(), "Activating");
     m_debug_pub->on_activate();
     return CallbackReturn::SUCCESS;
 }
 
 CallbackReturn PhaseDetector::on_deactivate(const rclcpp_lifecycle::State &)
 {
-    RCLCPP_INFO(get_logger(), "Deactivating");
+    RCLCPP_INFO(this->get_logger(), "Deactivating");
     m_debug_pub->on_deactivate();
     return CallbackReturn::SUCCESS;
 }

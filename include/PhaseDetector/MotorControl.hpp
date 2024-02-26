@@ -27,11 +27,16 @@ class MotorControl
 {
 	public:
 		/**
-		 * Constructor
+		 * Default Constructor
+		 */
+		MotorControl()=default;
+		
+		/**
+		 * Initializer
 		 * @param jointList The list of joints on the robot to connect to, in order
 		 * @param portList The names of the YARP ports for each of the joints
 		 */
-		MotorControl(const std::vector<std::string> &jointList,
+		bool init(const std::vector<std::string> &jointList,
 		             const std::vector<std::string> &portList);
 		
 		/**
@@ -70,7 +75,7 @@ class MotorControl
 		yarp::dev::IEncoders*        encoders;                                              ///< Joint position values (in degrees)
 		yarp::dev::IPositionDirect*  controller;                                            ///< As it says
 		yarp::dev::PolyDriver        driver;                                                ///< Device driver
-	
+		bool m_initialized = false;
 };                                                                                          
 
 #endif
