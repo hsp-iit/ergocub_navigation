@@ -77,11 +77,8 @@ bool MotorControl::init(const std::vector<std::string> &jointList,
 			for(int i = 0; i < this->numJoints; i++)
 			{
 				double notUsed;
-				std::cout << "[INFO] [MotorControl init] Getting joints limits 1" << std::endl;
 				this->limits->getLimits(i, &this->positionLimit[i][0], &this->positionLimit[i][1]);
-				std::cout << "[INFO] [MotorControl init] Getting joints limits 2" << std::endl;
 				this->limits->getVelLimits(i, &notUsed, &this->velocityLimit[i]);   // Assume vMin = -vMax
-				std::cout << "[INFO] [MotorControl init] Getting joints limits 3" << std::endl;
 				// Convert from degrees to radians
 				this->positionLimit[i][0] *= M_PI/180.0;
 				this->positionLimit[i][1] *= M_PI/180.0;

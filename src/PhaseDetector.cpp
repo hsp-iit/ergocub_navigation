@@ -13,6 +13,7 @@ PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
                                 m_rightFootState(inContact),
                                 m_leftFootState(inContact)
 {
+    
     //Params Declaration
     declare_parameter("leftFoot_topic", "/left_foot_heel_tiptoe_ft");
     declare_parameter("rightFoot_topic", "/right_foot_heel_tiptoe_ft");
@@ -24,7 +25,7 @@ PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
     declare_parameter("tf_height_threshold", 0.02);
     declare_parameter("joint_limit_deg", 20.0);
     declare_parameter("joint_name", "neck_yaw");
-    declare_parameter("joint_increment", 0.50);
+    declare_parameter("joint_increment", 0.250);
     declare_parameter("time_increment", 0.02);
     declare_parameter("out_port_name", "/neck_controller/setpoints:o");
     declare_parameter("in_port_name", "/ergocubSim/head");
@@ -63,7 +64,7 @@ CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
     m_out_port_name = this->get_parameter("out_port_name").as_string();
     m_in_port_name.push_back(this->get_parameter("in_port_name").as_string());
 
-    RCLCPP_INFO(get_logger(), "Configuring with: leftFoot_topic: %s rightFoot_topic: %s imu_topic: %s referece_frame_right: %s referece_frame_left: %s out_port_name: %s in_port_name: %s",
+    RCLCPP_INFO(get_logger(), "Configuring with: leftFoot_topic: %s rightFoot_topic: %s imu_topic: %s reference_frame_right: %s reference_frame_left: %s out_port_name: %s in_port_name: %s",
                     m_leftFoot_topic.c_str(), m_rightFoot_topic.c_str(), m_imu_topic.c_str(), m_referenceFrame_right.c_str(), m_referenceFrame_left.c_str(), m_out_port_name.c_str(), m_in_port_name[0].c_str());
     RCLCPP_INFO(get_logger(), "wrench_threshold: %f imu_threshold_y: %f tf_height_threshold: %f joint_limit_deg: %f joint_name: %s joint_increment: %f time_increment: %f",
                     m_wrench_threshold, m_imu_threshold_y, m_tf_height_threshold, m_joint_limit_deg, m_joint_name[0].c_str(), m_joint_increment, m_time_increment.seconds());
@@ -207,7 +208,7 @@ void PhaseDetector::rightFootCallback(const geometry_msgs::msg::WrenchStamped::C
             {
                 m_rightFootState = approachingContact;
                 //TODO benchmarking time
-                RCLCPP_INFO(this->get_logger(), "Right Foot aproaching contact");
+                RCLCPP_INFO(this->get_logger(), "Right Foot approaching contact");
 
                 m_approaching_time_right = std::chrono::high_resolution_clock::now();
                 auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_last_impact_time_right - m_approaching_time_right);
@@ -369,7 +370,7 @@ bool PhaseDetector::gazePattern(bool directionLeft)
 void PhaseDetector::gazeCallback(bool directionLeft)
 {
     RCLCPP_DEBUG(this->get_logger(), "Entering gazeCallback");
-    //Scripred initial scan: Should be done in a BT node (as this whole function)
+    //Scripted initial scan: Should be done in a BT node (as this whole function)
     if (m_startup)
     {
         RCLCPP_INFO(this->get_logger(), "Initial Scanning Around Routing");

@@ -1,4 +1,4 @@
-odom_node:
+path_converter_node:
   ros__parameters:
     use_sim_time: true
     topic_name: "/plan"

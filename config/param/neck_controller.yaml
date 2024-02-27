@@ -1,4 +1,4 @@
-odom_node:
+neck_controller_node:
   ros__parameters:
     use_sim_time: true
     leftFoot_topic: "/left_foot_heel_tiptoe_ft"
@@ -11,7 +11,7 @@ odom_node:
     tf_height_threshold_m: 0.02
     joint_limit_deg: 20.0
     joint_name: "neck_yaw"
-    joint_increment: 5.0
-    time_increment: 0.2
+    joint_increment: 0.250
+    time_increment: 0.02
     out_port_name: "/neck_controller/setpoints:o"
     in_port_name: "/ergocubSim/head"
