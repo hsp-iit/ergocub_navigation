@@ -45,7 +45,7 @@ def generate_launch_description():
         )
     return LaunchDescription([
         state_publisher,
-        projection_node,
+        #projection_node,
         #rviz_node,
         scan_filtering_compensated,
         #depth_to_pointcloud,

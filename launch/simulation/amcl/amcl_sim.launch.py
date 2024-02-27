@@ -16,7 +16,7 @@ def generate_launch_description():
 
     param_dir=os.path.join(
             get_package_share_directory(package_name),
-            'param',
+            'param/simulation',
             param_file_name)
       
     amcl_params = os.path.join(os.getcwd(), param_dir)
