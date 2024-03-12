@@ -29,7 +29,7 @@ class YarpTriggerProcessor : public yarp::os::PortReader
 private:
     std::mutex m_mutex;
     int m_footsteps_counter;
-    const int m_step_number = 4;
+    const int m_step_number = 1;
 public:
     YarpTriggerProcessor()
     {
