@@ -212,6 +212,20 @@ ament_target_dependencies(phase_detector
   "rclcpp_lifecycle"
 )
 
+add_executable(human_pose_goal_generator src/HumanPoseGoalGenerator/main.cpp src/HumanPoseGoalGenerator/NodeRos.cpp 
+                src/HumanPoseGoalGenerator/HumanPoseGoalGenerator.cpp)
+ament_target_dependencies(human_pose_goal_generator
+  "YARP"
+  "rclcpp"
+  "nav_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "nav2_util"
+  "nav_2d_msgs"
+  "visualization_msgs"
+)
+
 set(dependencies
   rclcpp
   geometry_msgs
@@ -246,6 +260,7 @@ install(TARGETS
   pointcloud_filter
   phase_detector
   path_converter_v2
+  human_pose_goal_generator
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
