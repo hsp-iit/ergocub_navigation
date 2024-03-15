@@ -33,7 +33,7 @@ class PathConverter_v2 : public rclcpp_lifecycle::LifecycleNode
 private:
     double m_zero_speed_threshold;
     std::string m_topic_name = "/plan";                         // topic name where the global plan is being published
-    std::string m_state_topic = "/is_goal_reached/goal_state";  // topic name of the state of the navigation
+    std::string m_state_topic = "/is_goal_reached";  // topic name of the state of the navigation
     std::string m_outPortName = "/path_converter/path:o";       // yarp port name of this module that connects with the walking controller
     std::string m_inPortName = "/walking-coordinator/goal:i";   // yarp port name of the walking controller
     std::string m_reference_frame = "geometric_unicycle";       // reference frame
