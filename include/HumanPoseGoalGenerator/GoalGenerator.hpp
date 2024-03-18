@@ -10,6 +10,8 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 
+#include "yarp/os/Bottle.h"
+
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include <memory>
 
@@ -21,8 +23,10 @@ private:
 
     std::string m_goal_topic_name;
     rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr m_goal_pub;
+    rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::MarkerArray>::SharedPtr m_goal_markers_pub;
 
     // PARAMETERS
+    std::string m_goal_markers_topic_name = "/human_pose_goal_gen/goal";
     std::string m_pose_source_frame;
     std::string m_reference_frame;
     double m_goal_offset;
@@ -47,4 +51,7 @@ public:
     CallbackReturn on_cleanup(const rclcpp_lifecycle::State &);
     CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state);
     CallbackReturn on_error(const rclcpp_lifecycle::State & state);
+
+    bool publishMarkers(const yarp::os::Bottle& data);
+    bool publishGoal(const yarp::os::Bottle& data);
 };

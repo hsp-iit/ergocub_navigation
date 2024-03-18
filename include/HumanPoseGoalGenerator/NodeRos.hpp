@@ -17,6 +17,7 @@
 
 #include "yarp/os/Bottle.h"
 
+#include <memory>
 #include <chrono>
 
 class NodeRos : public rclcpp::Node
@@ -24,6 +25,9 @@ class NodeRos : public rclcpp::Node
 private:
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr m_goalMarkersPub;
     const std::string m_goalMarkersTopicName = "/human_pose_goal_gen/goal";
+
+    std::shared_ptr<tf2_ros::TransformListener> m_tfListener{nullptr};
+    std::unique_ptr<tf2_ros::Buffer> m_tfBuffer;
     
 public:
     NodeRos();

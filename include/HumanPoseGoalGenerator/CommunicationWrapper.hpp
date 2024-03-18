@@ -12,22 +12,22 @@
 #include "yarp/os/ConnectionWriter.h"
 #include "yarp/os/Portable.h"
 
-#include "NodeRos.hpp"
+#include "GoalGenerator.hpp"
 #include <thread>
 
-class HumanPoseGoalGenerator : public yarp::os::PortReader
+class CommunicationWrapper : public yarp::os::PortReader
 {
 private:
     std::mutex m_mutex;
-    std::shared_ptr<NodeRos> m_rosNode;
+    std::shared_ptr<GoalGenerator> m_rosNode;
     bool m_initialized = false;
 
 public:
-    HumanPoseGoalGenerator();
+    CommunicationWrapper();
     //main loop executed for each port reading of the merged feet status
     bool read(yarp::os::ConnectionReader& t_connection) override;
 
-    void runROS();
-};  //End of class HumanPoseGoalGenerator : public yarp::os::PortReader
+    void spinNode();
+};  //End of class CommunicationWrapper : public yarp::os::PortReader
 
 #endif

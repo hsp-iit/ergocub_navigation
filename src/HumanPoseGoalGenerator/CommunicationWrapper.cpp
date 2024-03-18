@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "HumanPoseGoalGenerator/HumanPoseGoalGenerator.hpp"
+#include "CommunicationWrapper.hpp"
 
-HumanPoseGoalGenerator::HumanPoseGoalGenerator(){};
+CommunicationWrapper::CommunicationWrapper(){};
 
-bool HumanPoseGoalGenerator::read(yarp::os::ConnectionReader& t_connection)
+bool CommunicationWrapper::read(yarp::os::ConnectionReader& t_connection)
 {
     std::lock_guard<std::mutex> guard(m_mutex);
     if (!m_initialized)
@@ -30,7 +30,8 @@ bool HumanPoseGoalGenerator::read(yarp::os::ConnectionReader& t_connection)
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            RCLCPP_ERROR(m_rosNode->get_logger(), "Caught Exception: %s", e.what());
+            //std::cerr << e.what() << '\n';
         }
     }
     else
@@ -40,9 +41,13 @@ bool HumanPoseGoalGenerator::read(yarp::os::ConnectionReader& t_connection)
     return true;
 }
 
-void HumanPoseGoalGenerator::runROS()
+void CommunicationWrapper::spinNode()
 {
-    m_rosNode = std::make_shared<NodeRos>();
+    rclcpp::executors::SingleThreadedExecutor executor;
+    rclcpp::NodeOptions options;
+    m_rosNode = std::make_shared<GoalGenerator>(options);
+    executor.add_node(m_rosNode->get_node_base_interface());
     m_initialized = true;
-    rclcpp::spin(m_rosNode);
+    executor.spin();
 }
+

@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "HumanPoseGoalGenerator/HumanPoseGoalGenerator.hpp"
+#include "CommunicationWrapper.hpp"
 
 int main(int argc, char** argv)
 {
-    const std::string humanPosePortName = "/todo";
+    std::string humanPoseLocalName = "/HumanPoseGoalGenerator/pose:i";
+    std::string humanPoseRemoteName = "/todo:o";
     // Init ROS2
     rclcpp::init(argc, argv);
     //Init YARP
@@ -15,12 +16,15 @@ int main(int argc, char** argv)
     // Start listening in polling
     if (rclcpp::ok())
     {
-        HumanPoseGoalGenerator dataProcessor;
+        CommunicationWrapper dataProcessor;
         yarp::os::Port humanPoseGoalPort;
-        humanPoseGoalPort.open(humanPosePortName);
-        // yarp::os::Network::connect("/navigation_helper/feet_positions:o", humanPosePortName);
+        humanPoseGoalPort.open(humanPoseLocalName);
+        if(!yarp::os::Network::connect(humanPoseRemoteName, humanPoseLocalName))
+        {
+            yWarning() << "[HumanPoseGoalGenerator] unable to connect port: " << humanPoseRemoteName << " with " << humanPoseLocalName;
+        }
         humanPoseGoalPort.setReader(dataProcessor);
-        dataProcessor.runROS();
+        dataProcessor.spinNode();
     }
     std::cout << "Shutting down" << std::endl;
     rclcpp::shutdown();
