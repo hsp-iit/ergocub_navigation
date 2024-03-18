@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "rclcpp.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "nav2_costmap_2d/costmap_subscriber.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
+#include "visualization_msgs/msg/marker_array.hpp"
 
 #include "yarp/os/Bottle.h"
 
@@ -18,7 +19,7 @@
 class GoalGenerator : public rclcpp_lifecycle::LifecycleNode
 {
 private:
-    std::unique_ptr<nav2_costmap_2d::CostmapSubscriber> m_costmap_sub{};
+    std::unique_ptr<nav2_costmap_2d::CostmapSubscriber> m_costmap_sub;
     std::string m_costmap_topic_name;
 
     std::string m_goal_topic_name;
@@ -31,6 +32,8 @@ private:
     std::string m_reference_frame;
     double m_goal_offset;
     std::string m_remote_yarp_port_name;
+    double m_tf_tol;
+    std::string m_map_frame;
 
     // YARP port
 
@@ -52,6 +55,6 @@ public:
     CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state);
     CallbackReturn on_error(const rclcpp_lifecycle::State & state);
 
-    bool publishMarkers(const yarp::os::Bottle& data);
+    bool publishMarkers(const double& x, const double& y, const double& z, geometry_msgs::msg::PoseStamped goal);
     bool publishGoal(const yarp::os::Bottle& data);
 };

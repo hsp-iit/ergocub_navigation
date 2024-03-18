@@ -212,11 +212,12 @@ ament_target_dependencies(phase_detector
   "rclcpp_lifecycle"
 )
 
-add_executable(human_pose_goal_generator src/HumanPoseGoalGenerator/main.cpp src/HumanPoseGoalGenerator/NodeRos.cpp 
-                src/HumanPoseGoalGenerator/HumanPoseGoalGenerator.cpp)
+add_executable(human_pose_goal_generator src/HumanPoseGoalGenerator/main.cpp src/HumanPoseGoalGenerator/GoalGenerator.cpp 
+                src/HumanPoseGoalGenerator/CommunicationWrapper.cpp)
 ament_target_dependencies(human_pose_goal_generator
   "YARP"
   "rclcpp"
+  "rclcpp_lifecycle"
   "nav_msgs"
   "tf2_ros"
   "tf2_msgs"
@@ -224,6 +225,7 @@ ament_target_dependencies(human_pose_goal_generator
   "nav2_util"
   "nav_2d_msgs"
   "visualization_msgs"
+  "nav2_costmap_2d"
 )
 
 set(dependencies

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "CommunicationWrapper.hpp"
+#include "HumanPoseGoalGenerator/CommunicationWrapper.hpp"
 
 int main(int argc, char** argv)
 {

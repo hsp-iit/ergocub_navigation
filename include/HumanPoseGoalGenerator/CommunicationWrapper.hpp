@@ -11,6 +11,7 @@
 #include "yarp/sig/Vector.h"
 #include "yarp/os/ConnectionWriter.h"
 #include "yarp/os/Portable.h"
+#include "yarp/os/LogStream.h"
 
 #include "GoalGenerator.hpp"
 #include <thread>

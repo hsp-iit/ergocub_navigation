@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "CommunicationWrapper.hpp"
+#include "HumanPoseGoalGenerator/CommunicationWrapper.hpp"
 
 CommunicationWrapper::CommunicationWrapper(){};
 
@@ -25,8 +25,7 @@ bool CommunicationWrapper::read(yarp::os::ConnectionReader& t_connection)
     {
         try
         {
-            m_rosNode->publishMarkers(b);
-            //m_rosNode->publishGoal(b);
+            m_rosNode->publishGoal(b);
         }
         catch(const std::exception& e)
         {
