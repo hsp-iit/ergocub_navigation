@@ -1,0 +1,12 @@
+human_pose_goal_generator:
+  ros__parameters:
+    costmap_topic: /global_costmap/costmap_raw
+    robot_reference_frame: geometric_unicycle
+    pose_source_frame: realsense_depth_frame
+    map_frame: map
+    goal_offset: 0.3
+    human_pose_port: /BT/human_state/pose:o
+    goal_markers_topic_name: /human_pose_goal_gen/goal
+    transform_tolerance: 0.3
+    goal_topic_name: /goal
+

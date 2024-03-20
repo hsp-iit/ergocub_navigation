@@ -10,6 +10,8 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 #include "visualization_msgs/msg/marker_array.hpp"
+#include "nav2_msgs/action/navigate_to_pose.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
 
 #include "yarp/os/Bottle.h"
 
@@ -55,6 +57,6 @@ public:
     CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state);
     CallbackReturn on_error(const rclcpp_lifecycle::State & state);
 
-    bool publishMarkers(const double& x, const double& y, const double& z, geometry_msgs::msg::PoseStamped goal);
+    bool publishMarkers(const double& x, const double& y, const double& z, geometry_msgs::msg::Pose goal);
     bool publishGoal(const yarp::os::Bottle& data);
 };

@@ -8,7 +8,7 @@
 int main(int argc, char** argv)
 {
     std::string humanPoseLocalName = "/HumanPoseGoalGenerator/pose:i";
-    std::string humanPoseRemoteName = "/todo:o";
+    std::string humanPoseRemoteName = "/BT/human_state/pose:o";
     // Init ROS2
     rclcpp::init(argc, argv);
     //Init YARP

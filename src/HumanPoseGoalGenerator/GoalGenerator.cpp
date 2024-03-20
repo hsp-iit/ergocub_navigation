@@ -12,7 +12,7 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
 GoalGenerator::GoalGenerator(const rclcpp::NodeOptions & options): rclcpp_lifecycle::LifecycleNode("goal_generator_node", options)
 {
     declare_parameter("costmap_topic",
-    rclcpp::ParameterValue(std::string("global_costmap/costmap_raw")));
+    rclcpp::ParameterValue(std::string("/global_costmap/costmap_raw")));
     declare_parameter("robot_reference_frame",
     rclcpp::ParameterValue(std::string("geometric_unicycle")));
     declare_parameter("pose_source_frame",
@@ -20,13 +20,15 @@ GoalGenerator::GoalGenerator(const rclcpp::NodeOptions & options): rclcpp_lifecy
     declare_parameter("goal_offset",
     rclcpp::ParameterValue(double(0.3)));
     declare_parameter("human_pose_port",
-    rclcpp::ParameterValue(std::string("/BT/human_pose:o")));
+    rclcpp::ParameterValue(std::string("/BT/human_state/pose:o")));
     declare_parameter("goal_markers_topic_name",
     rclcpp::ParameterValue(std::string("/human_pose_goal_gen/goal")));
     declare_parameter("transform_tolerance",
     rclcpp::ParameterValue(double(0.3)));
     declare_parameter("map_frame",
     rclcpp::ParameterValue(std::string("map")));
+    declare_parameter("goal_topic_name",
+    rclcpp::ParameterValue(std::string("/goal")));
 
     m_tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer);
@@ -42,6 +44,7 @@ CallbackReturn GoalGenerator::on_configure(const rclcpp_lifecycle::State &)
     m_goal_markers_topic_name = this->get_parameter("goal_markers_topic_name").as_string();
     m_tf_tol = this -> get_parameter("transform_tolerance").as_double();
     m_map_frame = this->get_parameter("map_frame").as_string();
+    m_goal_topic_name = this->get_parameter("goal_topic_name").as_string();
 
     RCLCPP_INFO(this->get_logger(), "Configuring with: costmap_topic: %s ", m_costmap_topic_name.c_str());
 
@@ -88,8 +91,8 @@ GoalGenerator::~GoalGenerator()
 {
 }
 
-bool GoalGenerator::publishMarkers(const double& x, const double& y, const double& z, geometry_msgs::msg::PoseStamped goal){
-
+bool GoalGenerator::publishMarkers(const double& x, const double& y, const double& z, geometry_msgs::msg::Pose goal){
+        RCLCPP_INFO(get_logger(), "Publishing Markers...");
         visualization_msgs::msg::MarkerArray marker_array;
         //Clear the previous markers
         visualization_msgs::msg::Marker clear_msg;
@@ -139,10 +142,15 @@ bool GoalGenerator::publishMarkers(const double& x, const double& y, const doubl
 
         // GOAL MARKER
         tmp_marker_msg.id = 1;
-        tmp_marker_msg.pose.position.x = goal.pose.position.x;
-        tmp_marker_msg.pose.position.y = goal.pose.position.y;
-        tmp_marker_msg.pose.position.z = goal.pose.position.z;
-        tmp_marker_msg.pose.orientation = goal.pose.orientation;
+        tmp_marker_msg.header.frame_id = m_map_frame;
+        tmp_marker_msg.color.r = 1.0;
+        tmp_marker_msg.color.g = 0.0;
+        tmp_marker_msg.color.b = 1.0;
+        tmp_marker_msg.color.a = 1.0;
+        tmp_marker_msg.pose.position.x = goal.position.x;
+        tmp_marker_msg.pose.position.y = goal.position.y;
+        tmp_marker_msg.pose.position.z = goal.position.z;
+        tmp_marker_msg.pose.orientation = goal.orientation;
         tmp_marker_msg.frame_locked = true;
         tmp_marker_msg.action = visualization_msgs::msg::Marker::ADD;
         //Populate the marker with atleast one mesh point
@@ -167,28 +175,33 @@ bool GoalGenerator::publishGoal(const yarp::os::Bottle& data){
     realsense_point.x = data.get(0).asFloat64();
     realsense_point.y = data.get(1).asFloat64();
     realsense_point.z = data.get(2).asFloat64();
+    RCLCPP_INFO(get_logger(), "Reading message x: %f y: %f z: %f", realsense_point.x, realsense_point.y, realsense_point.z);
     
     if (m_tf_buffer->canTransform(m_reference_frame, m_pose_source_frame, rclcpp::Time(0), rclcpp::Duration::from_seconds(m_tf_tol)))
     {
+        //Transform into the reference frame (geometric unicycle by default)
         auto tf = m_tf_buffer->lookupTransform(m_reference_frame, m_pose_source_frame, rclcpp::Time(0));
         geometry_msgs::msg::Point transformed_point;
         tf2::doTransform(realsense_point, transformed_point, tf);
-        geometry_msgs::msg::Pose odom_goal;
-        double angle = std::atan2(transformed_point.x, transformed_point.y);
-        odom_goal.position.x = transformed_point.x - m_goal_offset * std::cos(angle);
-        odom_goal.position.x = transformed_point.y - m_goal_offset * std::sin(angle);
-        odom_goal.position.z = 0.0;
+        geometry_msgs::msg::Pose reference_frame_goal;
+        double angle = std::atan2(transformed_point.y, transformed_point.x);
+        RCLCPP_INFO(get_logger(), "Transforming with angle: %f x: %f y: %f z: %f", angle*180/M_PI, transformed_point.x, transformed_point.y, transformed_point.z);
+        reference_frame_goal.position.x = transformed_point.x - m_goal_offset * std::cos(angle);
+        reference_frame_goal.position.y = transformed_point.y - m_goal_offset * std::sin(angle);
+        reference_frame_goal.position.z = 0.0;
         tf2::Quaternion q;
         q.setRPY(0.0, 0.0, angle);
+        reference_frame_goal.orientation = tf2::toMsg(q);
 
         geometry_msgs::msg::PoseStamped map_goal;
         map_goal.header.frame_id = m_map_frame;
         map_goal.header.stamp = now();
         auto reference_map_tf = m_tf_buffer->lookupTransform(m_map_frame, m_reference_frame, rclcpp::Time(0));
-        tf2::doTransform(odom_goal, map_goal.pose, reference_map_tf);
+        tf2::doTransform(reference_frame_goal, map_goal.pose, reference_map_tf);
+        RCLCPP_INFO(get_logger(), "Transforming with angle: %f x: %f y: %f z: %f", angle, transformed_point.x, transformed_point.y, transformed_point.z);
         // TODO check on costmap
         // m_goal_pub->publish(map_goal);    //Do I need to call the action or is enough to publish a goal?
-        this->publishMarkers(realsense_point.x, realsense_point.y, realsense_point.z, map_goal);
+        this->publishMarkers(realsense_point.x, realsense_point.y, realsense_point.z, map_goal.pose);
     }
     else
     {
