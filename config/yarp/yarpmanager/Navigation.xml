@@ -1,0 +1,94 @@
+<application>
+    <name>HSP Navigation</name>
+    <dependencies>
+    </dependencies>
+    <module>
+        <name>yarprobotinterface</name>
+        <parameters>--config ergocub_wbd_ros2.xml</parameters>
+        <workdir>/usr/local/src/robot/robotology-superbuild/src/robots-configuration/ergoCubSN001</workdir>
+        <node>ergocub-torso</node>
+    </module>
+    <module>
+        <name>yarprobotinterface</name>
+        <parameters>--config sensors.xml</parameters>
+        <node>ergocub-head</node>
+    </module>
+    <module>
+        <name>yarprobotinterface</name>
+        <parameters>--config /usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/yarp/lidar_compressed_ros2.xml</parameters>
+        <workdir>/usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/yarp</workdir>
+        <node>ergocub001-lap</node>
+    </module>
+    <module>
+        <name>yarprobotinterface</name>
+        <parameters>--config /usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/yarp/depth_compressed_ros2.xml</parameters>
+        <workdir>/usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/yarp</workdir>
+        <node>ergocub001-lap</node>
+    </module>
+    <module>
+        <name>yarprobotinterface</name>
+        <parameters>--config /usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/yarp/head_imu_ros2.xml</parameters>
+        <node>ergocub001-lap</node>
+    </module>
+    
+    
+    <module>
+        <name>WalkingModule</name>
+        <parameters>--from dcm_walking_iFeel_joint_retargeting_strict.ini </parameters>
+        <node>ergocub-torso</node>
+    </module>
+    <module>
+        <name>ntpdate</name>
+        <parameters> -b 10.0.2.1 </parameters>
+        <node> ergocub001-lap </node>
+    </module>
+    <module>
+        <name>WalkingModule</name>
+        <parameters>--from dcm_walking_iFeel_joint_retargeting.ini </parameters>
+        <node>ergocub-torso</node>
+    </module>
+
+    <module>
+        <name> yarp </name>
+        <parameters> merge --input /wholeBodyDynamics/right_foot_rear/cartesianEndEffectorWrench:o /wholeBodyDynamics/left_foot_rear/cartesianEndEffectorWrench:o --output /feetWrenches </parameters>
+        <node> ergocub001-lap </node>
+    </module>
+    <module>
+        <name> yarp </name>
+        <parameters> connect /bimanualUpperRefs /walking-coordinator/humanState:i </parameters>
+        <node> ergocub001-lap </node>
+    </module>
+
+    <module>
+        <name> ros2 </name>
+        <parameters> run ergocub_navigation planner_trigger_server </parameters>
+        <node> ros2-lap </node>
+    </module>
+    <module>
+        <name>ros2</name>
+        <parameters> launch ergocub_navigation launch_all.launch.py </parameters>
+        <node> ros2-lap </node>
+    </module>
+    <module>
+        <name>ros2</name>
+        <parameters> launch ergocub_navigation footprints_viewer.launch.py </parameters>
+        <node> ros2-lap </node>
+    </module>
+    <module>
+        <name>ros2</name>
+        <parameters> launch ergocub_navigation path_converter_v2.launch.py </parameters>
+        <node> ros2-lap </node>
+    </module>
+    <module>
+        <name>ros2</name>
+        <parameters> launch ergocub_navigation human_pose_goal_generator.launch.py </parameters>
+        <node> ros2-lap </node>
+    </module>
+
+    <module>
+        <name>yarpmotorgui</name>
+        <parameters>--from custom_positions.ini</parameters>
+        <node>ergocub001-lap</node>
+    </module>
+
+</application>
