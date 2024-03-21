@@ -28,7 +28,7 @@ GoalGenerator::GoalGenerator(const rclcpp::NodeOptions & options): rclcpp_lifecy
     declare_parameter("map_frame",
     rclcpp::ParameterValue(std::string("map")));
     declare_parameter("goal_topic_name",
-    rclcpp::ParameterValue(std::string("/goal")));
+    rclcpp::ParameterValue(std::string("/goal_pose")));
 
     m_tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer);
@@ -200,7 +200,7 @@ bool GoalGenerator::publishGoal(const yarp::os::Bottle& data){
         tf2::doTransform(reference_frame_goal, map_goal.pose, reference_map_tf);
         RCLCPP_INFO(get_logger(), "Transforming with angle: %f x: %f y: %f z: %f", angle, transformed_point.x, transformed_point.y, transformed_point.z);
         // TODO check on costmap
-        // m_goal_pub->publish(map_goal);    //Do I need to call the action or is enough to publish a goal?
+        m_goal_pub->publish(map_goal);
         this->publishMarkers(realsense_point.x, realsense_point.y, realsense_point.z, map_goal.pose);
     }
     else
