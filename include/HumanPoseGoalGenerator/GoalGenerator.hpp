@@ -13,10 +13,15 @@
 #include "nav2_msgs/action/navigate_to_pose.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
+#include "nav2_util/service_client.hpp"
+
 #include "yarp/os/Bottle.h"
+#include "yarp/os/Port.h"
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include <memory>
+
+using namespace std::chrono_literals;
 
 class GoalGenerator : public rclcpp_lifecycle::LifecycleNode
 {
@@ -28,6 +33,20 @@ private:
     rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr m_goal_pub;
     rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::MarkerArray>::SharedPtr m_goal_markers_pub;
 
+    //nav2_util::ServiceClient<nav2_msgs::action::NavigateToPose_Feedback> m_navigation_client;
+    rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SharedPtr m_nav_client;
+    rclcpp::CallbackGroup::SharedPtr m_callback_group;
+    rclcpp::executors::SingleThreadedExecutor m_callback_group_executor;
+    std::shared_future<rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>::SharedPtr> m_future_goal_handle;
+    nav2_msgs::action::NavigateToPose::Goal navigation_goal_;
+    rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>::SharedPtr navigation_goal_handle_;
+    // The (non-spinning) client node used to invoke the action client
+    rclcpp::Node::SharedPtr client_node_;
+    std::chrono::milliseconds  m_server_timeout = 100ms;
+
+    rclcpp::Subscription<nav2_msgs::action::NavigateToPose::Impl::FeedbackMessage>::SharedPtr m_navigation_feedback_sub;
+    yarp::os::Port m_nav_status_port;
+
     // PARAMETERS
     std::string m_goal_markers_topic_name = "/human_pose_goal_gen/goal";
     std::string m_pose_source_frame;
@@ -36,8 +55,6 @@ private:
     std::string m_remote_yarp_port_name;
     double m_tf_tol;
     std::string m_map_frame;
-
-    // YARP port
 
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};
     std::unique_ptr<tf2_ros::Buffer> m_tf_buffer;

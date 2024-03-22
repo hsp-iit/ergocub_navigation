@@ -32,6 +32,8 @@ GoalGenerator::GoalGenerator(const rclcpp::NodeOptions & options): rclcpp_lifecy
 
     m_tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer);
+
+    navigation_goal_ = nav2_msgs::action::NavigateToPose::Goal();
 }
 
 CallbackReturn GoalGenerator::on_configure(const rclcpp_lifecycle::State &)
@@ -51,6 +53,29 @@ CallbackReturn GoalGenerator::on_configure(const rclcpp_lifecycle::State &)
     m_costmap_sub = std::make_unique<nav2_costmap_2d::CostmapSubscriber> (this->weak_from_this(), m_costmap_topic_name);
     m_goal_pub = this->create_publisher<geometry_msgs::msg::PoseStamped>(m_goal_topic_name, 10);
     m_goal_markers_pub = this->create_publisher<visualization_msgs::msg::MarkerArray>(m_goal_markers_topic_name, 10);
+
+    m_nav_status_port.open("/human_pose_goal_generator/nav_feedback:o");
+
+    //Action Client
+    m_callback_group = create_callback_group(
+                            rclcpp::CallbackGroupType::MutuallyExclusive,
+                            false);
+    m_callback_group_executor.add_callback_group(m_callback_group, get_node_base_interface());
+    m_nav_client = rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(
+                            get_node_base_interface(),
+                            get_node_graph_interface(),
+                            get_node_logging_interface(),
+                            get_node_waitables_interface(),
+                            "navigate_to_pose", m_callback_group);
+
+    m_navigation_feedback_sub = this->create_subscription<nav2_msgs::action::NavigateToPose::Impl::FeedbackMessage>(
+                "navigate_to_pose/_action/feedback",
+                rclcpp::SystemDefaultsQoS(),
+                // Write lambda function to what to do with the feedback
+                [this](const nav2_msgs::action::NavigateToPose::Impl::FeedbackMessage::SharedPtr msg) {   
+                    RCLCPP_INFO( this->get_logger(), "Remaining distance from action feedback: %f", msg->feedback.distance_remaining);
+                });
+    client_node_ = std::make_shared<rclcpp::Node>("nav_action_client_node");
 
     return CallbackReturn::SUCCESS;
 }
@@ -72,6 +97,7 @@ CallbackReturn GoalGenerator::on_deactivate(const rclcpp_lifecycle::State &)
 
 CallbackReturn GoalGenerator::on_cleanup(const rclcpp_lifecycle::State &)
 {
+    m_nav_client.reset();
     RCLCPP_INFO(get_logger(), "Cleaning up");
     return CallbackReturn::SUCCESS;
 }
@@ -200,7 +226,41 @@ bool GoalGenerator::publishGoal(const yarp::os::Bottle& data){
         tf2::doTransform(reference_frame_goal, map_goal.pose, reference_map_tf);
         RCLCPP_INFO(get_logger(), "Transforming with angle: %f x: %f y: %f z: %f", angle, transformed_point.x, transformed_point.y, transformed_point.z);
         // TODO check on costmap
-        m_goal_pub->publish(map_goal);
+        //m_goal_pub->publish(map_goal);
+        if (m_nav_client->action_server_is_ready())
+        {
+            // Enable result awareness by providing an empty lambda function
+            auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SendGoalOptions();
+            send_goal_options.result_callback = [this](auto) {
+                // publish the status on YARP PORT
+                yarp::os::Bottle data;
+                data.addInt16(navigation_goal_handle_->get_status());
+                m_nav_status_port.write(data);
+                navigation_goal_handle_.reset();
+            };
+
+            navigation_goal_.pose = map_goal;
+            auto future_goal_handle = m_nav_client->async_send_goal(navigation_goal_, send_goal_options);
+            if (rclcpp::spin_until_future_complete(client_node_, future_goal_handle, m_server_timeout) != rclcpp::FutureReturnCode::SUCCESS)
+            {
+                RCLCPP_ERROR(client_node_->get_logger(), "Send goal call failed");
+            }
+
+            // Get the goal handle and save so that we can check on completion in the timer callback
+            navigation_goal_handle_ = future_goal_handle.get();
+            if (!navigation_goal_handle_)
+            {
+                RCLCPP_ERROR(client_node_->get_logger(), "Goal was rejected by server");
+            }
+        }
+        else
+        {
+            RCLCPP_INFO(this->get_logger(), "Publishing Goal on topic only");
+            m_goal_pub->publish(map_goal);
+        }
+
+        //auto status = navigation_goal_handle_->get_status();    //This gives the status of the navigation
+
         this->publishMarkers(realsense_point.x, realsense_point.y, realsense_point.z, map_goal.pose);
     }
     else
@@ -208,9 +268,6 @@ bool GoalGenerator::publishGoal(const yarp::os::Bottle& data){
         RCLCPP_WARN(get_logger(), "Cannot transform: %s to %s", m_pose_source_frame.c_str(), m_reference_frame.c_str());
         return false;
     }
-    
-    
-    // TODO publish Goal
     
     return true;
 };

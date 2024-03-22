@@ -37,6 +37,7 @@ find_package(iDynTree 4.3.0 REQUIRED)
 find_package(UnicyclePlanner 0.5.2 REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+find_package(rclcpp_action REQUIRED)
 
 include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
 include_directories(/opt/ros/humble/include/tf2)
@@ -226,6 +227,7 @@ ament_target_dependencies(human_pose_goal_generator
   "nav_2d_msgs"
   "visualization_msgs"
   "nav2_costmap_2d"
+  "rclcpp_action"
 )
 
 set(dependencies
