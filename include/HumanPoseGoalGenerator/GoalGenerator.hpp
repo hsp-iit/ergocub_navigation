@@ -40,11 +40,13 @@ private:
     std::shared_future<rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>::SharedPtr> m_future_goal_handle;
     nav2_msgs::action::NavigateToPose::Goal navigation_goal_;
     rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>::SharedPtr navigation_goal_handle_;
+    
     // The (non-spinning) client node used to invoke the action client
     rclcpp::Node::SharedPtr client_node_;
     std::chrono::milliseconds  m_server_timeout = 100ms;
 
     rclcpp::Subscription<nav2_msgs::action::NavigateToPose::Impl::FeedbackMessage>::SharedPtr m_navigation_feedback_sub;
+    rclcpp::Subscription<action_msgs::msg::GoalStatusArray>::SharedPtr m_navigation_result_sub;
     yarp::os::Port m_nav_status_port;
 
     // PARAMETERS
