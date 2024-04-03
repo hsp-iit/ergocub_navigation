@@ -334,7 +334,8 @@ bool PhaseDetector::gazePattern(bool directionLeft)
         for (int i = 1; i <= period; ++i)
         {
             double setpoint = std::abs((double(i*2)/period) - 2.0*(std::trunc((double(i*2)/period) - std::trunc(double(i)/period)))) * m_joint_limit_deg;
-            std::cout << "[gazePattern] LEFT Setting yaw setpoint of " << setpoint*M_PI/180 << std::endl;
+            std::cout << "[gazePattern] LEFT Setting yaw setpoint of rad: " << setpoint*M_PI/180 << std::endl;
+            std::cout << "[gazePattern] LEFT Setting yaw setpoint of degrees: " << setpoint << std::endl;
             
             //auto &data = m_port.prepare();
             //data.clear();
@@ -351,7 +352,8 @@ bool PhaseDetector::gazePattern(bool directionLeft)
         for (int i = 1; i <= period; ++i)
         {
             double setpoint = - std::abs((double(i*2)/period) - 2.0*(std::trunc((double(i*2)/period) - std::trunc(double(i)/period)))) * m_joint_limit_deg;
-            std::cout << "[gazePattern] RIGHT Setting yaw setpoint of " << setpoint*M_PI/180 << std::endl;
+            std::cout << "[gazePattern] LEFT Setting yaw setpoint of rad: " << setpoint*M_PI/180 << std::endl;
+            std::cout << "[gazePattern] LEFT Setting yaw setpoint of degrees: " << setpoint << std::endl;
 
             //auto &data = m_port.prepare();
             //data.clear();

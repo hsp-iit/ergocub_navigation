@@ -12,10 +12,10 @@
   <BehaviorTree ID="MainTree">
     <ReactiveFallback name="MainFallback">
       <GoalReachedConditionModded goal="{goal}" global_frame="map" robot_base_frame="geometric_unicycle"/> <!--name="is_goal_reached"-->
-      <RecoveryNode number_of_retries="6" name="NavigateRecovery">
+      <RecoveryNode number_of_retries="3" name="NavigateRecovery">
         <PipelineSequence name="NavigateWithReplanning">
           <RateController hz="10.0">
-            <RecoveryNode number_of_retries="2" name="ComputePathToPose">
+            <RecoveryNode number_of_retries="3" name="ComputePathToPose">
               <DecoratorOnBool service_name="is_on_double_support_srv">
                 <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
               </DecoratorOnBool>

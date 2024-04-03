@@ -6,7 +6,7 @@ bt_navigator:
     odom_topic: odom
     default_nav_to_pose_bt_xml: /usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml
     bt_loop_duration: 10
-    goal_reached_tol: 0.10 #0.25
+    goal_reached_tol: 0.25 #0.25
     default_server_timeout: 4000
     transform_tolerance: 0.2  #0.3
     #enable_groot_monitoring: True
@@ -91,8 +91,8 @@ controller_server:
     # Goal checker parameters
     goal_checker:
       plugin: nav2_controller::SimpleGoalChecker
-      xy_goal_tolerance: 0.3
-      yaw_goal_tolerance: 0.3
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.9
       stateful: true
     
     # DWB parameters
@@ -364,8 +364,8 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
-        cost_scaling_factor: 0.2    #2.5
-        inflation_radius: 0.3    #0.55
+        cost_scaling_factor: 1.5    #2.5    0.2
+        inflation_radius: 4.0    #0.55      0.3
         inflate_unknown: false
         inflate_around_unknown: false
 
@@ -430,7 +430,7 @@ planner_server:
       angle_quantization_bins: 72         # 64 For Hybrid nodes: Number of angle bins for search, must be 1 for 2D node (no angle search)
       analytic_expansion_ratio: 3.5       # For Hybrid/Lattice nodes: The ratio to attempt analytic expansions during search for final approach.
       analytic_expansion_max_length: 3.0    # For Hybrid/Lattice nodes: The maximum length of the analytic expansion to be considered valid to prevent unsafe shortcutting (in meters). This should be scaled with minimum turning radius and be no less than 4-5x the minimum radius
-      minimum_turning_radius: 0.10        # 0.3 For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
+      minimum_turning_radius: 0.050        # 0.01 For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
       reverse_penalty: 2.1                # For Reeds-Shepp model: penalty to apply if motion is reversing, must be => 1
       change_penalty: 0.0                 # For Hybrid nodes: penalty to apply if motion is changing directions, must be >= 0
       non_straight_penalty: 1.40          # For Hybrid nodes: penalty to apply if motion is non-straight, must be => 1

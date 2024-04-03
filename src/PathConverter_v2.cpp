@@ -13,7 +13,7 @@ PathConverter_v2::PathConverter_v2(const rclcpp::NodeOptions & options) : rclcpp
 {   
     //Parameters Declaration
     declare_parameter("topic_name", "/plan");
-    declare_parameter("state_topic", "/is_goal_reached/goal_state");
+    declare_parameter("state_topic", "/is_goal_reached");
     declare_parameter("outPortName", "/path_converter/path:o");
     declare_parameter("inPortName", "/walking-coordinator/goal:i");
     declare_parameter("reference_frame", "geometric_unicycle");

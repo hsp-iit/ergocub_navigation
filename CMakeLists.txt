@@ -36,17 +36,25 @@ find_package(tf2_kdl REQUIRED)
 find_package(iDynTree 4.3.0 REQUIRED)
 find_package(UnicyclePlanner 0.5.2 REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(tf2_sensor_msgs REQUIRED)
 
+find_package(rclcpp_action REQUIRED)
 
-include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
-include_directories(/opt/ros/humble/include/tf2)
-include_directories(/opt/ros/humble/include/tf2_ros)
-include_directories(/opt/ros/humble/include/laser_geometry)
-include_directories(/opt/ros/humble/include/pcl_conversions)
-include_directories(include)
+#include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
+#include_directories(/opt/ros/humble/include/tf2)
+#include_directories(/opt/ros/humble/include/tf2_ros)
+#include_directories(/opt/ros/humble/include/laser_geometry)
+#include_directories(/opt/ros/humble/include/pcl_conversions)
+#include_directories(include)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
+include_directories(/opt/ros/iron/include/tf2_geometry_msgs)
+include_directories(/opt/ros/iron/include/tf2)
+include_directories(/opt/ros/iron/include/tf2_ros)
+include_directories(/opt/ros/iron/include/laser_geometry)
+include_directories(/opt/ros/iron/include/pcl_conversions)
+include_directories(include)
 
 
 #add_executable(scan_filter_compensated src/scan_filtering_ros2_compensated.cpp)
@@ -124,6 +132,7 @@ ament_target_dependencies(scan_filter
   "pcl_conversions"
   "geometry_msgs"
   "sensor_msgs"
+  "tf2_sensor_msgs"
 )
 target_link_libraries(scan_filter ${PCL_LIBRARIES})
 
@@ -212,6 +221,23 @@ ament_target_dependencies(phase_detector
   "rclcpp_lifecycle"
 )
 
+add_executable(human_pose_goal_generator src/HumanPoseGoalGenerator/main.cpp src/HumanPoseGoalGenerator/GoalGenerator.cpp 
+                src/HumanPoseGoalGenerator/CommunicationWrapper.cpp)
+ament_target_dependencies(human_pose_goal_generator
+  "YARP"
+  "rclcpp"
+  "rclcpp_lifecycle"
+  "nav_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "nav2_util"
+  "nav_2d_msgs"
+  "visualization_msgs"
+  "nav2_costmap_2d"
+  "rclcpp_action"
+)
+
 set(dependencies
   rclcpp
   geometry_msgs
@@ -246,6 +272,7 @@ install(TARGETS
   pointcloud_filter
   phase_detector
   path_converter_v2
+  human_pose_goal_generator
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
