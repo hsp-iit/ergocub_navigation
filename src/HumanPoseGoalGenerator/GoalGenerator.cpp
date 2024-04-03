@@ -6,6 +6,8 @@
 #include "HumanPoseGoalGenerator/GoalGenerator.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "geometry_msgs/msg/point.hpp"
+#include "yarp/os/Network.h"
+#include "yarp/os/LogStream.h"
 
 using std::placeholders::_1;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -29,6 +31,8 @@ GoalGenerator::GoalGenerator(const rclcpp::NodeOptions & options): rclcpp_lifecy
     rclcpp::ParameterValue(std::string("map")));
     declare_parameter("goal_topic_name",
     rclcpp::ParameterValue(std::string("/goal_pose")));
+    declare_parameter("remote_bt_port_name",
+    rclcpp::ParameterValue(std::string("/BT/RobotNavigating")));
 
     m_tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer);
@@ -47,6 +51,7 @@ CallbackReturn GoalGenerator::on_configure(const rclcpp_lifecycle::State &)
     m_tf_tol = this -> get_parameter("transform_tolerance").as_double();
     m_map_frame = this->get_parameter("map_frame").as_string();
     m_goal_topic_name = this->get_parameter("goal_topic_name").as_string();
+    m_remote_bt_port_name = this->get_parameter("remote_bt_port_name").as_string();
 
     RCLCPP_INFO(this->get_logger(), "Configuring with: costmap_topic: %s ", m_costmap_topic_name.c_str());
 
@@ -54,7 +59,13 @@ CallbackReturn GoalGenerator::on_configure(const rclcpp_lifecycle::State &)
     m_goal_pub = this->create_publisher<geometry_msgs::msg::PoseStamped>(m_goal_topic_name, 10);
     m_goal_markers_pub = this->create_publisher<visualization_msgs::msg::MarkerArray>(m_goal_markers_topic_name, 10);
 
-    m_nav_status_port.open("/human_pose_goal_generator/nav_feedback:o");
+    std::string status_port_name = "/human_pose_goal_generator/nav_feedback:o";
+    m_nav_status_port.open(status_port_name);
+
+    if(!yarp::os::Network::connect(status_port_name, m_remote_bt_port_name))
+    {
+        yWarning() << "[HumanPoseGoalGenerator] unable to connect port: " << status_port_name << " with " << m_remote_bt_port_name;
+    }
 
     //Action Client
     m_callback_group = create_callback_group(
@@ -87,6 +98,10 @@ CallbackReturn GoalGenerator::on_configure(const rclcpp_lifecycle::State &)
                 rclcpp::SystemDefaultsQoS(),
                 [this](const action_msgs::msg::GoalStatusArray::SharedPtr msg) {   
                     RCLCPP_INFO( this->get_logger(), "GOAL STATUS: %i", msg->status_list.back().status);
+                    yarp::os::Bottle data;
+                    data.addInt32(msg->status_list.back().status);
+                    m_nav_status_port.write(data);
+
                 });
     client_node_ = std::make_shared<rclcpp::Node>("nav_action_client_node_human_pose");
 
@@ -253,7 +268,7 @@ bool GoalGenerator::publishGoal(const yarp::os::Bottle& data){
                 yarp::os::Bottle data;
                 data.addInt32(navigation_goal_handle_->get_status());
                 RCLCPP_INFO(client_node_->get_logger(), "send_goal_options.feedback CALLED: with status: %i", navigation_goal_handle_->get_status());
-                m_nav_status_port.write(data);
+                //m_nav_status_port.write(data);
             };
             send_goal_options.result_callback = [this](auto) {
                 // publish the status on YARP PORT
@@ -261,7 +276,7 @@ bool GoalGenerator::publishGoal(const yarp::os::Bottle& data){
                 data.addInt32(navigation_goal_handle_->get_status());
                 RCLCPP_INFO(client_node_->get_logger(), "send_goal_options.result_callback CALLED: with status: %i", navigation_goal_handle_->get_status());
                 m_nav_status_port.write(data);
-                navigation_goal_handle_.reset();
+                //navigation_goal_handle_.reset();
             };
             send_goal_options.goal_response_callback = [this](auto) {
                 // publish the status on YARP PORT
