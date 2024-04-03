@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #include "FootstepsViewer/FootstepsViewerRos.hpp"
 
 FootstepsViewerRos::FootstepsViewerRos() : rclcpp::Node("footstep_viewer_node")

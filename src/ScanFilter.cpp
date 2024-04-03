@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #include "ScanFilter/ScanFilter.hpp"
 
 #include <pcl/filters/extract_indices.h>
@@ -6,12 +11,118 @@
 #include <chrono>
 
 using std::placeholders::_1;
+using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
+ScanFilter::ScanFilter(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("scan_compensating_node", options)
+{
+    declare_parameter("referece_frame", "geometric_unicycle");
+    declare_parameter("scan_topic", "/scan_local");
+    declare_parameter("pub_topic", "/compensated_pc2");
+    declare_parameter("imu_topic", "/head_imu");
+    declare_parameter("filter_z_low", 0.2);
+    declare_parameter("filter_z_high", 2.5);
+    declare_parameter("close_threshold", 0.5);
+    declare_parameter("imuVel_x_threshold", 0.4);
+    declare_parameter("imuVel_y_threshold", 0.4);
+    declare_parameter("ms_wait", 400.0);
+    declare_parameter("robot_on_crane", true);
+
+    
+    m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    m_tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
+    m_last_vibration_detection = std::chrono::system_clock::now();
+
+    
+}
+
+CallbackReturn ScanFilter::on_configure(const rclcpp_lifecycle::State &)
+{
+    //Param Init
+    m_referece_frame = this->get_parameter("referece_frame").as_string();
+    m_scan_topic = this->get_parameter("scan_topic").as_string();
+    m_pub_topic = this->get_parameter("pub_topic").as_string();
+    m_imu_topic = this->get_parameter("imu_topic").as_string();
+
+    m_filter_z_low = this->get_parameter("filter_z_low").as_double();
+    m_filter_z_high = this->get_parameter("filter_z_high").as_double();
+    m_close_threshold = this->get_parameter("close_threshold").as_double();
+    m_imuVel_x_threshold = this->get_parameter("imuVel_x_threshold").as_double();
+    m_imuVel_y_threshold = this->get_parameter("imuVel_y_threshold").as_double();
+    m_ms_wait = this->get_parameter("ms_wait").as_double();
+    m_robot_on_crane = this->get_parameter("robot_on_crane").as_bool();
+
+    RCLCPP_INFO(this->get_logger(), "Configuring with: referece_frame: %s scan_topic: %s pub_topic: %s imu_topic: %s robot_on_crane: %i",
+                    m_referece_frame.c_str(), m_scan_topic.c_str(), m_pub_topic.c_str(), m_imu_topic.c_str(), (int)m_robot_on_crane);
+    RCLCPP_INFO(this->get_logger(), "Filter parameters: filter_z_low: %f filter_z_high: %f imuVel_x_threshold: %f imuVel_y_threshold: %f ms_wait: %f close_threshold: %f",
+                    m_filter_z_low, m_filter_z_high, m_imuVel_x_threshold, m_imuVel_y_threshold, m_ms_wait, m_close_threshold);
+    //Subscribers
+    m_raw_scan_sub = this->create_subscription<sensor_msgs::msg::LaserScan> (
+        m_scan_topic,
+        10,
+        std::bind(&ScanFilter::scan_callback, this, _1)
+    );
+    m_imu_sub = this->create_subscription<sensor_msgs::msg::Imu> (
+        m_imu_topic,
+        10,
+        std::bind(&ScanFilter::imuCallback, this, _1)
+    );
+    //Publisher
+    m_pointcloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic, 10);
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn ScanFilter::on_activate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Activating");
+
+    m_pointcloud_pub->on_activate();
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn ScanFilter::on_deactivate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Deactivating");
+
+    m_pointcloud_pub->on_deactivate();
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn ScanFilter::on_cleanup(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Cleaning Up");
+    m_pointcloud_pub.reset();
+    m_imu_sub.reset();
+    m_raw_scan_sub.reset();
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn ScanFilter::on_shutdown(const rclcpp_lifecycle::State & state)
+{
+  RCLCPP_INFO(get_logger(), "Shutting Down from %s", state.label().c_str());
+
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn ScanFilter::on_error(const rclcpp_lifecycle::State & state)
+{
+    RCLCPP_FATAL(get_logger(), "Error Processing from %s", state.label().c_str());
+
+    return CallbackReturn::SUCCESS;
+}
 
 void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan_in)
     {
         try
         {
+            if (!m_pointcloud_pub->is_activated())
+            {
+                return;
+            }
+            
         auto tp = std::chrono::system_clock::now();
         double delta_t = (std::chrono::duration<double, std::milli>(tp.time_since_epoch()).count() - std::chrono::duration<double, std::milli>(m_last_vibration_detection.time_since_epoch()).count());
         if (delta_t < m_ms_wait) 
@@ -132,34 +243,22 @@ void ScanFilter::imuCallback(const sensor_msgs::msg::Imu::ConstPtr& imu_msg)
     }
 };
 
-ScanFilter::ScanFilter() : Node("scan_compensating_node")
-{
-    m_pointcloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic, 10);
-    m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-    m_tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
-    m_last_vibration_detection = std::chrono::system_clock::now();
 
-    m_raw_scan_sub = this->create_subscription<sensor_msgs::msg::LaserScan> (
-        m_scan_topic,
-        10,
-        std::bind(&ScanFilter::scan_callback, this, _1)
-    );
-    m_imu_sub = this->create_subscription<sensor_msgs::msg::Imu> (
-        m_imu_topic,
-        10,
-        std::bind(&ScanFilter::imuCallback, this, _1)
-    );
-}
+
+
 
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
+    
     if (rclcpp::ok())
     {
-        auto node = std::make_shared<ScanFilter>();
-        std::cout << "Starting up node. \n";
-        rclcpp::spin(node);
-        std::cout << "Shutting down" << std::endl;
+        rclcpp::executors::SingleThreadedExecutor executor;
+        rclcpp::NodeOptions options;
+        std::shared_ptr<ScanFilter> node = std::make_shared<ScanFilter>(options);
+
+        executor.add_node(node->get_node_base_interface());
+        executor.spin();
         rclcpp::shutdown();
     }
     else

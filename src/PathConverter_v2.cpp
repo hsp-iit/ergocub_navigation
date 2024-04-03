@@ -1,10 +1,55 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #include "PathConverter/PathConverter_v2.hpp"
 
 using namespace std::chrono_literals;
+using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 using std::placeholders::_1;
 
-PathConverter_v2::PathConverter_v2() : rclcpp::Node("path_converter_node")
+PathConverter_v2::PathConverter_v2(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("path_converter_node", options)
 {   
+    //Parameters Declaration
+    declare_parameter("topic_name", "/plan");
+    declare_parameter("state_topic", "/is_goal_reached/goal_state");
+    declare_parameter("outPortName", "/path_converter/path:o");
+    declare_parameter("inPortName", "/walking-coordinator/goal:i");
+    declare_parameter("reference_frame", "geometric_unicycle");
+    declare_parameter("shift_portName", "/path_converter/shift_command:i");
+    declare_parameter("shift_portConnectionName", "/shift_command:o");
+    declare_parameter("zero_speed_threshold", 1e-03);
+    declare_parameter("shift_enabled", true);
+    declare_parameter("shift", 0.2);
+    declare_parameter("max_msg_counter", 6);
+
+    // TFs
+    m_tf_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer);
+}
+
+CallbackReturn PathConverter_v2::on_configure(const rclcpp_lifecycle::State &)
+{
+    //Parameters reading
+    m_topic_name = this->get_parameter("topic_name").as_string();
+    m_state_topic = this->get_parameter("state_topic").as_string(); 
+    m_outPortName = this->get_parameter("outPortName").as_string();
+    m_inPortName = this->get_parameter("inPortName").as_string();
+    m_reference_frame = this->get_parameter("reference_frame").as_string();
+    m_shift_portName = this->get_parameter("shift_portName").as_string();
+    m_shift_portConnectionName = this->get_parameter("shift_portConnectionName").as_string();
+    m_zero_speed_threshold = this->get_parameter("zero_speed_threshold").as_double();
+    m_shift_enabled = this->get_parameter("shift_enabled").as_bool();
+    m_shift = this->get_parameter("shift").as_double();
+    m_max_msg_counter = this->get_parameter("max_msg_counter").as_int();
+
+    RCLCPP_INFO(get_logger(), "Configuring with: topic_name: %s state_topic: %s outPortName: %s inPortName: %s reference_frame: %s shift_portName: %s",
+                    m_topic_name.c_str(), m_state_topic.c_str(), m_outPortName.c_str(), m_inPortName.c_str(), m_reference_frame.c_str(), m_shift_portName.c_str());
+    RCLCPP_INFO(get_logger(), "shift_portConnectionName: %s zero_speed_threshold: %f shift_enabled: %i shift: %f max_msg_counter: %i",
+                    m_shift_portConnectionName.c_str(), m_zero_speed_threshold, (int)m_shift_enabled, m_shift, m_max_msg_counter);
+
+    //Subscribers
     m_setpoint_sub = this->create_subscription<nav_msgs::msg::Path>(
         m_topic_name,
         10,
@@ -16,64 +61,122 @@ PathConverter_v2::PathConverter_v2() : rclcpp::Node("path_converter_node")
         std::bind(&PathConverter_v2::state_callback, this, _1)
     );
 
-    // TFs
-    m_tf_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer);
-       
-    //Create YarpFeetDataProcessor object
+    //YARP port connection
     m_port.open(m_outPortName);
     yarp::os::Network::connect(m_outPortName, m_inPortName);   
     if(yarp::os::Network::isConnected(m_outPortName, m_inPortName)){
         RCLCPP_INFO(this->get_logger(), "YARP Ports connected successfully");
     } else {
         RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
+        return CallbackReturn::FAILURE;
     }
 
-    m_shift_port.open(m_shift_portName);
-    m_shiftFlag = false;
+    if (m_shift_enabled)
+    {
+        m_shift_port.open(m_shift_portName);
+        m_shiftFlag = false;
+        //TODO add connection and its check TO ENABLE
+        //yarp::os::Network::connect(m_shift_portConnectionName, m_shift_portName);
+        //if (!yarp::os::Network::isConnected(m_shift_portConnectionName, m_shift_portName))
+        //{
+        //    RCLCPP_ERROR(this->get_logger(), "Could not connect ports for shift");
+        //    return CallbackReturn::FAILURE;
+        //}
+    }
     
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PathConverter_v2::on_activate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Activating");
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PathConverter_v2::on_deactivate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Deactivating");
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PathConverter_v2::on_cleanup(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Cleaning Up");
+    m_setpoint_sub.reset();
+    m_state_sub.reset();
+    if (!m_port.isClosed())
+    {
+        m_port.close();
+    }
+    if (m_shift_enabled && !m_shift_port.isClosed())
+    {
+        m_shift_port.close();
+    }
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PathConverter_v2::on_shutdown(const rclcpp_lifecycle::State & state)
+{
+    RCLCPP_INFO(get_logger(), "Shutting Down from %s", state.label().c_str());
+    if (!m_port.isClosed())
+    {
+        m_port.close();
+    }
+    if (m_shift_enabled && !m_shift_port.isClosed())
+    {
+        m_shift_port.close();
+    }
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PathConverter_v2::on_error(const rclcpp_lifecycle::State & state)
+{
+    RCLCPP_FATAL(get_logger(), "Error Processing from %s", state.label().c_str());
+    return CallbackReturn::SUCCESS;
 }
 
 //Each time I have a new path we transform the path and pass it to the walking controller
 void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
 {
         std::lock_guard<std::mutex> lock(m_mutex);
-        
-        if (msg_counter < 4 && m_shiftFlag)
+        if (m_shift_enabled)
         {
-            ++msg_counter;
-            std::cout << "Msg counter: " << msg_counter << std::endl;
-            return;
-        }
-
-        if(yarp::os::Network::isConnected("/dummy:o", "/path_converter/shift_command:i")){
-            //Read from port
-            auto data = m_shift_port.read(false);
-            if (data!= nullptr)
+            if (msg_counter < m_max_msg_counter && m_shiftFlag)
             {
-                std::cout << data->data()[0] << " " << data->data()[1] << " " << data->data()[2] << " " << std::endl;
-                if ((data->data()[0])==1)
-                {
-                    std::cout << "Red from port" << std::endl;
-                    m_shiftFlag = true;
-                    m_shiftLeft = data->data()[1]==1 ? true : false;
-                    msg_counter = 0;
-                }
-                else
-                {
-                    m_shiftFlag = false;
-                }
+                ++msg_counter;
+                std::cout << "Msg counter: " << msg_counter << std::endl;
+                return;
             }
-            //else    //JUST FOR DEBUG
-            //{
-            //    return; //TODO REMOVE
-            //}
-            
-        } else {
-            RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
-        }
 
-        
+            //if(yarp::os::Network::isConnected(m_shift_portConnectionName, m_shift_portName)){
+                //Read from port
+                auto data = m_shift_port.read(false);
+                if (data!= nullptr)
+                {
+                    //std::cout << data->data()[0] << " " << data->data()[1] << " " << data->data()[2] << " " << std::endl;
+                    if (data->get(0).asBool())   //data->data()[0]
+                    {
+                        std::cout << "Red from port" << std::endl;
+                        m_shiftFlag = true;
+                        //m_shiftLeft = data->data()[1]==1 ? true : false;
+                        m_shiftLeft = data->get(1).asBool();
+                        msg_counter = 0;
+                    }
+                    else
+                    {
+                        m_shiftFlag = false;
+                    }
+                }
+                else    //JUST FOR DEBUG
+                {
+                    //return; //TODO REMOVE
+                    std::cout << "Received nothing going on " <<  std::endl;
+                }
+
+            //} else {
+            //    RCLCPP_ERROR(this->get_logger(), "Could not connect ports");
+            //}
+        }
 
         std::cout << "Original path size: " << msg_in->poses.size() << std::endl;
         if (!m_goalReached)
@@ -202,14 +305,12 @@ nav_msgs::msg::Path PathConverter_v2::transformPlan(const nav_msgs::msg::Path::C
     }
     
     //
-    if (m_shiftFlag)
+    if (m_shift_enabled && m_shiftFlag)
     {
         std::cout << "Shifting Plan" << std::endl;
         //std::shared_ptr<nav_msgs::msg::Path> p =  std::make_shared<nav_msgs::msg::Path>(transformed_plan_);
         transformed_plan_ = shiftPlan(transformed_plan_, m_shiftLeft);
     }
-    
-    
         
     if (transformed_plan_.poses.empty()) {
         std::cerr << "Resulting plan has 0 poses in it." << std::endl;
@@ -241,7 +342,7 @@ nav_msgs::msg::Path PathConverter_v2::shiftPlan(const nav_msgs::msg::Path &path,
             }
             else if (i < 3)
             {
-                /* code */
+               //do nothing -> keep the same poses
             }
             else
             {
@@ -267,8 +368,12 @@ int main(int argc, char** argv)
 
     if (rclcpp::ok())
     {
-        auto node = std::make_shared<PathConverter_v2>();
-        rclcpp::spin(node);
+        rclcpp::executors::SingleThreadedExecutor executor;
+        rclcpp::NodeOptions options;
+        std::shared_ptr<PathConverter_v2> node = std::make_shared<PathConverter_v2>(options);
+
+        executor.add_node(node->get_node_base_interface());
+        executor.spin();
     }
     std::cout << "Shutting down" << std::endl;
     rclcpp::shutdown();

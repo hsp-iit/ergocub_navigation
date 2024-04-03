@@ -13,11 +13,6 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/setup_robot/robot_state_publisher.launch.py'])
         )
-    rviz_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/ergoCub_rviz.launch.py'])
-        )
     projection_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ergocub_navigation'), 'launch'),
@@ -48,18 +43,18 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/footprints_viewer.launch.py'])
         )
+    pointcloud_filter = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('ergocub_navigation'), 'launch'),
+            '/setup_robot/pointcloud_filter.launch.py'])
+        )
     return LaunchDescription([
         state_publisher,
         projection_node,
-        #rviz_node,
         scan_filtering_compensated,
         #depth_to_pointcloud,
         virtual_unicycle,
         amcl,
+        pointcloud_filter
         #footprints_viewer,
-        Node(
-            package='ergocub_navigation',
-            executable='pointcloud_filter',
-            output='screen',
-        )
     ])

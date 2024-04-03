@@ -1,3 +1,11 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#ifndef FOOTSTEPS_VIEWER_ROS__HPP
+#define FOOTSTEPS_VIEWER_ROS__HPP
+
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "nav_2d_msgs/msg/pose2_d_stamped.hpp"
@@ -24,3 +32,5 @@ public:
 
     bool publishMarkers(const yarp::os::Bottle& data);
 };  //End of class FootstepsViewerRos
+
+#endif

@@ -1,3 +1,7 @@
+<!--
+ Copyright (C) 2023 Fondazione Istituto Italiano di Tecnologia (IIT)
+ All Rights Reserved.
+-->
 
 <!--
   This Behavior Tree replans the global path periodically at 1 Hz and it also has
@@ -7,7 +11,7 @@
 <root main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
     <ReactiveFallback name="MainFallback">
-      <!--<GoalReachedConditionModded goal="{goal}" global_frame="map" robot_base_frame="geometric_unicycle"/> --><!--name="is_goal_reached"-->
+      <!--<GoalReachedConditionModded goal="{goal}" global_frame="map" robot_base_frame="geometric_unicycle"/>--><!--name="is_goal_reached"-->
       <RecoveryNode number_of_retries="6" name="NavigateRecovery">
         <PipelineSequence name="NavigateWithReplanning">
           <RateController hz="10.0">

@@ -1,0 +1,17 @@
+pointcloud_filter_node:
+  ros__parameters:
+    use_sim_time: true
+    depth_topic: "/camera/depth/color/points"
+    pub_topic: "/imu_filtered_depth"
+    pub_unfiltered_topic: "/imu_unfiltered_depth"
+    imu_topic: "/head_imu"
+    filter_reference_frame: "chest"
+    box_x: 0.5
+    box_y: 0.4
+    box_z: 0.5
+    box_w: 1.0
+    imuVel_x_threshold: 0.3
+    imuVel_y_threshold: 0.3
+    ms_wait: 500.0
+    extract_removed_indices: true
+    set_negative: true

@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #include "PointcloudFilter/PointcloudFilter.hpp"
 
 #include "pcl_conversions/pcl_conversions.h"
@@ -5,12 +10,13 @@
 #include "pcl/filters/crop_box.h"
 #include "pcl/ModelCoefficients.h"
 #include <pcl/filters/extract_indices.h>
+#include "pcl_ros/transforms.hpp"
 
 #include <cmath>
 #include <chrono>
 
 using std::placeholders::_1;
-
+using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in)
     {
@@ -21,7 +27,7 @@ void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::Const
             //wait if a vibration was detected before the timeout
             if (delta_t < m_ms_wait) 
             {
-                //RCLCPP_INFO(this->get_logger(), "Exiting scan callback, time passed: %f vs timeout: %f", delta_t, m_ms_wait);
+                RCLCPP_INFO(this->get_logger(), "Exiting scan callback, time passed: %f vs timeout: %f", delta_t, m_ms_wait);
                 return;
             }
 
@@ -35,31 +41,36 @@ void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::Const
                     return;
                 }
             }
-             //TOO SLOW
+            //TOO SLOW
             pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud (new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
             pcl::fromROSMsg(*pc_in, *in_cloud);
-
+            //Transform cloud into filter's reference frame
+            try
+            {
+                auto tf=m_tf_buffer->lookupTransform(in_cloud->header.frame_id, m_filter_reference_frame, now());
+                if(! pcl_ros::transformPointCloud(m_filter_reference_frame, *in_cloud, *in_cloud, *m_tf_buffer))
+                {
+                    std::cout << "Unable to transform pcl_ros" << std::endl;
+                    return;
+                }
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+                return;
+            }
             // Create the filtering object
-            pcl::CropBox<pcl::PointXYZ> cropBoxFilter (true);
+            pcl::CropBox<pcl::PointXYZ> cropBoxFilter (m_extract_removed_indices);
             cropBoxFilter.setInputCloud (in_cloud);
-            Eigen::Vector4f min_pt (-0.5f, -0.4f, -0.5f, 1.0f);
-            Eigen::Vector4f max_pt (0.5f, 0.4f, 0.5f, 1.0f);
+            Eigen::Vector4f min_pt (-m_box_x, -m_box_y, -m_box_z, m_box_w);
+            Eigen::Vector4f max_pt (m_box_x, m_box_y, m_box_z, m_box_w);
 
             // Cropbox slighlty bigger then bounding box of points
             cropBoxFilter.setMin (min_pt);
             cropBoxFilter.setMax (max_pt);
-            cropBoxFilter.setNegative(true);
+            cropBoxFilter.setNegative(m_set_negative);
 
-            // Indices
-            //pcl::PointIndices indices;
-            //cropBoxFilter.filter(indices);
-
-            //pcl::ExtractIndices<pcl::PointXYZ> extract;
-            //extract.setInputCloud(in_cloud);
-            //extract.setIndices(indices);
-            //extract.setNegative(true);
-            //extract.filter(*p_obstacles);
             // Cloud
             pcl::PointCloud<pcl::PointXYZ> cloud_out;
             cropBoxFilter.filter(cloud_out);
@@ -101,12 +112,53 @@ void PointcloudFilter::imu_callback(const sensor_msgs::msg::Imu::ConstPtr& imu_m
     }
 };
 
-PointcloudFilter::PointcloudFilter() : Node("depth_filtering_node")
+PointcloudFilter::PointcloudFilter(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("depth_filtering_node", options)
 {
-    m_filtered_pointcloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic, 10);
-    m_unfiltered_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_unfiltered_topic , 10);
-    m_last_vibration_detection = std::chrono::system_clock::now();
+    //Parameters declaration
+    declare_parameter("depth_topic", "/camera/depth/color/points");
+    declare_parameter("pub_topic", "/imu_filtered_depth");
+    declare_parameter("pub_unfiltered_topic", "/imu_unfiltered_depth");
+    declare_parameter("imu_topic", "/head_imu");
+    declare_parameter("filter_reference_frame", "chest");
+    declare_parameter("box_x", 0.5);
+    declare_parameter("box_y", 0.4);
+    declare_parameter("box_z", 0.5);
+    declare_parameter("box_w", 1.0);
+    declare_parameter("imuVel_x_threshold", 0.3);
+    declare_parameter("imuVel_y_threshold", 0.3);
+    declare_parameter("ms_wait", 500.0);
+    declare_parameter("extract_removed_indices", true);
+    declare_parameter("set_negative", true);
 
+    m_last_vibration_detection = std::chrono::system_clock::now();
+    m_tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer);
+}
+
+CallbackReturn PointcloudFilter::on_configure(const rclcpp_lifecycle::State &)
+{
+    //Pass parameters
+    m_depth_topic = this->get_parameter("depth_topic").as_string();
+    m_pub_topic = this->get_parameter("pub_topic").as_string();
+    m_pub_unfiltered_topic = this->get_parameter("pub_unfiltered_topic").as_string();
+    m_imu_topic = this->get_parameter("imu_topic").as_string();
+    m_filter_reference_frame = this->get_parameter("filter_reference_frame").as_string();
+    m_box_x = this->get_parameter("box_x").as_double();
+    m_box_y = this->get_parameter("box_y").as_double();
+    m_box_z = this->get_parameter("box_z").as_double();
+    m_box_w = this->get_parameter("box_w").as_double();
+    m_imuVel_x_threshold = this->get_parameter("imuVel_x_threshold").as_double();
+    m_imuVel_y_threshold = this->get_parameter("imuVel_y_threshold").as_double();
+    m_ms_wait = this->get_parameter("ms_wait").as_double();
+    m_extract_removed_indices = this->get_parameter("extract_removed_indices").as_bool();
+    m_set_negative = this->get_parameter("set_negative").as_bool();
+
+    RCLCPP_INFO(get_logger(), "Configuring with: depth_topic: %s pub_topic: %s pub_unfiltered_topic: %s imu_topic: %s filter_reference_frame: %s",
+                    m_depth_topic.c_str(), m_pub_topic.c_str(), m_pub_unfiltered_topic.c_str(), m_imu_topic.c_str(), m_filter_reference_frame.c_str());
+    RCLCPP_INFO(get_logger(), "box_x: %f box_y: %f box_z: %f box_w: %f imuVel_x_threshold: %f imuVel_y_threshold: %f ms_wait: %f extract_removed_indices: %i set_negative: %i",
+                    m_box_x, m_box_y, m_box_z, m_box_w, m_imuVel_x_threshold, m_imuVel_y_threshold, m_ms_wait, (int)m_extract_removed_indices, (int)m_set_negative);
+
+    //Subscribers
     m_raw_depth_sub = this->create_subscription<sensor_msgs::msg::PointCloud2> (
         m_depth_topic,
         10,
@@ -117,6 +169,50 @@ PointcloudFilter::PointcloudFilter() : Node("depth_filtering_node")
         10,
         std::bind(&PointcloudFilter::imu_callback, this, _1)
     );
+
+    //Publishers
+    m_filtered_pointcloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic, 10);
+    m_unfiltered_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_unfiltered_topic , 10);
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PointcloudFilter::on_activate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Activating");
+    m_filtered_pointcloud_pub->on_activate();
+    m_unfiltered_pub->on_activate();
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PointcloudFilter::on_deactivate(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Deactivating");
+    m_filtered_pointcloud_pub->on_deactivate();
+    m_unfiltered_pub->on_deactivate();
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PointcloudFilter::on_cleanup(const rclcpp_lifecycle::State &)
+{
+    RCLCPP_INFO(get_logger(), "Cleaning up");
+    m_filtered_pointcloud_pub.reset();
+    m_unfiltered_pub.reset();
+    m_raw_depth_sub.reset();
+    m_imu_sub.reset();
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PointcloudFilter::on_shutdown(const rclcpp_lifecycle::State & state)
+{
+    RCLCPP_INFO(get_logger(), "Shutting Down from %s", state.label().c_str());
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PointcloudFilter::on_error(const rclcpp_lifecycle::State & state)
+{
+    RCLCPP_INFO(get_logger(), "Error Processing from %s", state.label().c_str());
+    return CallbackReturn::SUCCESS;
 }
 
 int main(int argc, char** argv)
@@ -124,9 +220,12 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
     if (rclcpp::ok())
     {
-        auto node = std::make_shared<PointcloudFilter>();
+        rclcpp::executors::SingleThreadedExecutor executor;
+        rclcpp::NodeOptions options;
+        auto node = std::make_shared<PointcloudFilter>(options);
+        executor.add_node(node->get_node_base_interface());
         std::cout << "Starting up node. \n";
-        rclcpp::spin(node);
+        executor.spin();
         std::cout << "Shutting down" << std::endl;
         rclcpp::shutdown();
     }

@@ -1,3 +1,11 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#ifndef PATH_CONVERTER__HPP
+#define PATH_CONVERTER__HPP
+
 #include "yarp/os/Bottle.h"
 #include "yarp/os/Port.h"
 #include "yarp/os/BufferedPort.h"
@@ -54,3 +62,5 @@ private:
 public:
     PathConverter();
 };
+
+#endif

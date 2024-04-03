@@ -1,0 +1,94 @@
+amcl:
+  ros__parameters:
+    use_sim_time: false
+    alpha1: 0.02     #0.008 
+    alpha2: 0.08      #0.04    
+    alpha3: 0.04     
+    alpha4: 0.05   
+    alpha5: 0.03      #0.2
+    pf_err: 0.1  
+    pf_z: 0.5     
+    base_frame_id: "geometric_unicycle" # virtual_unicycle_base
+    beam_skip_distance: 0.5
+    beam_skip_error_threshold: 0.9
+    beam_skip_threshold: 0.3
+    do_beamskip: false
+    global_frame_id: "map"
+    lambda_short: 0.1
+    laser_likelihood_max_dist: 4.0  #2
+    laser_max_range: 30.0
+    laser_min_range: 0.4
+    laser_model_type: "likelihood_field"
+    max_beams: 120
+    max_particles: 5000
+    min_particles: 2000
+    odom_frame_id: "odom"
+    recovery_alpha_fast: 0.1
+    recovery_alpha_slow: 0.001
+    resample_interval: 1
+    robot_model_type: "nav2_amcl::OmniMotionModel"
+    save_pose_rate: 0.5
+    sigma_hit: 0.1    #0.2
+    tf_broadcast: true
+    transform_tolerance: 1.0  #0.1 #2.3
+    update_min_a: 0.2 #0.2
+    update_min_d: 0.1 #0.25  
+    z_hit: 0.9
+    z_max: 0.05
+    z_rand: 0.5   #0.05
+    z_short: 0.1
+    scan_topic: filtered_scan_compensated 
+    map_topic: map
+    set_initial_pose: true
+    initial_pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+
+amcl_rclcpp_node:
+  ros__parameters:
+    use_sim_time: false
+
+amcl_map_client:
+  ros__parameters:
+    use_sim_time: false
+
+#amcl:
+#  ros__parameters:
+#    use_sim_time: false
+#    alpha1: 0.008  #0.1 #0.3
+#    alpha2: 0.04     #0.2
+#    alpha3: 0.04     #0.2
+#    alpha4: 0.025     #0.2
+#    pf_err: 0.1  #0.05
+#    pf_z: 0.5     #0.6
+#    base_frame_id: "geometric_unicycle" # virtual_unicycle_base
+#    beam_skip_distance: 0.5
+#    beam_skip_error_threshold: 0.9
+#    beam_skip_threshold: 0.3
+#    do_beamskip: false
+#    global_frame_id: "map"
+#    lambda_short: 0.1
+#    laser_likelihood_max_dist: 4.0  #2
+#    laser_max_range: 30.0
+#    laser_min_range: 0.2
+#    laser_model_type: "likelihood_field"
+#    max_beams: 120  #360
+#    max_particles: 10000
+#    min_particles: 2000
+#    odom_frame_id: "odom"
+#    recovery_alpha_fast: 0.1    #0.0
+#    recovery_alpha_slow: 0.001  #0.0
+#    resample_interval: 1  #2
+#    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+#    save_pose_rate: 0.5
+#    tf_broadcast: true
+#    transform_tolerance: 2  #0.1 #2.3
+#    update_min_a: 0.2 #0.2
+#    update_min_d: 0.25 #0.25  
+#    sigma_hit: 0.1    #0.2  
+#    z_hit: 0.9
+#    z_max: 0.05
+#    z_rand: 0.5   #0.05
+#    z_short: 0.1
+#    scan_topic: filtered_scan_compensated     #filtered_scan
+#    map_topic: map
+#    set_initial_pose: true
+#    initial_pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}

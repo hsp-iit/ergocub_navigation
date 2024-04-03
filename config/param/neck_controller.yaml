@@ -1,0 +1,17 @@
+neck_controller_node:
+  ros__parameters:
+    use_sim_time: true
+    leftFoot_topic: "/left_foot_heel_tiptoe_ft"
+    rightFoot_topic: "/right_foot_heel_tiptoe_ft"
+    imu_topic: "/head_imu"
+    referenceFrame_right: "r_sole"
+    referenceFrame_left: "l_sole"
+    wrench_threshold: 80.0
+    imu_threshold_y: 0.3
+    tf_height_threshold_m: 0.02
+    joint_limit_deg: 20.0
+    joint_name: "neck_yaw"
+    joint_increment: 0.250
+    time_increment: 0.02
+    out_port_name: "/neck_controller/setpoints:o"
+    in_port_name: "/ergocubSim/head"
