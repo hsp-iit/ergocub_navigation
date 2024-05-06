@@ -36,6 +36,7 @@ find_package(tf2_kdl REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
 
 find_package(rclcpp_action REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 #include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
 #include_directories(/opt/ros/humble/include/tf2)
@@ -104,6 +105,7 @@ ament_target_dependencies(planner_trigger_server
   "YARP"
   "rclcpp"
   "std_srvs"
+  "rclcpp_action"
 )
 
 #add_executable(interpolation_walking_controller_talker src/interpolation_walking_controller_talker.cpp)
@@ -130,6 +132,7 @@ ament_target_dependencies(scan_filter
   "geometry_msgs"
   "sensor_msgs"
   "tf2_sensor_msgs"
+  "tf2_geometry_msgs"
 )
 target_link_libraries(scan_filter ${PCL_LIBRARIES})
 
@@ -153,6 +156,7 @@ ament_target_dependencies(base_projector
   "tf2_msgs"
   "YARP"
   "rclcpp"
+  "tf2_geometry_msgs"
 )
 
 add_executable(odom_node src/OdomNode.cpp)
@@ -165,6 +169,7 @@ ament_target_dependencies(odom_node
   "tf2"
   "tf2_kdl"
   "nav_msgs"
+  "tf2_geometry_msgs"
 )
 
 add_executable(path_converter src/PathConverter.cpp)
@@ -216,6 +221,7 @@ ament_target_dependencies(phase_detector
   "tf2"
   "sensor_msgs"
   "rclcpp_lifecycle"
+  "tf2_geometry_msgs"
 )
 
 add_executable(human_pose_goal_generator src/HumanPoseGoalGenerator/main.cpp src/HumanPoseGoalGenerator/GoalGenerator.cpp 

@@ -9,6 +9,8 @@
 #include "yarp/os/Bottle.h"
 #include "yarp/os/Port.h"
 #include "yarp/os/Network.h"
+#include "rclcpp_action/rclcpp_action.hpp"
+#include "action_msgs/msg/goal_status_array.hpp"
 
 #include <memory>
 
@@ -99,6 +101,28 @@ int main(int argc, char **argv)
         std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("is_on_double_support_srv");
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service = node->create_service<std_srvs::srv::Trigger>
                                                                      ("is_on_double_support_srv", &is_on_double_support);
+        rclcpp::Subscription<action_msgs::msg::GoalStatusArray>::SharedPtr navigation_result_sub = 
+            node->create_subscription<action_msgs::msg::GoalStatusArray>(
+                "navigate_to_pose/_action/status",
+                rclcpp::SystemDefaultsQoS(),
+                [&node](const action_msgs::msg::GoalStatusArray::SharedPtr msg) {   
+                    RCLCPP_INFO( node->get_logger(), "GOAL STATUS: %i", msg->status_list.back().status);
+                    switch (msg->status_list.back().status)
+                    {
+                    case 4:     // STATUS_SUCCEEDED 
+                        state = true;
+                        break;
+                    case 5:     // STATUS_CANCELED  
+                        state = true;
+                        break;
+                    case 6:     // STATUS_ABORTED   
+                        state = true;
+                        break;
+                    default:    // Do nothing otherwise
+                        break;
+                    }
+
+                });
         //Connect yarp ports
         port.open(portName);
         yarp::os::Network::connect(sourceName, portName);

@@ -57,6 +57,7 @@ private:
     std::string m_remote_yarp_port_name;
     double m_tf_tol;
     std::string m_map_frame;
+    std::string m_remote_bt_port_name;
 
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};
     std::unique_ptr<tf2_ros::Buffer> m_tf_buffer;
