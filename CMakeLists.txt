@@ -33,9 +33,6 @@ find_package(visualization_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2_kdl REQUIRED)
 
-find_package(iDynTree 4.3.0 REQUIRED)
-find_package(UnicyclePlanner 0.5.2 REQUIRED)
-find_package(Eigen3 REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
 
 find_package(rclcpp_action REQUIRED)
