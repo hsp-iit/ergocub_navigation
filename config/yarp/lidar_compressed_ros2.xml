@@ -3,7 +3,7 @@
 
 <robot name="ergoCubSN001" xmlns:xi="http://www.w3.org/2001/XInclude">
 <devices>
-    <device xmlns:xi="http://www.w3.org/2001/XInclude" name="recev" type="Rangefinder2DClient">
+    <device xmlns:xi="http://www.w3.org/2001/XInclude" name="recev" type="rangefinder2D_nwc_yarp">
         <param name="period"> 0.010 </param>
         <param name="local">   /laser_client_repeater:i </param>
         <param name="remote">  /ergocub/laser:o  </param>
