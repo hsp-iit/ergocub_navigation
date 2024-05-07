@@ -8,7 +8,9 @@
 
 #include "yarp/os/Bottle.h"
 #include "yarp/os/Port.h"
+#include "yarp/os/BufferedPort.h"
 #include "yarp/os/Network.h"
+#include "yarp/sig/Vector.h"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "action_msgs/msg/goal_status_array.hpp"
 
@@ -96,6 +98,17 @@ int main(int argc, char **argv)
     yarp::os::Network yarp;
     yarp::os::Port port;
 
+    yarp::os::BufferedPort<yarp::sig::Vector> walking_port;
+    const std::string walking_sourceName = "/planner_trigger_server/walking_stop_path:o";
+    const std::string walking_portName = "/walking-coordinator/goal:i";
+
+    //Connect yarp ports
+    walking_port.open(walking_sourceName);
+    if (!yarp::os::Network::connect(walking_sourceName, walking_portName))
+    {
+        std::cout << "[planner_trigger_server - main] unable to connect: " << walking_sourceName << " with " << walking_portName << std::endl;
+    }
+
     if (rclcpp::ok())
     {
         std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("is_on_double_support_srv");
@@ -105,23 +118,53 @@ int main(int argc, char **argv)
             node->create_subscription<action_msgs::msg::GoalStatusArray>(
                 "navigate_to_pose/_action/status",
                 rclcpp::SystemDefaultsQoS(),
-                [&node](const action_msgs::msg::GoalStatusArray::SharedPtr msg) {   
+                [&node, &walking_sourceName, &walking_portName, &walking_port](const action_msgs::msg::GoalStatusArray::SharedPtr msg) {   
                     RCLCPP_INFO( node->get_logger(), "GOAL STATUS: %i", msg->status_list.back().status);
+                    // Reset trigger status
+                    bool stop = false;
                     switch (msg->status_list.back().status)
                     {
                     case 4:     // STATUS_SUCCEEDED 
                         state = true;
+                        stop = true;    // TODO - maybe remove this
                         break;
                     case 5:     // STATUS_CANCELED  
                         state = true;
+                        stop = true;
                         break;
                     case 6:     // STATUS_ABORTED   
                         state = true;
+                        stop = true;
                         break;
                     default:    // Do nothing otherwise
                         break;
                     }
 
+                    if (stop)
+                    {
+                        // try to stop the robot
+                        try
+                        {
+                            if (!yarp::os::Network::isConnected(walking_sourceName, walking_portName))
+                            {
+                                yarp::os::Network::connect(walking_sourceName, walking_portName);
+                            }
+                            auto& out = walking_port.prepare();
+                            out.clear();
+                            for (int i = 0; i < 3; ++i)
+                            {
+                                out.push_back(0.0);
+                                out.push_back(0.0);
+                                out.push_back(0.0);
+                                std::cout << "Passing Path i-th element: " << i << " X : " << out[3*i] << " Y: " << out[3*i+1] << " Angle: " << out[3*i+2] << std::endl;
+                            }
+                            walking_port.write();
+                        }
+                        catch(const std::exception& e)
+                        {
+                            std::cerr << e.what() << '\n';
+                        }
+                    }
                 });
         //Connect yarp ports
         port.open(portName);
