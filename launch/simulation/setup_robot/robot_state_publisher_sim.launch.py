@@ -9,7 +9,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     #use_sim_time = LaunchConfiguration('use_sim_time', default=True)
 
-    robot_urdf = '/home/ecub_docker/ergocub-software/urdf/ergoCub/robots/ergoCubGazeboV1_1/model.urdf'
+    robot_urdf = robot_urdf="/home/ecub_docker/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubSN001/model.urdf"
     with open(robot_urdf, 'r') as infp:
         robot_desc = infp.read()
 
