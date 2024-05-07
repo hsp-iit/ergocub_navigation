@@ -170,7 +170,7 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                 else    //JUST FOR DEBUG
                 {
                     //return; //TODO REMOVE
-                    std::cout << "Received nothing going on " <<  std::endl;
+                    RCLCPP_WARN_STREAM(get_logger(), "Returned empty transformed path" );
                 }
 
             //} else {
@@ -212,7 +212,8 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
             }
             else
             {
-                std::cout << "Returned empty transformed path" << std::endl;
+                RCLCPP_WARN_STREAM(get_logger(), "Returned empty transformed path" );
+                // TODO - Should I stop the robot?
             }
         }
         else
@@ -220,12 +221,12 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
             //Write a path with all 0 poses
             auto& out = m_port.prepare();
             out.clear();
-            for (int i = 0; i < 1; ++i)
+            for (int i = 0; i < 3; ++i)
             {
                 out.push_back(0.0);
                 out.push_back(0.0);
                 out.push_back(0.0);
-                std::cout << "Passing Path i-th element: " << i << " X : " << out[3*i] << " Y: " << out[3*i+1] << " Angle: " << out[3*i+2] << std::endl;
+                RCLCPP_INFO_STREAM(get_logger(), "Passing Path i-th element: " << i << " X : " << out[3*i] << " Y: " << out[3*i+1] << " Angle: " << out[3*i+2] );
             }
             m_port.write();
         }
@@ -245,6 +246,7 @@ void PathConverter_v2::state_callback(const std_msgs::msg::Bool::ConstPtr& in)
             out.push_back(0.0);
             out.push_back(0.0);
             out.push_back(0.0);
+            RCLCPP_INFO_STREAM(get_logger(), "Passing Path i-th element: " << i << " X : " << out[3*i] << " Y: " << out[3*i+1] << " Angle: " << out[3*i+2] );
         }
         m_port.write();
     }
@@ -259,8 +261,8 @@ nav_msgs::msg::Path PathConverter_v2::transformPlan(const nav_msgs::msg::Path::C
                                                   bool t_prune)
 {
     if (path->poses.empty()) {
-        std::cerr << "Received plan with zero length" << std::endl;
-        throw std::runtime_error("Received plan with zero length");
+        RCLCPP_ERROR_STREAM(get_logger(), "Received plan with zero length" );
+        //throw std::runtime_error("Received plan with zero length");
     }
 
     // Transform the global plan into the robot's frame of reference.
@@ -313,8 +315,8 @@ nav_msgs::msg::Path PathConverter_v2::transformPlan(const nav_msgs::msg::Path::C
     }
         
     if (transformed_plan_.poses.empty()) {
-        std::cerr << "Resulting plan has 0 poses in it." << std::endl;
-        throw std::runtime_error("Resulting plan has 0 poses in it");
+        RCLCPP_ERROR_STREAM(get_logger(), "Resulting plan has 0 poses in it" );
+        //throw std::runtime_error("Resulting plan has 0 poses in it");
     }
     return transformed_plan_;
 }
