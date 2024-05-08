@@ -16,7 +16,7 @@ def generate_launch_description():
     scan_filtering_compensated = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/setup_robot/scan_filtering.launch.py'])
+            '/setup_robot/scan_filtering_compensated.launch.py'])
         )
     virtual_unicycle = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(

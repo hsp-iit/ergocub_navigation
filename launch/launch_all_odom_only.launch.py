@@ -15,7 +15,7 @@ def generate_launch_description():
     navigation = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/nav2_stack.launch.py'])
+            '/nav2_stack_odom_only.launch.py'])
         )
     
 
