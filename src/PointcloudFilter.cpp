@@ -6,6 +6,7 @@
 #include "PointcloudFilter/PointcloudFilter.hpp"
 
 #include "pcl_conversions/pcl_conversions.h"
+#include <pcl/filters/radius_outlier_removal.h>
 #include "pcl/point_types.h"
 #include "pcl/filters/crop_box.h"
 #include "pcl/ModelCoefficients.h"
@@ -51,15 +52,10 @@ void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::Const
                 auto tf=m_tf_buffer->lookupTransform(in_cloud->header.frame_id, m_filter_reference_frame, now());
                 if(! pcl_ros::transformPointCloud(m_filter_reference_frame, *in_cloud, *in_cloud, *m_tf_buffer))
                 {
-                    std::cout << "Unable to transform pcl_ros" << std::endl;
+                    RCLCPP_WARN(this->get_logger(), "Unable to transform pcl_ros");
                     return;
                 }
-            }
-            catch(const std::exception& e)
-            {
-                std::cerr << e.what() << '\n';
-                return;
-            }
+            
             // Create the filtering object
             pcl::CropBox<pcl::PointXYZ> cropBoxFilter (m_extract_removed_indices);
             cropBoxFilter.setInputCloud (in_cloud);
@@ -70,28 +66,29 @@ void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::Const
             cropBoxFilter.setMin (min_pt);
             cropBoxFilter.setMax (max_pt);
             cropBoxFilter.setNegative(m_set_negative);
-
             // Cloud
             pcl::PointCloud<pcl::PointXYZ> cloud_out;
             cropBoxFilter.filter(cloud_out);
-            
+            pcl::PointCloud<pcl::PointXYZ>::Ptr cld;
+            cld = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(cloud_out);
+
+            pcl::RadiusOutlierRemoval<pcl::PointXYZ> outrem;
+            // build the filter
+            outrem.setInputCloud(cld);
+            outrem.setRadiusSearch(0.02);
+            outrem.setMinNeighborsInRadius(9);
+            //outrem.setKeepOrganized(true);
+            // apply filter
+            outrem.filter (*cloud_filtered);
             sensor_msgs::msg::PointCloud2 pc_out;
-            pcl::toROSMsg(cloud_out, pc_out);
+            pcl::toROSMsg(*cloud_filtered, pc_out);
             m_filtered_pointcloud_pub->publish(pc_out);
-            
- 
-            //Echo the message
-            sensor_msgs::msg::PointCloud2 pc_out_unfiltered;
-            pc_out_unfiltered.header = pc_in->header;
-            pc_out_unfiltered.data = pc_in->data;
-            pc_out_unfiltered.fields = pc_in->fields;
-            pc_out_unfiltered.height = pc_in->height;
-            pc_out_unfiltered.is_bigendian = pc_in->is_bigendian;
-            pc_out_unfiltered.is_dense = pc_in->is_dense;
-            pc_out_unfiltered.point_step = pc_in->point_step;
-            pc_out_unfiltered.row_step = pc_in->row_step;
-            pc_out_unfiltered.width = pc_in->width;
-            m_unfiltered_pub->publish(pc_out_unfiltered);
+            }
+            catch(const std::exception& e)
+            {
+                RCLCPP_ERROR_STREAM(this->get_logger(), e.what());
+                return;
+            }
         }
         catch(const std::exception& e)
         {
