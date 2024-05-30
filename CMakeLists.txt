@@ -211,7 +211,7 @@ ament_target_dependencies(path_converter_v2
   "rclcpp_lifecycle"
 )
 
-add_executable(phase_detector src/PhaseDetector.cpp src/MotorControl.cpp) 
+add_executable(phase_detector src/PhaseDetector.cpp) 
 ament_target_dependencies(phase_detector
   "YARP"
   "rclcpp"

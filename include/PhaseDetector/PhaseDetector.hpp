@@ -17,7 +17,6 @@
 #include "yarp/sig/Vector.h"
 #include "yarp/os/Network.h"
 
-#include "PhaseDetector/MotorControl.hpp"
 
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
@@ -47,7 +46,6 @@ private:
     double m_wrench_threshold = 80.0;
     double m_imu_threshold_y = 0.3;
     double m_tf_height_threshold = 0.02;    //height setpoint 0.05 m
-    //yarp::os::BufferedPort<yarp::sig::VectorOf<double>> m_port;
 
     FootState m_rightFootState, m_leftFootState;
 
@@ -65,17 +63,18 @@ private:
     void imuCallback(const sensor_msgs::msg::Imu::ConstPtr &msg);
 
     //Neck controller
-    void gazeCallback(bool directionLeft);   //Main loop
-    bool gazePattern(bool directionLeft);   //true for positive rotations = left
-    double m_joint_limit_deg;   //swing around 0 +- this limit
-    double m_joint_increment = 5.0;    //increase the joint sepoint by a constant quantity
-    std::vector<std::string> m_joint_name;
-    rclcpp::Duration m_time_increment = 200ms;
-    double m_joint_state;
+    bool sendCommand(int command);   //0 home, 1 swipe left, 2 swipe right, 3 full sweep
     bool m_startup;
-    std::string m_out_port_name = "/neck_controller/setpoints:o";
-    std::vector<std::string> m_in_port_name;
-    MotorControl m_jointInterface;
+    std::string m_out_port_name = "/neck_controller/command:o";
+    std::string m_remote_port_name = "/BT/gaze-sweep/command:i";
+    yarp::os::BufferedPort<yarp::os::Bottle> m_port;
+
+    enum gaze_type{
+        HOME=0,
+        LEFT=1,
+        RIGHT=2,
+        FULL_SWEEP=3
+    };
 
     //Debug only
     int m_counter_rightSteps, m_counter_leftSteps;
