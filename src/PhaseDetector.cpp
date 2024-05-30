@@ -171,7 +171,7 @@ void PhaseDetector::rightFootCallback(const geometry_msgs::msg::WrenchStamped::C
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            RCLCPP_ERROR_STREAM(this->get_logger(), "[PhaseDetector::rightFootCallback] Caught Exception: " << e.what());
         }
     }
     else if (m_rightFootState == apexZone)
@@ -199,7 +199,7 @@ void PhaseDetector::rightFootCallback(const geometry_msgs::msg::WrenchStamped::C
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            RCLCPP_ERROR_STREAM(this->get_logger(), "[PhaseDetector::rightFootCallback] Caught Exception: " << e.what());
         }
     }
     //else nothing
@@ -209,6 +209,7 @@ void PhaseDetector::leftFootCallback(const geometry_msgs::msg::WrenchStamped::Co
 {
     if (m_startup)
     {
+        RCLCPP_INFO(this->get_logger(), "[PhaseDetector::leftFootCallback] Sweeping Gaze");
         PhaseDetector::sendCommand(FULL_SWEEP);
         return;
     }
@@ -253,7 +254,7 @@ void PhaseDetector::leftFootCallback(const geometry_msgs::msg::WrenchStamped::Co
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            RCLCPP_ERROR_STREAM(this->get_logger(), "[PhaseDetector::leftFootCallback] Caught Exception: " << e.what());
         }
     }
     else if (m_leftFootState == apexZone)
@@ -280,7 +281,7 @@ void PhaseDetector::leftFootCallback(const geometry_msgs::msg::WrenchStamped::Co
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            RCLCPP_ERROR_STREAM(this->get_logger(), "[PhaseDetector::leftFootCallback] Caught Exception: " << e.what());
         }
     }
     //else nothing
@@ -313,6 +314,10 @@ bool PhaseDetector::sendCommand(int command)
         data.clear();
         data.addInt32(command);
         m_port.write();
+        if (command == 3)
+        {
+            m_startup=false;    // If I have to do a full sweep I am not in startup anymore
+        }
     }
     catch(const std::exception& e)
     {
