@@ -58,14 +58,14 @@ private:
     rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_leftFoot_sub;
     rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PointStamped>::SharedPtr m_debug_pub;
 
-    void leftFootCallback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
-    void rightFootCallback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
+    //void leftFootCallback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
+    //void rightFootCallback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
     void imuCallback(const sensor_msgs::msg::Imu::ConstPtr &msg);
 
     //Neck controller
     bool sendCommand(int command);   //0 home, 1 swipe left, 2 swipe right, 3 full sweep
     bool m_startup;
-    std::string m_out_port_name = "/neck_controller/command:o";
+    std::string m_out_port_name = "/phase_detector/command:o";
     std::string m_remote_port_name = "/BT/gaze-sweep/command:i";
     yarp::os::BufferedPort<yarp::os::Bottle> m_port;
 
@@ -75,6 +75,13 @@ private:
         RIGHT=2,
         FULL_SWEEP=3
     };
+    // Read wrenches from the yarp wbd
+    const std::string m_wrench_reader_name = "/phase_detector/wrench_reader:i";
+    const std::string m_wrench_writer_name = "/feetWrenches";
+    yarp::os::BufferedPort<yarp::os::Bottle> m_wrench_reader_port;
+    const double m_loopFreq = 100.0;
+    std::mutex m_mutex;
+    void timer_callback();
 
     //Debug only
     int m_counter_rightSteps, m_counter_leftSteps;
