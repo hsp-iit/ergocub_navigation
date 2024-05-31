@@ -37,6 +37,7 @@ PhaseDetector::PhaseDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
     
     //Neck Controller
     m_startup = true;
+    m_timer_cb_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 }
 
 CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
@@ -71,15 +72,15 @@ CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
                                                 10,
                                                 std::bind(&PhaseDetector::imuCallback, this, _1));
 
+    m_debug_pub = this->create_publisher<geometry_msgs::msg::PointStamped>("/swing_foot_height_debug", 10);
     // Yarp wrench readings
-    auto duration = std::chrono::duration<double>(1/m_loopFreq);
-    m_timer = this->create_wall_timer(duration , std::bind(&PhaseDetector::timer_callback, this));
+    
     m_wrench_reader_port.open(m_wrench_reader_name);
     yarp::os::Network::connect(m_wrench_writer_name, m_wrench_reader_name);
     if(yarp::os::Network::isConnected(m_wrench_writer_name, m_wrench_reader_name)){
         RCLCPP_INFO(this->get_logger(), "YARP Ports connected successfully");
     } else {
-        RCLCPP_ERROR(this->get_logger(), "Could not connect ports: %s with %s ", m_wrench_writer_name, m_wrench_reader_name);
+        RCLCPP_ERROR(this->get_logger(), "Could not connect ports: %s with %s ", m_wrench_writer_name.c_str(), m_wrench_reader_name.c_str());
     }
 
     m_port.open(m_out_port_name);
@@ -87,7 +88,7 @@ CallbackReturn PhaseDetector::on_configure(const rclcpp_lifecycle::State &)
     if(yarp::os::Network::isConnected(m_out_port_name, m_remote_port_name)){
         RCLCPP_INFO(this->get_logger(), "YARP Ports connected successfully");
     } else {
-        RCLCPP_ERROR(this->get_logger(), "Could not connect ports: %s with %s ", m_out_port_name, m_remote_port_name);
+        RCLCPP_ERROR(this->get_logger(), "Could not connect ports: %s with %s ", m_out_port_name.c_str(), m_remote_port_name.c_str());
     }
 
     RCLCPP_INFO(this->get_logger(), "Node configured");
@@ -99,6 +100,8 @@ CallbackReturn PhaseDetector::on_activate(const rclcpp_lifecycle::State &)
 {
     RCLCPP_INFO(this->get_logger(), "Activating");
     m_debug_pub->on_activate();
+    auto duration = std::chrono::duration<double>(1/m_loopFreq);
+    m_timer = this->create_wall_timer(duration , std::bind(&PhaseDetector::timer_callback, this), m_timer_cb_group);
     return CallbackReturn::SUCCESS;
 }
 
@@ -325,10 +328,9 @@ void PhaseDetector::timer_callback()
         {
             ++m_counter_leftSteps;
             m_last_impact_time_left = std::chrono::high_resolution_clock::now();
-            std::cout << "Left Foot stepping in contact Step n: " << m_counter_leftSteps << std::endl;
-            //RCLCPP_DEBUG(this->get_logger(), "Left Foot stepping in contact Step n: %i", m_counter_leftSteps);
-            auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_approaching_time_left - m_last_impact_time_left);
-            RCLCPP_INFO(this->get_logger(), "[leftFoot] Difference between previous approaching phase: %e ms", d_t);
+            RCLCPP_INFO_STREAM(this->get_logger(), "Left Foot stepping in contact Step n: " << m_counter_leftSteps);
+            auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_last_impact_time_left - m_approaching_time_left);
+            RCLCPP_INFO_STREAM(this->get_logger(), "[leftFoot] Difference between previous approaching phase: " << d_t.count());
             m_leftFootState = inContact;
             //I send the command once, when entering in contact
             PhaseDetector::sendCommand(LEFT);
@@ -350,8 +352,8 @@ void PhaseDetector::timer_callback()
         {
             try
             {
-                auto tf = m_tfBuffer->lookupTransform(m_referenceFrame_left, m_referenceFrame_right, tf2::TimePointZero);
-                std::cout << "RIGHT Z: " << tf.transform.translation.z << std::endl;
+                auto tf = m_tfBuffer->lookupTransform(m_referenceFrame_right, m_referenceFrame_left, tf2::TimePointZero);
+                RCLCPP_INFO_STREAM(this->get_logger(),"RIGHT Z: " << tf.transform.translation.z);
                 geometry_msgs::msg::PointStamped data;
                 data.header.frame_id = "r_sole";
                 data.header.stamp = this->get_clock()->now();
@@ -374,7 +376,7 @@ void PhaseDetector::timer_callback()
         {
             try
             {
-                auto tf = m_tfBuffer->lookupTransform(m_referenceFrame_left, m_referenceFrame_right, tf2::TimePointZero);
+                auto tf = m_tfBuffer->lookupTransform(m_referenceFrame_right, m_referenceFrame_left, tf2::TimePointZero);
                 geometry_msgs::msg::PointStamped data;
                 data.header.frame_id = "r_sole";
                 data.header.stamp = this->get_clock()->now();
@@ -382,15 +384,15 @@ void PhaseDetector::timer_callback()
                 data.point.y = 0.0;
                 data.point.z = tf.transform.translation.z;
                 m_debug_pub->publish(data);
-                if (tf.transform.translation.z <= m_tf_height_threshold)
+                if (tf.transform.translation.z < m_tf_height_threshold)
                 {
                     m_rightFootState = approachingContact;
                     //TODO benchmarking time
                     RCLCPP_INFO(this->get_logger(), "Right Foot approaching contact");
 
                     m_approaching_time_right = std::chrono::high_resolution_clock::now();
-                    auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_last_impact_time_right - m_approaching_time_right);
-                    RCLCPP_INFO(this->get_logger(), "Duration from previous contact: %f", d_t);
+                    auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_approaching_time_right - m_last_impact_time_right);
+                    RCLCPP_INFO_STREAM(this->get_logger(), "Duration from previous contact: " << d_t.count());
                 }
             }
             catch(const std::exception& e)
@@ -404,12 +406,11 @@ void PhaseDetector::timer_callback()
         //RIGHT ENTERING IN CONTACT
         if (m_rightFootState != inContact)
         {
-            std::cout << "m_rightFootState != inContact ";
             ++m_counter_rightSteps;
             m_last_impact_time_right = std::chrono::high_resolution_clock::now();
             RCLCPP_INFO(this->get_logger(), "Right Foot stepping in contact Step n: %i", m_counter_rightSteps);
-            auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_approaching_time_right - m_last_impact_time_right);
-            RCLCPP_INFO(this->get_logger(), "Difference between previous approaching phase: %e ms", d_t);
+            auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_last_impact_time_right - m_approaching_time_right);  //time difference between the apex zone and the contact
+            RCLCPP_INFO_STREAM(this->get_logger(), "[rightFoot] Difference between previous approaching phase: " << d_t.count());
             m_rightFootState = inContact;
             //I send the command once, when entering in contact
             PhaseDetector::sendCommand(RIGHT);
@@ -430,8 +431,8 @@ void PhaseDetector::timer_callback()
         {
             try
             {
-                auto tf = m_tfBuffer->lookupTransform(m_referenceFrame_right, m_referenceFrame_left, tf2::TimePointZero);
-                std::cout << "LEFT Z: " << tf.transform.translation.z << std::endl;
+                auto tf = m_tfBuffer->lookupTransform(m_referenceFrame_left, m_referenceFrame_right, tf2::TimePointZero);
+                RCLCPP_INFO_STREAM(this->get_logger(), "LEFT Z: " << tf.transform.translation.z);
                 geometry_msgs::msg::PointStamped data;
                 data.header.frame_id = "l_sole";
                 data.header.stamp = this->get_clock()->now();
@@ -454,7 +455,7 @@ void PhaseDetector::timer_callback()
         {
             try
             {
-                auto tf = m_tfBuffer->lookupTransform(m_referenceFrame_right, m_referenceFrame_left, tf2::TimePointZero);
+                auto tf = m_tfBuffer->lookupTransform(m_referenceFrame_left, m_referenceFrame_right, tf2::TimePointZero);
                 geometry_msgs::msg::PointStamped data;
                 data.header.frame_id = "l_sole";
                 data.header.stamp = this->get_clock()->now();
@@ -462,14 +463,14 @@ void PhaseDetector::timer_callback()
                 data.point.y = 0.0;
                 data.point.z = tf.transform.translation.z;
                 m_debug_pub->publish(data);
-                if (tf.transform.translation.z <= m_tf_height_threshold)
+                if (tf.transform.translation.z < m_tf_height_threshold)
                 {
                     m_leftFootState = approachingContact;
                     RCLCPP_INFO(this->get_logger(), "Left Foot approaching contact");
 
                     m_approaching_time_left = std::chrono::high_resolution_clock::now();
-                    auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_last_impact_time_left - m_approaching_time_left);
-                    RCLCPP_INFO(this->get_logger(), "Duration from previous contact: %e", d_t);
+                    auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_approaching_time_left - m_last_impact_time_left);
+                    RCLCPP_INFO_STREAM(this->get_logger(), "Duration from previous contact: " << d_t.count());
                 }
             }
             catch(const std::exception& e)
@@ -513,6 +514,13 @@ bool PhaseDetector::sendCommand(int command)
     // command: 0 go home, 1 left, 2 right, 3 full sweep
     try
     {
+        if (!yarp::os::Network::isConnected(m_out_port_name, m_remote_port_name))
+        {
+            RCLCPP_ERROR_STREAM(this->get_logger(), "[PhaseDetector::sendCommand] Ports are not connected");
+            m_startup=false;    //TODO remove
+            return false;
+        }
+        
         auto& data = m_port.prepare();
         data.clear();
         data.addInt32(command);

@@ -82,6 +82,7 @@ private:
     const double m_loopFreq = 100.0;
     std::mutex m_mutex;
     void timer_callback();
+    rclcpp::CallbackGroup::SharedPtr m_timer_cb_group;
 
     //Debug only
     int m_counter_rightSteps, m_counter_leftSteps;

@@ -6,6 +6,6 @@ phase_detector_node:
     imu_topic: "/head_imu"
     referenceFrame_right: "r_sole"
     referenceFrame_left: "l_sole"
-    wrench_threshold: 120.0
+    wrench_threshold: 80.0
     imu_threshold_y: 0.3
     tf_height_threshold_m: 0.02
