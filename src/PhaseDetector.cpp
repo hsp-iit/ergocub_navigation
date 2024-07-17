@@ -327,13 +327,25 @@ void PhaseDetector::timer_callback()
         if (m_leftFootState != inContact)
         {
             ++m_counter_leftSteps;
+            //++m_left_counter;
+            ++m_general_counter;
             m_last_impact_time_left = std::chrono::high_resolution_clock::now();
             RCLCPP_INFO_STREAM(this->get_logger(), "Left Foot stepping in contact Step n: " << m_counter_leftSteps);
             auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_last_impact_time_left - m_approaching_time_left);
             RCLCPP_INFO_STREAM(this->get_logger(), "[leftFoot] Difference between previous approaching phase: " << d_t.count());
             m_leftFootState = inContact;
             //I send the command once, when entering in contact
-            PhaseDetector::sendCommand(LEFT);
+            if (m_general_counter > m_skip_steps)
+            {
+                PhaseDetector::sendCommand(LEFT);
+                m_general_counter = 0;
+                RCLCPP_INFO_STREAM(this->get_logger(), "LOOKING LEFT");
+            }
+            else
+            {
+                RCLCPP_INFO_STREAM(this->get_logger(), "Skipping Left");
+            }
+            
         }
         else    //LEFT ALREADY IN CONTACT
         {
@@ -407,13 +419,23 @@ void PhaseDetector::timer_callback()
         if (m_rightFootState != inContact)
         {
             ++m_counter_rightSteps;
+            ++m_general_counter;
             m_last_impact_time_right = std::chrono::high_resolution_clock::now();
             RCLCPP_INFO(this->get_logger(), "Right Foot stepping in contact Step n: %i", m_counter_rightSteps);
             auto d_t = std::chrono::duration_cast<std::chrono::milliseconds>(m_last_impact_time_right - m_approaching_time_right);  //time difference between the apex zone and the contact
             RCLCPP_INFO_STREAM(this->get_logger(), "[rightFoot] Difference between previous approaching phase: " << d_t.count());
             m_rightFootState = inContact;
             //I send the command once, when entering in contact
-            PhaseDetector::sendCommand(RIGHT);
+            if (m_general_counter > m_skip_steps)
+            {
+                PhaseDetector::sendCommand(RIGHT);
+                m_general_counter = 0;
+                RCLCPP_INFO_STREAM(this->get_logger(), "LOOKING RIGHT");
+            }
+            else
+            {
+                RCLCPP_INFO_STREAM(this->get_logger(), "Skipping Right");
+            }
         }
         else    //RIGHT ALREADY IN CONTACT
         {

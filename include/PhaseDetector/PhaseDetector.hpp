@@ -75,6 +75,13 @@ private:
         RIGHT=2,
         FULL_SWEEP=3
     };
+    // Counter of each step before looking in some direction (better if odd):
+    int m_skip_steps = 2; // TODO parameterize
+    // The following two must not start at the same value, otherwise they will be synchronized
+    int m_left_counter = 1;
+    int m_right_counter = 0;
+    int m_general_counter = 0;
+
     // Read wrenches from the yarp wbd
     const std::string m_wrench_reader_name = "/phase_detector/wrench_reader:i";
     const std::string m_wrench_writer_name = "/feetWrenches";
