@@ -117,7 +117,7 @@ namespace ergocub_local_human_avoidance
     {
       left_transform = tf_->lookupTransform(
           human_tf_base_frame_, human_left_frame_,
-          clock_->now(), rclcpp::Duration::from_seconds(0.02));
+          tf2::TimePointZero);
     }
     catch (const tf2::TransformException &ex)
     {
@@ -132,7 +132,7 @@ namespace ergocub_local_human_avoidance
     {
       right_transform = tf_->lookupTransform(
           human_tf_base_frame_, human_right_frame_,
-          clock_->now(), rclcpp::Duration::from_seconds(0.02));
+          tf2::TimePointZero);
     }
     catch (const tf2::TransformException &ex)
     {
@@ -150,18 +150,34 @@ namespace ergocub_local_human_avoidance
 
     double horizontal_min = (dist_left < dist_right) ? left_transform.transform.translation.y : right_transform.transform.translation.y;
     double total_min = (dist_left < dist_right) ? dist_left : dist_right;
+    RCLCPP_INFO(
+        logger_,
+        "Distances %f, %f", total_min, horizontal_min);
     if (total_min < 3.0)
     {
+      RCLCPP_INFO(
+        logger_,
+        "Human is really close in front");
       // std::cout<"Got here \n =======================================\n";
-      if (std::fabs(horizontal_min) - safe_dist_to_human_ > 0)
+      if (std::fabs(horizontal_min) - safe_dist_to_human_ < 0)
       {
-
+        RCLCPP_INFO(
+        logger_,
+        "Human is really close on the side");
         std::ostringstream bimanual_msg;
-        double req_obj_translation = obj_translation_slope_ * (horizontal_min - ((horizontal_min < 0) ? 1.0 : -1.0) * safe_dist_to_human_);
-        double req_obj_orientation = obj_orientation_slope_ * (horizontal_min - ((horizontal_min < 0) ? 1.0 : -1.0) * safe_dist_to_human_);
+        double req_obj_translation = obj_translation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * safe_dist_to_human_);
+        double req_obj_orientation = obj_orientation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * safe_dist_to_human_);
+        req_obj_translation = (req_obj_translation < -obj_max_translation_) ? -obj_max_translation_:req_obj_translation;
+        req_obj_translation = (req_obj_translation > obj_max_translation_) ? obj_max_translation_:req_obj_translation;
 
+        req_obj_orientation = (req_obj_orientation < -obj_max_rotation_) ? -obj_max_rotation_:req_obj_orientation;
+        req_obj_orientation = (req_obj_orientation > obj_max_rotation_) ? obj_max_rotation_:req_obj_orientation;
+        
         bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation;
-        bimanual_client_.perform_grasp_action(bimanual_msg.str());
+        RCLCPP_INFO(
+        logger_,
+        "Sending To Bimanual %s",bimanual_msg.str().c_str());
+        bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
       }
 
       else
