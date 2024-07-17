@@ -23,7 +23,7 @@ namespace ergocub_local_human_avoidance
                                            std::string name, const std::shared_ptr<tf2_ros::Buffer> tf,
                                            const std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
   {
-    //Setup Ros Params and variables. Based on Pure Pursuit Controller from nav2_tutorials.
+    // Setup Ros Params and variables. Based on Pure Pursuit Controller from nav2_tutorials.
     node_ = parent;
 
     auto node = node_.lock();
@@ -66,16 +66,14 @@ namespace ergocub_local_human_avoidance
 
     global_pub_ = node->create_publisher<nav_msgs::msg::Path>("received_global_plan", 1);
 
-    //Setup Yarp Ports for connection to Bimanual Module and Nav Shift
-    bimannual_port_.open("bimanual_nav_client");
-    while (!yarp_.connect("bimanual_nav_client", "commandPrompt"))
+    // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
+    bimannual_port_.open("/bimanual_nav_client");
+    while (!yarp_.connect("/bimanual_nav_client", "/commandPrompt"))
     {
-        std::cout << "Error! Could not connect to bimanual server\n";
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+      std::cout << "Error! Could not connect to bimanual server\n";
+      std::this_thread::sleep_for(std::chrono::seconds(5));
     }
     bimanual_client_.yarp().attachAsClient(bimannual_port_);
-
-
   }
 
   void HumanAvoidanceController::cleanup()
@@ -91,7 +89,7 @@ namespace ergocub_local_human_avoidance
   {
     RCLCPP_INFO(
         logger_,
-        "Activating controller: %s of type local_human_avaoidance\"  %s",
+        "Activating controller: %s of type local_human_avaoidance",
         plugin_name_.c_str());
     global_pub_->on_activate();
   }
@@ -110,6 +108,9 @@ namespace ergocub_local_human_avoidance
       const geometry_msgs::msg::Twist &velocity,
       nav2_core::GoalChecker *goal_checker)
   {
+    (void)velocity;
+    (void)goal_checker;
+    (void)pose;
     geometry_msgs::msg::TwistStamped cmd_vel;
     geometry_msgs::msg::TransformStamped left_transform;
     try
@@ -152,19 +153,17 @@ namespace ergocub_local_human_avoidance
     if (total_min < 3.0)
     {
       // std::cout<"Got here \n =======================================\n";
-      if(std::fabs(horizontal_min)-safe_dist_to_human_>0)
+      if (std::fabs(horizontal_min) - safe_dist_to_human_ > 0)
       {
 
         std::ostringstream bimanual_msg;
-        double req_obj_translation = obj_translation_slope_* (horizontal_min -((horizontal_min<0)?1.0:-1.0)*safe_dist_to_human_);
-        double req_obj_orientation = obj_orientation_slope_* (horizontal_min -((horizontal_min<0)?1.0:-1.0)*safe_dist_to_human_);
+        double req_obj_translation = obj_translation_slope_ * (horizontal_min - ((horizontal_min < 0) ? 1.0 : -1.0) * safe_dist_to_human_);
+        double req_obj_orientation = obj_orientation_slope_ * (horizontal_min - ((horizontal_min < 0) ? 1.0 : -1.0) * safe_dist_to_human_);
 
-        bimanual_msg<<"0.0, "<<req_obj_translation<<", 0.0, "<<req_obj_orientation;
+        bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation;
         bimanual_client_.perform_grasp_action(bimanual_msg.str());
-
-
       }
-      
+
       else
       {
         bimanual_client_.perform_grasp_action("reset");

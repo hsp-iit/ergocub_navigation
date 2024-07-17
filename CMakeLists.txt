@@ -244,9 +244,12 @@ ament_target_dependencies(human_pose_goal_generator
 
 set(dependencies
   rclcpp
+  rclcpp_action
+  rclcpp_lifecycle
   geometry_msgs
   nav2_costmap_2d
   pluginlib
+  nav2_msgs
   nav_msgs
   nav2_util
   nav2_core
@@ -255,19 +258,13 @@ set(dependencies
 )
 
 add_library(ergocub_local_human_avoidance_controller SHARED
-        src/LocalHumanAvoidance.cpp)
+        src/LocalHumanAvoidance.cpp src/ControlInterface.cpp)
 
 # prevent pluginlib from using boost
 target_compile_definitions(ergocub_local_human_avoidance_controller PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 
 ament_target_dependencies(ergocub_local_human_avoidance_controller
   ${dependencies}
-)
-
-install(TARGETS ergocub_local_human_avoidance_controller
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
 )
 
 install(DIRECTORY include/
@@ -297,6 +294,7 @@ install(TARGETS
   phase_detector
   path_converter_v2
   human_pose_goal_generator
+  ergocub_local_human_avoidance_controller
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
@@ -322,6 +320,10 @@ install(DIRECTORY
 
 install(DIRECTORY include/
   DESTINATION include/
+)
+
+install(FILES ergocub_local_human_avoidance_controller.xml
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ament_export_include_directories(include)

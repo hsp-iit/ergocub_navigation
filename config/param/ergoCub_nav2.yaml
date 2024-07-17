@@ -47,7 +47,6 @@ bt_navigator:
     - bt_nav2_ergocub_core
     - is_goal_reached
     - is_path_valid
-    - ergocub_local_human_avoidance_controller
     #error_code_names:
     #- compute_path_error_code
     #- follow_path_error_code
@@ -80,7 +79,7 @@ controller_server:
     #- goal_checker
     #checker_plugins:  #new
     #- progress_checker
-    controller_plugins: ["AvoidHuman"]
+    controller_plugins: ["FollowPath"]
     #- FollowPath
 
     # Progress checker parameters
@@ -96,93 +95,8 @@ controller_server:
       yaw_goal_tolerance: 0.9
       stateful: true
     
-    # DWB parameters
     FollowPath:
-      plugin: dwb_core::DWBLocalPlanner
-
-      # Generic
-      prune_distance: 2.0   #2.0
-      prune_plan: true
-      shorten_transformed_plan: true
-      debug_trajectory_details: false
-      trajectory_generator_name: dwb_plugins::StandardTrajectoryGenerator
-      transform_tolerance: 0.2
-      short_circuit_trajectory_evaluation: true
-      xy_goal_tolerance: 0.4
-
-      # XYTheta Iterator
-      vx_samples: 20
-      vy_samples: 10
-      vtheta_samples: 10
-
-      # Kinematic Parameters
-      max_vel_x: 1.0
-      max_vel_y: 0.5
-      max_vel_theta: 0.2
-      min_vel_x: 0.0
-      min_vel_y: 0.0
-      min_speed_xy: 0.0
-      max_speed_xy: 1.2
-      min_speed_theta: 0.0
-      acc_lim_x: 2.5
-      acc_lim_y: 2.5
-      acc_lim_theta: 3.2
-      decel_lim_x: -2.5
-      decel_lim_y: -2.5
-      decel_lim_theta: -3.2
-      trans_stopped_velocity: 0.01
-
-      # Publisher params
-      publish_cost_grid_pc: false
-      publish_evaluation: false
-      publish_global_plan: true
-      publish_local_plan: true
-      publish_trajectories: false
-      publish_transformed_plan: false
-      marker_lifetime: 0.1
-
-      # Trajectory generator
-      sim_time: 2.0
-      discretize_by_time: false
-      time_granularity: 0.5
-      linear_granularity: 0.1  #0.05
-      angular_granularity: 0.025
-      include_last_point: true
-
-      # Critics
-      #- RotateToGoal
-      #- Oscillation
-      #- GoalAlign
-      critics:
-      - BaseObstacle
-      - PathAlign
-      - PathDist
-      - GoalDist
-      BaseObstacle.scale: 0.02
-      BaseObstacle.sum_scores: false
-
-      PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
-
-      #GoalAlign.scale: 24.0
-      #GoalAlign.forward_point_distance: 0.1
-
-      PathDist.scale: 32.0
-
-      #Oscillation.oscillation_reset_angle: 0.2
-      #Oscillation.oscillation_reset_dist: 0.05
-      #Oscillation.oscillation_reset_time: -1.0
-      #Oscillation.scale: 1.0
-      #Oscillation.x_only_threshold: 0.05
-
-      GoalDist.scale: 24.0
-
-      #RotateToGoal.scale: 32.0
-      #RotateToGoal.slowing_factor: 5.0
-      #RotateToGoal.lookahead_time: -1.0
-    AvoidHuman:
-      plugin: ergocub_local_human_avoidance::HumanAvoidanceController
-      
+      plugin: "ergocub_local_human_avoidance::HumanAvoidanceController"
       safe_dist_to_human: 0.25
       human_left_frame: human_left_frame
       human_right_frame: human_right_frame
@@ -192,6 +106,91 @@ controller_server:
       object_translation_slope: 1.0
       object_orientation_slope: 3.0
 
+    # DWB parameters
+    #FollowPath:
+    #  plugin: dwb_core::DWBLocalPlanner
+
+      # Generic
+    #  prune_distance: 2.0   #2.0
+    #  prune_plan: true
+    #  shorten_transformed_plan: true
+    #  debug_trajectory_details: false
+    #  trajectory_generator_name: dwb_plugins::StandardTrajectoryGenerator
+    #  transform_tolerance: 0.2
+    #  short_circuit_trajectory_evaluation: true
+    #  xy_goal_tolerance: 0.4
+
+    #  # XYTheta Iterator
+    #  vx_samples: 20
+    #  vy_samples: 10
+    #  vtheta_samples: 10
+
+      # Kinematic Parameters
+    #  max_vel_x: 1.0
+    #  max_vel_y: 0.5
+    #  max_vel_theta: 0.2
+    #  min_vel_x: 0.0
+    #  min_vel_y: 0.0
+    #  min_speed_xy: 0.0
+    # max_speed_xy: 1.2
+    #  min_speed_theta: 0.0
+    #  acc_lim_x: 2.5
+    #  acc_lim_y: 2.5
+    #  acc_lim_theta: 3.2
+    #  decel_lim_x: -2.5
+    #  decel_lim_y: -2.5
+    #  decel_lim_theta: -3.2
+    #  trans_stopped_velocity: 0.01
+
+      # Publisher params
+    #  publish_cost_grid_pc: false
+    #  publish_evaluation: false
+    #  publish_global_plan: true
+    #  publish_local_plan: true
+    #  publish_trajectories: false
+    #  publish_transformed_plan: false
+    #  marker_lifetime: 0.1
+
+      # Trajectory generator
+    #  sim_time: 2.0
+    #  discretize_by_time: false
+    #  time_granularity: 0.5
+    #  linear_granularity: 0.1  #0.05
+    #  angular_granularity: 0.025
+    #  include_last_point: true
+
+      # Critics
+      #- RotateToGoal
+      #- Oscillation
+      #- GoalAlign
+    #  critics:
+    #  - BaseObstacle
+    # - PathAlign
+    #  - PathDist
+    #  - GoalDist
+    #  BaseObstacle.scale: 0.02
+    #  BaseObstacle.sum_scores: false
+
+    #  PathAlign.scale: 32.0
+    #  PathAlign.forward_point_distance: 0.1
+
+      #GoalAlign.scale: 24.0
+      #GoalAlign.forward_point_distance: 0.1
+
+    #  PathDist.scale: 32.0
+
+      #Oscillation.oscillation_reset_angle: 0.2
+      #Oscillation.oscillation_reset_dist: 0.05
+      #Oscillation.oscillation_reset_time: -1.0
+      #Oscillation.scale: 1.0
+      #Oscillation.x_only_threshold: 0.05
+
+    #  GoalDist.scale: 24.0
+
+      #RotateToGoal.scale: 32.0
+      #RotateToGoal.slowing_factor: 5.0
+      #RotateToGoal.lookahead_time: -1.0
+ 
 local_costmap:
   local_costmap:
     ros__parameters:
