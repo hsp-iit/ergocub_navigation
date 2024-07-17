@@ -68,7 +68,7 @@ namespace ergocub_local_human_avoidance
 
     //Setup Yarp Ports for connection to Bimanual Module and Nav Shift
     bimannual_port_.open("bimanual_nav_client");
-    while (!yarp_.connect("bimanual_nav_client", "bimanual_server"))
+    while (!yarp_.connect("bimanual_nav_client", "commandPrompt"))
     {
         std::cout << "Error! Could not connect to bimanual server\n";
         std::this_thread::sleep_for(std::chrono::seconds(5));

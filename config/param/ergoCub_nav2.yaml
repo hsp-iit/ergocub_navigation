@@ -47,6 +47,7 @@ bt_navigator:
     - bt_nav2_ergocub_core
     - is_goal_reached
     - is_path_valid
+    - ergocub_local_human_avoidance_controller
     #error_code_names:
     #- compute_path_error_code
     #- follow_path_error_code
@@ -79,7 +80,7 @@ controller_server:
     #- goal_checker
     #checker_plugins:  #new
     #- progress_checker
-    controller_plugins: ["FollowPath"]
+    controller_plugins: ["AvoidHuman"]
     #- FollowPath
 
     # Progress checker parameters
@@ -179,6 +180,17 @@ controller_server:
       #RotateToGoal.scale: 32.0
       #RotateToGoal.slowing_factor: 5.0
       #RotateToGoal.lookahead_time: -1.0
+    AvoidHuman:
+      plugin: ergocub_local_human_avoidance::HumanAvoidanceController
+      
+      safe_dist_to_human: 0.25
+      human_left_frame: human_left_frame
+      human_right_frame: human_right_frame
+      human_tf_base_frame: head_laser_frame
+      object_max_translation: 0.15
+      object_max_rotation: 0.45
+      object_translation_slope: 1.0
+      object_orientation_slope: 3.0
 
 local_costmap:
   local_costmap:
