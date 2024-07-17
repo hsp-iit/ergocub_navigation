@@ -33,6 +33,7 @@
   <test_depend>ament_lint_common</test_depend>
 
   <export>
+    <nav2_core plugin="${prefix}/ergocub_human_avoidance_controller_plugin.xml" /> 
     <build_type>ament_cmake</build_type>
   </export>
 </package>

@@ -53,6 +53,7 @@ include_directories(/opt/ros/iron/include/tf2_ros)
 include_directories(/opt/ros/iron/include/laser_geometry)
 include_directories(/opt/ros/iron/include/pcl_conversions)
 include_directories(include)
+add_subdirectory(interfaces)
 
 
 #add_executable(scan_filter_compensated src/scan_filtering_ros2_compensated.cpp)
@@ -250,8 +251,28 @@ set(dependencies
   nav2_util
   nav2_core
   tf2
+  YARP
 )
 
+add_library(ergocub_local_human_avoidance_controller SHARED
+        src/LocalHumanAvoidance.cpp)
+
+# prevent pluginlib from using boost
+target_compile_definitions(ergocub_local_human_avoidance_controller PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+
+ament_target_dependencies(ergocub_local_human_avoidance_controller
+  ${dependencies}
+)
+
+install(TARGETS ergocub_local_human_avoidance_controller
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/
+  DESTINATION include/
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -304,5 +325,9 @@ install(DIRECTORY include/
 )
 
 ament_export_include_directories(include)
+ament_export_libraries(ergocub_local_human_avoidance_controller)
+ament_export_dependencies(${dependencies})
+
+pluginlib_export_plugin_description_file(nav2_core ergocub_local_human_avoidance_controller.xml)
 
 ament_package()
