@@ -101,6 +101,7 @@ namespace ergocub_local_human_avoidance
         double max_angular_vel_;
         double object_size_;
         double safe_dist_to_human_;
+        double current_human_horizontal_dist_;
         rclcpp::Duration transform_tolerance_{0, 0};
 
         nav_msgs::msg::Path global_plan_;
@@ -115,6 +116,8 @@ namespace ergocub_local_human_avoidance
         yarp::os::Port bimannual_port_;
         yarp::os::BufferedPort<yarp::os::Bottle> nav_shift_port_;
         ControlInterface bimanual_client_;
+        bool obj_pose_action_executed_;
+        bool reset_executed_;
     };
 
 } // end of namespace

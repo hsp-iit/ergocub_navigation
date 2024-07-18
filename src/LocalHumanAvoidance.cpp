@@ -5,6 +5,7 @@
  * @Brief : Full declaration of the human avoidance plugin
  *
  */
+#include <chrono>
 #include "nav2_util/node_utils.hpp"
 #include "nav2_util/geometry_utils.hpp"
 
@@ -16,6 +17,7 @@ using std::abs;
 using std::hypot;
 using std::max;
 using std::min;
+using namespace std::chrono_literals;
 
 namespace ergocub_local_human_avoidance
 {
@@ -68,12 +70,15 @@ namespace ergocub_local_human_avoidance
 
     // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
     bimannual_port_.open("/bimanual_nav_client");
-    while (!yarp_.connect("/bimanual_nav_client", "/commandPrompt"))
+    while (!yarp_.connect("/bimanual_nav_client", "/Components/Manipulation"))
     {
       std::cout << "Error! Could not connect to bimanual server\n";
       std::this_thread::sleep_for(std::chrono::seconds(5));
     }
     bimanual_client_.yarp().attachAsClient(bimannual_port_);
+    current_human_horizontal_dist_ = 1.0;
+    obj_pose_action_executed_ = false;
+    reset_executed_ = false;
   }
 
   void HumanAvoidanceController::cleanup()
@@ -153,42 +158,78 @@ namespace ergocub_local_human_avoidance
     RCLCPP_INFO(
         logger_,
         "Distances %f, %f", total_min, horizontal_min);
-    if (total_min < 3.0)
+    double diff = rclcpp::Time(left_transform.header.stamp.sec, left_transform.header.stamp.nanosec).seconds() - clock_->now().seconds();
+    RCLCPP_INFO(
+        logger_,
+        "Time Differences in Transform %f", diff);
+    if (total_min < 6.0 && std::fabs(diff) < 2.5)
     {
       RCLCPP_INFO(
-        logger_,
-        "Human is really close in front");
+          logger_,
+          "Human is really close in front");
       // std::cout<"Got here \n =======================================\n";
-      if (std::fabs(horizontal_min) - safe_dist_to_human_ < 0)
+      if (std::fabs(horizontal_min) - (safe_dist_to_human_) < 0)
       {
         RCLCPP_INFO(
-        logger_,
-        "Human is really close on the side");
+            logger_,
+            "Human is really close on the side %f", safe_dist_to_human_);
         std::ostringstream bimanual_msg;
-        double req_obj_translation = obj_translation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * safe_dist_to_human_);
-        double req_obj_orientation = obj_orientation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * safe_dist_to_human_);
-        req_obj_translation = (req_obj_translation < -obj_max_translation_) ? -obj_max_translation_:req_obj_translation;
-        req_obj_translation = (req_obj_translation > obj_max_translation_) ? obj_max_translation_:req_obj_translation;
+        double req_obj_translation = obj_translation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
+        double req_obj_orientation = obj_orientation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
+        req_obj_translation = (req_obj_translation < -obj_max_translation_) ? -obj_max_translation_ : req_obj_translation;
+        req_obj_translation = (req_obj_translation > obj_max_translation_) ? obj_max_translation_ : req_obj_translation;
 
-        req_obj_orientation = (req_obj_orientation < -obj_max_rotation_) ? -obj_max_rotation_:req_obj_orientation;
-        req_obj_orientation = (req_obj_orientation > obj_max_rotation_) ? obj_max_rotation_:req_obj_orientation;
-        
+        req_obj_orientation = (req_obj_orientation < -obj_max_rotation_) ? -obj_max_rotation_ : req_obj_orientation;
+        req_obj_orientation = (req_obj_orientation > obj_max_rotation_) ? obj_max_rotation_ : req_obj_orientation;
+
         bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation;
         RCLCPP_INFO(
-        logger_,
-        "Sending To Bimanual %s",bimanual_msg.str().c_str());
-        bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
+            logger_,
+            "Sending To Bimanual %s", bimanual_msg.str().c_str());
+        yarp::os::Bottle bimanual_bottle;
+        bimanual_bottle.addString(bimanual_msg.str());
+        if (!obj_pose_action_executed_)
+        {
+          current_human_horizontal_dist_ = horizontal_min;
+          obj_pose_action_executed_ = true;
+          bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
+          reset_executed_ = false;
+        }
+        else
+        {
+          if (std::fabs(current_human_horizontal_dist_) - std::fabs(horizontal_min) > 0.05)
+          {
+            current_human_horizontal_dist_ = horizontal_min;
+            bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
+            reset_executed_ = false;
+          }
+        }
       }
-
       else
       {
-        bimanual_client_.perform_grasp_action("reset");
+        if (obj_pose_action_executed_)
+        {
+          if (!reset_executed_)
+          {
+            reset_executed_ = true;
+            bimanual_client_.perform_grasp_action("reset");
+          }
+        }
       }
 
       return cmd_vel;
     }
     else
     {
+
+      if (!reset_executed_)
+      {
+        reset_executed_ = true;
+        bimanual_client_.perform_grasp_action("reset");
+      }
+      obj_pose_action_executed_ = false;
+      current_human_horizontal_dist_ = 1.0;
+
       return cmd_vel;
     }
   }
