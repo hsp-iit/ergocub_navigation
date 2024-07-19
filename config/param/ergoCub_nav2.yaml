@@ -100,11 +100,12 @@ controller_server:
       safe_dist_to_human: 0.25
       human_left_frame: human_left_frame
       human_right_frame: human_right_frame
-      human_tf_base_frame: head_laser_frame
+      human_tf_base_frame: virtual_unicycle_base
       object_max_translation: 0.15
-      object_max_rotation: 0.45
+      object_max_rotation: 0.35
       object_translation_slope: 1.0
-      object_orientation_slope: 3.0
+      object_orientation_slope: 2.2
+      human_distance_threshold: 4.5
 
     # DWB parameters
     #FollowPath:
@@ -194,8 +195,8 @@ controller_server:
 local_costmap:
   local_costmap:
     ros__parameters:
-      update_frequency: 5.0
-      publish_frequency: 5.0
+      update_frequency: 30.0
+      publish_frequency: 30.0
       global_frame: map  #odom
       robot_base_frame: geometric_unicycle #virtual_unicycle_base
       use_sim_time: True
@@ -468,7 +469,7 @@ recoveries_server:
   ros__parameters:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
-    cycle_frequency: 10.0
+    cycle_frequency: 30.0
     recovery_plugins: ["spin", "backup", "wait"]
     spin:
       plugin: "nav2_recoveries/Spin"
@@ -514,7 +515,7 @@ behavior_server:
   ros__parameters:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
-    cycle_frequency: 10.0
+    cycle_frequency: 30.0
     behavior_plugins: ["spin", "backup", "drive_on_heading", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"

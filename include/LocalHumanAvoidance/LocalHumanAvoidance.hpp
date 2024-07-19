@@ -102,6 +102,7 @@ namespace ergocub_local_human_avoidance
         double object_size_;
         double safe_dist_to_human_;
         double current_human_horizontal_dist_;
+        double human_dist_threshold_;
         rclcpp::Duration transform_tolerance_{0, 0};
 
         nav_msgs::msg::Path global_plan_;

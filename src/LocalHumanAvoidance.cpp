@@ -49,6 +49,7 @@ namespace ergocub_local_human_avoidance
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_max_rotation", rclcpp::ParameterValue(0.45));
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_translation_slope", rclcpp::ParameterValue(1.0));
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_orientation_slope", rclcpp::ParameterValue(3.0));
+    declare_parameter_if_not_declared(node, plugin_name_ + ".human_distance_threshold", rclcpp::ParameterValue(3.0));
 
     node->get_parameter(plugin_name_ + ".desired_linear_vel", desired_linear_vel_);
     node->get_parameter(plugin_name_ + ".lookahead_dist", lookahead_dist_);
@@ -65,6 +66,7 @@ namespace ergocub_local_human_avoidance
     node->get_parameter(plugin_name_ + ".object_max_rotation", obj_max_rotation_);
     node->get_parameter(plugin_name_ + ".object_translation_slope", obj_translation_slope_);
     node->get_parameter(plugin_name_ + ".object_orientation_slope", obj_orientation_slope_);
+    node->get_parameter(plugin_name_ + ".human_distance_threshold", human_dist_threshold_);
 
     global_pub_ = node->create_publisher<nav_msgs::msg::Path>("received_global_plan", 1);
 
@@ -73,10 +75,10 @@ namespace ergocub_local_human_avoidance
     while (!yarp_.connect("/bimanual_nav_client", "/Components/Manipulation"))
     {
       std::cout << "Error! Could not connect to bimanual server\n";
-      std::this_thread::sleep_for(std::chrono::seconds(5));
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     bimanual_client_.yarp().attachAsClient(bimannual_port_);
-    current_human_horizontal_dist_ = 1.0;
+    current_human_horizontal_dist_ = 100.0;
     obj_pose_action_executed_ = false;
     reset_executed_ = false;
   }
@@ -157,12 +159,12 @@ namespace ergocub_local_human_avoidance
     double total_min = (dist_left < dist_right) ? dist_left : dist_right;
     RCLCPP_INFO(
         logger_,
-        "Distances %f, %f", total_min, horizontal_min);
+        "Distances %f, %f, %f, %f", total_min, horizontal_min, dist_left, dist_right);
     double diff = rclcpp::Time(left_transform.header.stamp.sec, left_transform.header.stamp.nanosec).seconds() - clock_->now().seconds();
     RCLCPP_INFO(
         logger_,
         "Time Differences in Transform %f", diff);
-    if (total_min < 6.0 && std::fabs(diff) < 2.5)
+    if (total_min < human_dist_threshold_ && std::fabs(diff) < 2.5 && (left_transform.transform.translation.y * right_transform.transform.translation.y) >= 0)
     {
       RCLCPP_INFO(
           logger_,
@@ -172,7 +174,7 @@ namespace ergocub_local_human_avoidance
       {
         RCLCPP_INFO(
             logger_,
-            "Human is really close on the side %f", safe_dist_to_human_);
+            "Human is really close on the side %f, %f", safe_dist_to_human_, horizontal_min);
         std::ostringstream bimanual_msg;
         double req_obj_translation = obj_translation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
         double req_obj_orientation = obj_orientation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
@@ -183,9 +185,7 @@ namespace ergocub_local_human_avoidance
         req_obj_orientation = (req_obj_orientation > obj_max_rotation_) ? obj_max_rotation_ : req_obj_orientation;
 
         bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation;
-        RCLCPP_INFO(
-            logger_,
-            "Sending To Bimanual %s", bimanual_msg.str().c_str());
+
         yarp::os::Bottle bimanual_bottle;
         bimanual_bottle.addString(bimanual_msg.str());
         if (!obj_pose_action_executed_)
@@ -194,14 +194,20 @@ namespace ergocub_local_human_avoidance
           obj_pose_action_executed_ = true;
           bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
           reset_executed_ = false;
+          RCLCPP_INFO(
+              logger_,
+              "Sending To Bimanual %s", bimanual_msg.str().c_str());
         }
         else
         {
-          if (std::fabs(current_human_horizontal_dist_) - std::fabs(horizontal_min) > 0.05)
+          if (std::fabs(current_human_horizontal_dist_) - std::fabs(horizontal_min) > 0.01)
           {
             current_human_horizontal_dist_ = horizontal_min;
             bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
             reset_executed_ = false;
+            RCLCPP_INFO(
+                logger_,
+                "Sending To Bimanual %s", bimanual_msg.str().c_str());
           }
         }
       }
@@ -213,6 +219,8 @@ namespace ergocub_local_human_avoidance
           {
             reset_executed_ = true;
             bimanual_client_.perform_grasp_action("reset");
+            obj_pose_action_executed_ = false;
+            current_human_horizontal_dist_ = 100.0;
           }
         }
       }
@@ -228,7 +236,7 @@ namespace ergocub_local_human_avoidance
         bimanual_client_.perform_grasp_action("reset");
       }
       obj_pose_action_executed_ = false;
-      current_human_horizontal_dist_ = 1.0;
+      current_human_horizontal_dist_ = 100.0;
 
       return cmd_vel;
     }
