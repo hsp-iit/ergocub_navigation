@@ -45,6 +45,8 @@ namespace ergocub_local_human_avoidance
     declare_parameter_if_not_declared(node, plugin_name_ + ".human_left_frame", rclcpp::ParameterValue("human_left_frame"));
     declare_parameter_if_not_declared(node, plugin_name_ + ".human_right_frame", rclcpp::ParameterValue("human_right_frame"));
     declare_parameter_if_not_declared(node, plugin_name_ + ".human_tf_base_frame", rclcpp::ParameterValue("head_laser_frame"));
+    declare_parameter_if_not_declared(node, plugin_name_ + ".nav_shift_port_name", rclcpp::ParameterValue("/path_converter/shift_command:i"));
+
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_max_translation", rclcpp::ParameterValue(0.2));
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_max_rotation", rclcpp::ParameterValue(0.45));
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_translation_slope", rclcpp::ParameterValue(1.0));
@@ -62,6 +64,7 @@ namespace ergocub_local_human_avoidance
     node->get_parameter(plugin_name_ + ".human_left_frame", human_left_frame_);
     node->get_parameter(plugin_name_ + ".human_right_frame", human_right_frame_);
     node->get_parameter(plugin_name_ + ".human_tf_base_frame", human_tf_base_frame_);
+    node->get_parameter(plugin_name_ + ".nav_shift_port_name", nav_shift_port_name_);
     node->get_parameter(plugin_name_ + ".object_max_translation", obj_max_translation_);
     node->get_parameter(plugin_name_ + ".object_max_rotation", obj_max_rotation_);
     node->get_parameter(plugin_name_ + ".object_translation_slope", obj_translation_slope_);
@@ -72,15 +75,26 @@ namespace ergocub_local_human_avoidance
 
     // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
     bimannual_port_.open("/bimanual_nav_client");
+    nav_shift_port_.open("/nav_shift_client");
     while (!yarp_.connect("/bimanual_nav_client", "/Components/Manipulation"))
     {
       std::cout << "Error! Could not connect to bimanual server\n";
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+    
+
     bimanual_client_.yarp().attachAsClient(bimannual_port_);
     current_human_horizontal_dist_ = 100.0;
     obj_pose_action_executed_ = false;
     reset_executed_ = false;
+    yarp::os::Network::connect("/nav_shift_client", nav_shift_port_name_);
+    if (!yarp::os::Network::isConnected("/nav_shift_client", nav_shift_port_name_))
+    {
+      std::cout << "Error! Could not connect to Nav Shift Port\n";
+      nav_shift_enabled_ = false;
+    }
+    else
+      nav_shift_enabled_ = true;
   }
 
   void HumanAvoidanceController::cleanup()
@@ -115,10 +129,21 @@ namespace ergocub_local_human_avoidance
       const geometry_msgs::msg::Twist &velocity,
       nav2_core::GoalChecker *goal_checker)
   {
+    
     (void)velocity;
     (void)goal_checker;
-    (void)pose;
+    //(void)pose;
+    if (!yarp::os::Network::isConnected("/nav_shift_client", nav_shift_port_name_))
+    {
+      std::cout << "Error! Could not connect to Nav Shift Port\n";
+      nav_shift_enabled_ = false;
+    }
+    else 
+     nav_shift_enabled_ = true;
     geometry_msgs::msg::TwistStamped cmd_vel;
+    cmd_vel.header.frame_id = pose.header.frame_id;
+    cmd_vel.header.stamp = clock_->now();
+    cmd_vel.twist.linear.x = 0.1;
     geometry_msgs::msg::TransformStamped left_transform;
     try
     {
@@ -164,7 +189,7 @@ namespace ergocub_local_human_avoidance
     RCLCPP_INFO(
         logger_,
         "Time Differences in Transform %f", diff);
-    if (total_min < human_dist_threshold_ && std::fabs(diff) < 2.5 && (left_transform.transform.translation.y * right_transform.transform.translation.y) >= 0)
+    if (total_min < human_dist_threshold_ && std::fabs(diff) < 1.5 && (left_transform.transform.translation.y * right_transform.transform.translation.y) >= 0)
     {
       RCLCPP_INFO(
           logger_,
@@ -187,6 +212,9 @@ namespace ergocub_local_human_avoidance
         bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation;
 
         yarp::os::Bottle bimanual_bottle;
+        yarp::os::Bottle shift_bottle = nav_shift_port_.prepare();
+        shift_bottle.clear();
+        bimanual_bottle.clear();
         bimanual_bottle.addString(bimanual_msg.str());
         if (!obj_pose_action_executed_)
         {
@@ -197,6 +225,19 @@ namespace ergocub_local_human_avoidance
           RCLCPP_INFO(
               logger_,
               "Sending To Bimanual %s", bimanual_msg.str().c_str());
+          if (nav_shift_enabled_)
+          {
+            if (std::fabs(horizontal_min) < 0.10)
+            {
+              int shift_required = ((horizontal_min < 0) ? 1 : 0);
+              shift_bottle.addInt32(1);
+              shift_bottle.addInt32(shift_required);
+              nav_shift_port_.write();
+              RCLCPP_INFO(
+                  logger_,
+                  "Sending Nav Shift %d", shift_required);
+            }
+          }
         }
         else
         {
@@ -208,6 +249,19 @@ namespace ergocub_local_human_avoidance
             RCLCPP_INFO(
                 logger_,
                 "Sending To Bimanual %s", bimanual_msg.str().c_str());
+            if (nav_shift_enabled_)
+            {
+              if (std::fabs(horizontal_min) < 0.10)
+              {
+                int shift_required = ((horizontal_min < 0) ? 1 : 0);
+                shift_bottle.addInt32(1);
+                shift_bottle.addInt32(shift_required);
+                nav_shift_port_.write();
+                RCLCPP_INFO(
+                    logger_,
+                    "Sending Nav Shift %d", shift_required);
+              }
+            }
           }
         }
       }
