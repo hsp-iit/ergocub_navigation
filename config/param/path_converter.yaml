@@ -7,7 +7,7 @@ path_converter_v2_node:
     inPortName: "/walking-coordinator/goal:i"
     reference_frame: "geometric_unicycle"
     shift_portName: "/path_converter/shift_command:i"
-    shift_portConnectionName: "/TODO/shift_command:o"
+    shift_portConnectionName: "/nav_shift_client"
     zero_speed_threshold: 1e-03
     shift_enabled: true
     shift: 0.20

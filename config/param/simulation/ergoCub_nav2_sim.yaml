@@ -97,15 +97,18 @@ controller_server:
     
     FollowPath:
       plugin: "ergocub_local_human_avoidance::HumanAvoidanceController"
-      safe_dist_to_human: 0.25
+      safe_dist_to_human: 0.30
       human_left_frame: human_left_frame
       human_right_frame: human_right_frame
-      human_tf_base_frame: head_laser_frame
+      human_tf_base_frame: virtual_unicycle_base
+      nav_shift_port_name: /path_converter/shift_command:i
+      bimanual_manipulation_sever: /Components/Manipulation
       object_max_translation: 0.15
-      object_max_rotation: 0.45
+      object_max_rotation: 0.35
       object_translation_slope: 1.0
-      object_orientation_slope: 3.0
-      bimanual_manipulation_server: "/controlServer"
+      object_orientation_slope: 2.2
+      human_distance_threshold: 4.5
+
     # DWB parameters
     #FollowPath:
     #  plugin: dwb_core::DWBLocalPlanner

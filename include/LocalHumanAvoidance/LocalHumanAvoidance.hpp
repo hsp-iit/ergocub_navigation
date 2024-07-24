@@ -91,6 +91,7 @@ namespace ergocub_local_human_avoidance
         std::string human_left_frame_;
         std::string human_right_frame_;
         std::string human_tf_base_frame_;
+        std::string nav_shift_port_name_;
         std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_;
         rclcpp::Logger logger_{rclcpp::get_logger("HumanAvoidanceController")};
         rclcpp::Clock::SharedPtr clock_;
@@ -102,6 +103,8 @@ namespace ergocub_local_human_avoidance
         double object_size_;
         double safe_dist_to_human_;
         double current_human_horizontal_dist_;
+        double human_dist_threshold_;
+        bool nav_shift_enabled_;
         rclcpp::Duration transform_tolerance_{0, 0};
 
         nav_msgs::msg::Path global_plan_;
