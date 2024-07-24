@@ -29,7 +29,7 @@ def generate_launch_description():
         default=os.path.join(
             get_package_share_directory('ergocub_navigation'),
             'param',
-            'scan.yaml'))
+            'simulation/scan.yaml'))
 
     scan_node = launch_ros.actions.LifecycleNode(
             name = 'scan_node',

@@ -45,11 +45,14 @@ namespace ergocub_local_human_avoidance
     declare_parameter_if_not_declared(node, plugin_name_ + ".human_left_frame", rclcpp::ParameterValue("human_left_frame"));
     declare_parameter_if_not_declared(node, plugin_name_ + ".human_right_frame", rclcpp::ParameterValue("human_right_frame"));
     declare_parameter_if_not_declared(node, plugin_name_ + ".human_tf_base_frame", rclcpp::ParameterValue("head_laser_frame"));
+    declare_parameter_if_not_declared(node, plugin_name_ + ".bimanual_manipulation_server", rclcpp::ParameterValue("/Components/Manipulation"));
+
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_max_translation", rclcpp::ParameterValue(0.2));
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_max_rotation", rclcpp::ParameterValue(0.45));
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_translation_slope", rclcpp::ParameterValue(1.0));
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_orientation_slope", rclcpp::ParameterValue(3.0));
 
+    std::string bimanual_server_name;
     node->get_parameter(plugin_name_ + ".desired_linear_vel", desired_linear_vel_);
     node->get_parameter(plugin_name_ + ".lookahead_dist", lookahead_dist_);
     node->get_parameter(plugin_name_ + ".max_angular_vel", max_angular_vel_);
@@ -61,6 +64,8 @@ namespace ergocub_local_human_avoidance
     node->get_parameter(plugin_name_ + ".human_left_frame", human_left_frame_);
     node->get_parameter(plugin_name_ + ".human_right_frame", human_right_frame_);
     node->get_parameter(plugin_name_ + ".human_tf_base_frame", human_tf_base_frame_);
+    node->get_parameter(plugin_name_ + ".bimanual_manipulation_server", bimanual_server_name);
+
     node->get_parameter(plugin_name_ + ".object_max_translation", obj_max_translation_);
     node->get_parameter(plugin_name_ + ".object_max_rotation", obj_max_rotation_);
     node->get_parameter(plugin_name_ + ".object_translation_slope", obj_translation_slope_);
@@ -70,7 +75,7 @@ namespace ergocub_local_human_avoidance
 
     // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
     bimannual_port_.open("/bimanual_nav_client");
-    while (!yarp_.connect("/bimanual_nav_client", "/Components/Manipulation"))
+    while (!yarp_.connect("/bimanual_nav_client", bimanual_server_name))
     {
       std::cout << "Error! Could not connect to bimanual server\n";
       std::this_thread::sleep_for(std::chrono::seconds(5));
