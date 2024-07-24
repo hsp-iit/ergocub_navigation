@@ -2,7 +2,7 @@
  *
  * @Author : Vignesh Sushrutha Raghavan
  * @date   : June 2024
- * @Brief  : Header for the LocalHumanAvoidancePlugin
+ * @Brief  : Header for the ergocub_local_human_avoidance::HumanAvoidanceController that plans object pose changes and path shift to avoid nearby humans.
  **/
 
 #ifndef ERGOCUB_LOCAL_HUMAN_AVOIDANCE_HPP_
@@ -37,7 +37,7 @@
 
 namespace ergocub_local_human_avoidance
 {
-    class HumanAvoidanceController : public nav2_core::Controller
+    class HumanAvoidanceController : public nav2_core::Controller //class declaration based on nav2_tutorials custom controller plugin
     {
     public:
         /**
@@ -63,7 +63,7 @@ namespace ergocub_local_human_avoidance
         void setSpeedLimit(const double &speed_limit, const bool &percentage) override;
 
         /**
-         * Function to compute velocity commands
+         * Plugin functions that is called to give velocity commands but in this case used to also determine object pose changes and nav shifts. 
          **/
 
         geometry_msgs::msg::TwistStamped computeVelocityCommands(const geometry_msgs::msg::PoseStamped &pose,
@@ -73,7 +73,7 @@ namespace ergocub_local_human_avoidance
         /**
          * Function to set global plan to the local variable
          **/
-        void setPlan(const nav_msgs::msg::Path &path) override;
+        void setPlan(const nav_msgs::msg::Path &path) override; 
 
     protected:
         // nav_msgs::msg::Path transformGlobalPlan(const geometry_msgs::msg::PoseStamped &pose);
@@ -88,39 +88,43 @@ namespace ergocub_local_human_avoidance
         rclcpp_lifecycle::LifecycleNode::WeakPtr node_;
         std::shared_ptr<tf2_ros::Buffer> tf_;
         std::string plugin_name_;
-        std::string human_left_frame_;
-        std::string human_right_frame_;
-        std::string human_tf_base_frame_;
-        std::string nav_shift_port_name_;
-        std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_;
+        std::string human_left_frame_; //Name of frame attached on the left extreme of the detected human
+        std::string human_right_frame_; //Name of frame attached on the right extreme of the detected human
+        std::string human_tf_base_frame_; //Name of frame attached on the pelvis of the detected human
+        std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_; // Variable to store local command
         rclcpp::Logger logger_{rclcpp::get_logger("HumanAvoidanceController")};
         rclcpp::Clock::SharedPtr clock_;
-        std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> global_pub_;
+        std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> global_pub_; //publisher to publish path
 
-        double desired_linear_vel_;
-        double lookahead_dist_;
-        double max_angular_vel_;
-        double object_size_;
-        double safe_dist_to_human_;
-        double current_human_horizontal_dist_;
-        double human_dist_threshold_;
-        bool nav_shift_enabled_;
-        rclcpp::Duration transform_tolerance_{0, 0};
+        double desired_linear_vel_; //velocity commands.
+        double lookahead_dist_; // Distance to look ahead of current pose.
+        double max_angular_vel_; //max allowed rotation speed.
+        double object_size_; //size of the object held by the robot, currently unused.
+        double safe_dist_to_human_; //Safe distance required between the robot and detected human.
+        double current_human_horizontal_dist_; //Variable to store the current horizontal (y-axis) distance of the human extreme w.r.t robot.
+        double human_dist_threshold_; // Threshold at which the robot should start making changes to the object pose if the human is close.
+        bool nav_shift_enabled_; //Bool to inform if nav shift is enabled.
+        bool obj_pose_action_executed_; //Bool to check if object pose change has already started.
+        bool reset_executed_; //Bool to check if the object pose was reset recently.
+        rclcpp::Duration transform_tolerance_{0, 0}; // Transform duration difference tolerence, currently unused.
 
         nav_msgs::msg::Path global_plan_;
 
-        double obj_max_translation_;
-        double obj_max_rotation_;
-        double obj_translation_slope_;
-        double obj_orientation_slope_;
+        double obj_max_translation_; // Param to store max allowed object pose tranlsation.
+        double obj_max_rotation_; //Param to store max allowed object pose rotation.
+        double obj_translation_slope_; //Param used to determine translation of object as (obj_translation_slope x required separation from human) 
+        double obj_orientation_slope_; //Param used to determine rotation of object as (obj_orientation_slope x required separation from human)
 
         // yarp stuff
-        yarp::os::Network yarp_;
-        yarp::os::Port bimannual_port_;
-        yarp::os::BufferedPort<yarp::os::Bottle> nav_shift_port_;
-        ControlInterface bimanual_client_;
-        bool obj_pose_action_executed_;
-        bool reset_executed_;
+        yarp::os::Network yarp_; // Yarp network declaration to allow for sending messages to navigation and bimanual ports.
+        yarp::os::Port bimannual_port_; // Port to the Bimanual Server to allow for held object pose change
+        yarp::os::BufferedPort<yarp::os::Bottle> nav_shift_port_; //Port to path converter to shift planned path
+        ControlInterface bimanual_client_; //Thrift interface for peforming grasp actions that cause object pose change
+        std::string nav_shift_port_name_; //Name of the port to send path shift command
+        std::string bimanual_server_name_; //Name of the bimanual server.
+
+
+        
     };
 
 } // end of namespace

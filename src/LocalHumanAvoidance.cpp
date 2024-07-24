@@ -54,7 +54,6 @@ namespace ergocub_local_human_avoidance
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_orientation_slope", rclcpp::ParameterValue(3.0));
     declare_parameter_if_not_declared(node, plugin_name_ + ".human_distance_threshold", rclcpp::ParameterValue(3.0));
 
-    std::string bimanual_server_name;
     node->get_parameter(plugin_name_ + ".desired_linear_vel", desired_linear_vel_);
     node->get_parameter(plugin_name_ + ".lookahead_dist", lookahead_dist_);
     node->get_parameter(plugin_name_ + ".max_angular_vel", max_angular_vel_);
@@ -66,7 +65,7 @@ namespace ergocub_local_human_avoidance
     node->get_parameter(plugin_name_ + ".human_left_frame", human_left_frame_);
     node->get_parameter(plugin_name_ + ".human_right_frame", human_right_frame_);
     node->get_parameter(plugin_name_ + ".human_tf_base_frame", human_tf_base_frame_);
-    node->get_parameter(plugin_name_ + ".bimanual_manipulation_server", bimanual_server_name);
+    node->get_parameter(plugin_name_ + ".bimanual_manipulation_server", bimanual_server_name_);
 
     node->get_parameter(plugin_name_ + ".nav_shift_port_name", nav_shift_port_name_);
     node->get_parameter(plugin_name_ + ".object_max_translation", obj_max_translation_);
@@ -80,17 +79,20 @@ namespace ergocub_local_human_avoidance
     // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
     bimannual_port_.open("/bimanual_nav_client");
     nav_shift_port_.open("/nav_shift_client");
-    while (!yarp_.connect("/bimanual_nav_client", bimanual_server_name))
+    // Wait until bimanual server is available and connected to.
+    while (!yarp_.connect("/bimanual_nav_client", bimanual_server_name_))
     {
       std::cout << "Error! Could not connect to bimanual server\n";
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    
-
     bimanual_client_.yarp().attachAsClient(bimannual_port_);
+
+    //Setup variables to sequence bimanual actions
     current_human_horizontal_dist_ = 100.0;
     obj_pose_action_executed_ = false;
     reset_executed_ = false;
+
+    //Connect to Nav shift. Not in a while loop so that it can be used when the robot is stationary for testing purposes.
     yarp::os::Network::connect("/nav_shift_client", nav_shift_port_name_);
     if (!yarp::os::Network::isConnected("/nav_shift_client", nav_shift_port_name_))
     {
@@ -137,6 +139,8 @@ namespace ergocub_local_human_avoidance
     (void)velocity;
     (void)goal_checker;
     //(void)pose;
+
+    //Check Once again for connection to nav shift in path converter.
     if (!yarp::os::Network::isConnected("/nav_shift_client", nav_shift_port_name_))
     {
       std::cout << "Error! Could not connect to Nav Shift Port\n";
@@ -144,10 +148,14 @@ namespace ergocub_local_human_avoidance
     }
     else 
      nav_shift_enabled_ = true;
+    
+    //Fake message to be published for now.
     geometry_msgs::msg::TwistStamped cmd_vel;
     cmd_vel.header.frame_id = pose.header.frame_id;
     cmd_vel.header.stamp = clock_->now();
     cmd_vel.twist.linear.x = 0.1;
+
+    //Get transforms to the left and right frames attached to the detected human.
     geometry_msgs::msg::TransformStamped left_transform;
     try
     {
@@ -181,6 +189,8 @@ namespace ergocub_local_human_avoidance
     RCLCPP_INFO(
         logger_,
         "Detected Humans Close By");
+    
+    // Determine the closest frame to the robot and get the horizontal ditance of the human frames w.r.t to the robot.
     double dist_left = pow(left_transform.transform.translation.x, 2) + pow(left_transform.transform.translation.y, 2);
     double dist_right = pow(right_transform.transform.translation.x, 2) + pow(right_transform.transform.translation.y, 2);
 
@@ -193,26 +203,33 @@ namespace ergocub_local_human_avoidance
     RCLCPP_INFO(
         logger_,
         "Time Differences in Transform %f", diff);
+    
+    /* Current logic : Named SimpleAvoidance checks if human detected is within a distance threshold and if the received transform timeis within
+     * 1.5 seconds of now. Also check if the human is one side of the robot cmpletely and  not directly in front of the robot. If the human is 
+     * is directly in front of the robot don't do anything. A stop command will be sent soon.
+     */
+     
     if (total_min < human_dist_threshold_ && std::fabs(diff) < 1.5 && (left_transform.transform.translation.y * right_transform.transform.translation.y) >= 0)
     {
       RCLCPP_INFO(
           logger_,
           "Human is really close in front");
-      // std::cout<"Got here \n =======================================\n";
       if (std::fabs(horizontal_min) - (safe_dist_to_human_) < 0)
       {
         RCLCPP_INFO(
             logger_,
             "Human is really close on the side %f, %f", safe_dist_to_human_, horizontal_min);
+        // Calculate object pose changes.
         std::ostringstream bimanual_msg;
         double req_obj_translation = obj_translation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
         double req_obj_orientation = obj_orientation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
+        //Check if calculated object pose changes are withing the limit.
         req_obj_translation = (req_obj_translation < -obj_max_translation_) ? -obj_max_translation_ : req_obj_translation;
         req_obj_translation = (req_obj_translation > obj_max_translation_) ? obj_max_translation_ : req_obj_translation;
 
         req_obj_orientation = (req_obj_orientation < -obj_max_rotation_) ? -obj_max_rotation_ : req_obj_orientation;
         req_obj_orientation = (req_obj_orientation > obj_max_rotation_) ? obj_max_rotation_ : req_obj_orientation;
-
+        // Create the bimanual message to send to Bimanual Server.
         bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation;
 
         yarp::os::Bottle bimanual_bottle;
@@ -222,6 +239,7 @@ namespace ergocub_local_human_avoidance
         bimanual_bottle.addString(bimanual_msg.str());
         if (!obj_pose_action_executed_)
         {
+          // If object pose change is being executed for the first time, setup sequencing variables.
           current_human_horizontal_dist_ = horizontal_min;
           obj_pose_action_executed_ = true;
           bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
@@ -229,7 +247,7 @@ namespace ergocub_local_human_avoidance
           RCLCPP_INFO(
               logger_,
               "Sending To Bimanual %s", bimanual_msg.str().c_str());
-          if (nav_shift_enabled_)
+          if (nav_shift_enabled_) //calculate nav shift if needed.
           {
             if (std::fabs(horizontal_min) < 0.10)
             {
@@ -245,6 +263,9 @@ namespace ergocub_local_human_avoidance
         }
         else
         {
+          /*Send another bimanual message only if deteted human horizontal dists has changed w.r.t to the robot.
+           * Otherise skip to avoid sending too many messages to bimanual
+           */
           if (std::fabs(current_human_horizontal_dist_) - std::fabs(horizontal_min) > 0.01)
           {
             current_human_horizontal_dist_ = horizontal_min;
@@ -272,7 +293,7 @@ namespace ergocub_local_human_avoidance
       else
       {
         if (obj_pose_action_executed_)
-        {
+        { //If human is at a safe distance reset object pose.
           if (!reset_executed_)
           {
             reset_executed_ = true;
@@ -286,7 +307,7 @@ namespace ergocub_local_human_avoidance
       return cmd_vel;
     }
     else
-    {
+    {// If no human is detected or if human is too far away execute reset accordingly.
 
       if (!reset_executed_)
       {
@@ -300,13 +321,13 @@ namespace ergocub_local_human_avoidance
     }
   }
 
-  void HumanAvoidanceController::setPlan(const nav_msgs::msg::Path &path)
+  void HumanAvoidanceController::setPlan(const nav_msgs::msg::Path &path) //Plugin Functions. Unmodified for now.
   {
     global_pub_->publish(path);
     global_plan_ = path;
   }
 
-  void HumanAvoidanceController::setSpeedLimit(const double &speed_limit, const bool &percentage)
+  void HumanAvoidanceController::setSpeedLimit(const double &speed_limit, const bool &percentage) //Plugin Functions Unmodified for now.
   {
     (void)speed_limit;
     (void)percentage;
