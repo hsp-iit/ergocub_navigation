@@ -103,6 +103,7 @@ namespace ergocub_local_human_avoidance
         double safe_dist_to_human_; //Safe distance required between the robot and detected human.
         double current_human_horizontal_dist_; //Variable to store the current horizontal (y-axis) distance of the human extreme w.r.t robot.
         double human_dist_threshold_; // Threshold at which the robot should start making changes to the object pose if the human is close.
+        double horizontal_dist_modifier_; // Typically a multiplier to horizontal dist from camera to account for inaccuracies.
         bool nav_shift_enabled_; //Bool to inform if nav shift is enabled.
         bool obj_pose_action_executed_; //Bool to check if object pose change has already started.
         bool reset_executed_; //Bool to check if the object pose was reset recently.
