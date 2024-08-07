@@ -24,7 +24,7 @@ void is_on_double_support(const std::shared_ptr<std_srvs::srv::Trigger::Request>
 {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "[is_on_double_support_srv] Received a request - state: %i", (int)state);
     response->success = state;
-    state = false;  //reset the variable each time is resetted
+    state = false;  //reset the variable each time is called
 }
 
 //Class used for YARP port callbacks.
@@ -60,7 +60,7 @@ public:
             //{
             //    std::cout << "[is_on_double_support_srv] Red a trigger on YARP port" << std::endl;
             //}
-            bool in_status = b.get(0).asBool();;
+            bool in_status = b.get(0).asBool();
             if (in_status)
             {
                 std::cout << "[is_on_double_support_srv] Red a trigger on YARP port" << std::endl;
