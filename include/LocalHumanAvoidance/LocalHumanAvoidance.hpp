@@ -34,6 +34,7 @@
 #include <yarp/os/BufferedPort.h>
 #include <yarp/os/Bottle.h>
 #include "ControlInterface.h"
+#include "ergocub_navigation/srv/get_human_extremes.hpp"
 
 namespace ergocub_local_human_avoidance
 {
@@ -95,6 +96,7 @@ namespace ergocub_local_human_avoidance
         rclcpp::Logger logger_{rclcpp::get_logger("HumanAvoidanceController")};
         rclcpp::Clock::SharedPtr clock_;
         std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> global_pub_; //publisher to publish path
+        rclcpp::Client<ergocub_navigation::srv::GetHumanExtremes>::SharedPtr human_extremes_client_; //service client to get human extremes.
 
         double desired_linear_vel_; //velocity commands.
         double lookahead_dist_; // Distance to look ahead of current pose.

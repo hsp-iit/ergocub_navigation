@@ -55,7 +55,6 @@ namespace ergocub_local_human_avoidance
     declare_parameter_if_not_declared(node, plugin_name_ + ".human_distance_threshold", rclcpp::ParameterValue(3.0));
     declare_parameter_if_not_declared(node, plugin_name_ + ".horizontal_dist_modifier", rclcpp::ParameterValue(2.0));
 
-
     node->get_parameter(plugin_name_ + ".desired_linear_vel", desired_linear_vel_);
     node->get_parameter(plugin_name_ + ".lookahead_dist", lookahead_dist_);
     node->get_parameter(plugin_name_ + ".max_angular_vel", max_angular_vel_);
@@ -77,7 +76,7 @@ namespace ergocub_local_human_avoidance
     node->get_parameter(plugin_name_ + ".human_distance_threshold", human_dist_threshold_);
     node->get_parameter(plugin_name_ + ".horizontal_dist_modifier", horizontal_dist_modifier_);
 
-
+    human_extremes_client_ = node->create_client<ergocub_navigation::srv::GetHumanExtremes>("human_pose_service");
     global_pub_ = node->create_publisher<nav_msgs::msg::Path>("received_global_plan", 1);
 
     // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
@@ -160,7 +159,7 @@ namespace ergocub_local_human_avoidance
     cmd_vel.twist.linear.x = 0.1;
 
     // Get transforms to the left and right frames attached to the detected human.
-    geometry_msgs::msg::TransformStamped left_transform;
+    /*geometry_msgs::msg::TransformStamped left_transform;
     try
     {
       left_transform = tf_->lookupTransform(
@@ -192,7 +191,20 @@ namespace ergocub_local_human_avoidance
 
     RCLCPP_INFO(
         logger_,
-        "Detected Humans Close By");
+        "Detected Humans Close By");*/
+
+    auto request = std::make_shared<ergocub_navigation::srv::GetHumanExtremes::Request>();
+    request->request = true;
+    auto result = client->async_send_request(request);
+    if (rclcpp::spin_until_future_complete(this->node_, result, std::chrono::milliseconds(std::chrono_literals::1s)) ==
+        rclcpp::FutureReturnCode::SUCCESS)
+    {
+      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Sum: %ld", result.get()->sum);
+    }
+    else
+    {
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_three_ints"); // CHANGE
+    }
 
     // Determine the closest frame to the robot and get the horizontal ditance of the human frames w.r.t to the robot.
     double dist_left = pow(left_transform.transform.translation.x, 2) + pow(left_transform.transform.translation.y, 2);
@@ -218,7 +230,7 @@ namespace ergocub_local_human_avoidance
       RCLCPP_INFO(
           logger_,
           "Human is really close in front");
-          horizontal_min*=horizontal_dist_modifier_;
+      horizontal_min *= horizontal_dist_modifier_;
       if (std::fabs(horizontal_min) - (safe_dist_to_human_) < 0)
       {
         RCLCPP_INFO(
