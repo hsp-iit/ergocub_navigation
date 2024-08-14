@@ -192,30 +192,30 @@ namespace ergocub_local_human_avoidance
     RCLCPP_INFO(
         logger_,
         "Detected Humans Close By");*/
-
+    bool received_response = false;
     auto request = std::make_shared<ergocub_navigation::srv::GetHumanExtremes::Request>();
     request->request = true;
-    auto result = client->async_send_request(request);
-    if (rclcpp::spin_until_future_complete(this->node_, result, std::chrono::milliseconds(std::chrono_literals::1s)) ==
-        rclcpp::FutureReturnCode::SUCCESS)
+    auto result = human_extremes_client_->async_send_request(request);
+    if (result.wait_for(1s) == std::future_status::ready)
     {
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Sum: %ld", result.get()->sum);
+      received_response = true;
     }
     else
     {
-      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_three_ints"); // CHANGE
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_three_ints"); 
+      return cmd_vel;
     }
 
     // Determine the closest frame to the robot and get the horizontal ditance of the human frames w.r.t to the robot.
-    double dist_left = pow(left_transform.transform.translation.x, 2) + pow(left_transform.transform.translation.y, 2);
-    double dist_right = pow(right_transform.transform.translation.x, 2) + pow(right_transform.transform.translation.y, 2);
+    double dist_left = pow(result.get()->left_transform.transform.translation.x, 2) + pow(result.get()->left_transform.transform.translation.y, 2);
+    double dist_right = pow(result.get()->right_transform.transform.translation.x, 2) + pow(result.get()->right_transform.transform.translation.y, 2);
 
-    double horizontal_min = (dist_left < dist_right) ? left_transform.transform.translation.y : right_transform.transform.translation.y;
+    double horizontal_min = (dist_left < dist_right) ? result.get()->left_transform.transform.translation.y : result.get()->right_transform.transform.translation.y;
     double total_min = (dist_left < dist_right) ? dist_left : dist_right;
     RCLCPP_INFO(
         logger_,
         "Distances %f, %f, %f, %f", total_min, horizontal_min, dist_left, dist_right);
-    double diff = rclcpp::Time(left_transform.header.stamp.sec, left_transform.header.stamp.nanosec).seconds() - clock_->now().seconds();
+    double diff = rclcpp::Time(result.get()->left_transform.header.stamp.sec, result.get()->left_transform.header.stamp.nanosec).seconds() - clock_->now().seconds();
     RCLCPP_INFO(
         logger_,
         "Time Differences in Transform %f", diff);
@@ -225,7 +225,7 @@ namespace ergocub_local_human_avoidance
      * is directly in front of the robot don't do anything. A stop command will be sent soon.
      */
 
-    if (total_min < human_dist_threshold_ && std::fabs(diff) < 1.5 && (left_transform.transform.translation.y * right_transform.transform.translation.y) >= 0)
+    if (total_min < human_dist_threshold_ && std::fabs(diff) < 1.5 && (result.get()->left_transform.transform.translation.y * result.get()->right_transform.transform.translation.y) >= 0)
     {
       RCLCPP_INFO(
           logger_,
