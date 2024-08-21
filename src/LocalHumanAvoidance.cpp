@@ -82,13 +82,22 @@ namespace ergocub_local_human_avoidance
     // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
     bimannual_port_.open("/bimanual_nav_client");
     nav_shift_port_.open("/nav_shift_client");
+    human_extremes_port_.open("/eCubperception/rpc:o");
     // Wait until bimanual server is available and connected to.
     while (!yarp_.connect("/bimanual_nav_client", bimanual_server_name_))
     {
       std::cout << "Error! Could not connect to bimanual server\n";
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+
+    while (!yarp_.connect("/eCubperception/rpc:o", "/eCubperception/rpc:o"))
+    {
+      std::cout << "Error! Could not connect to human pose server\n";
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
     bimanual_client_.yarp().attachAsClient(bimannual_port_);
+    human_data_client_.yarp().attachAsClient(human_extremes_port_);
 
     // Setup variables to sequence bimanual actions
     current_human_horizontal_dist_ = 100.0;
@@ -192,7 +201,7 @@ namespace ergocub_local_human_avoidance
     RCLCPP_INFO(
         logger_,
         "Detected Humans Close By");*/
-    bool received_response = false;
+    /*bool received_response = false;
     auto request = std::make_shared<ergocub_navigation::srv::GetHumanExtremes::Request>();
     request->request = true;
     auto result = human_extremes_client_->async_send_request(request);
@@ -202,97 +211,78 @@ namespace ergocub_local_human_avoidance
     }
     else
     {
-      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_three_ints"); 
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_three_ints");
       return cmd_vel;
-    }
+    }*/
 
-    // Determine the closest frame to the robot and get the horizontal ditance of the human frames w.r.t to the robot.
-    double dist_left = pow(result.get()->left_transform.transform.translation.x, 2) + pow(result.get()->left_transform.transform.translation.y, 2);
-    double dist_right = pow(result.get()->right_transform.transform.translation.x, 2) + pow(result.get()->right_transform.transform.translation.y, 2);
+    auto human_position = human_data_client_.get_human_position();
+    auto human_extremes = human_data_client_.get_human_occupancy();
 
-    double horizontal_min = (dist_left < dist_right) ? result.get()->left_transform.transform.translation.y : result.get()->right_transform.transform.translation.y;
-    double total_min = (dist_left < dist_right) ? dist_left : dist_right;
-    RCLCPP_INFO(
-        logger_,
-        "Distances %f, %f, %f, %f", total_min, horizontal_min, dist_left, dist_right);
-    double diff = rclcpp::Time(result.get()->left_transform.header.stamp.sec, result.get()->left_transform.header.stamp.nanosec).seconds() - clock_->now().seconds();
-    RCLCPP_INFO(
-        logger_,
-        "Time Differences in Transform %f", diff);
-
-    /* Current logic : Named SimpleAvoidance checks if human detected is within a distance threshold and if the received transform timeis within
-     * 1.5 seconds of now. Also check if the human is one side of the robot cmpletely and  not directly in front of the robot. If the human is
-     * is directly in front of the robot don't do anything. A stop command will be sent soon.
-     */
-
-    if (total_min < human_dist_threshold_ && std::fabs(diff) < 1.5 && (result.get()->left_transform.transform.translation.y * result.get()->right_transform.transform.translation.y) >= 0)
+    if (human_position.data()[2] != -1)
     {
+      geometry_msgs::msg::TransformStamped left_transform, right_transform;
+      left_transform.transform.translation.x = human_position.data()[2];
+      left_transform.transform.translation.y = -human_position.data()[0] - human_extremes.data()[0];
+      right_transform.transform.translation.x = human_position.data()[2];
+      right_transform.transform.translation.y = -human_position.data()[0] - human_extremes.data()[1];
+
+      // Determine the closest frame to the robot and get the horizontal ditance of the human frames w.r.t to the robot.
+      double dist_left = pow(left_transform.transform.translation.x, 2) + pow(left_transform.transform.translation.y, 2);
+      double dist_right = pow(right_transform.transform.translation.x, 2) + pow(right_transform.transform.translation.y, 2);
+
+      double horizontal_min = (dist_left < dist_right) ? left_transform.transform.translation.y : right_transform.transform.translation.y;
+      double total_min = (dist_left < dist_right) ? dist_left : dist_right;
       RCLCPP_INFO(
           logger_,
-          "Human is really close in front");
-      horizontal_min *= horizontal_dist_modifier_;
-      if (std::fabs(horizontal_min) - (safe_dist_to_human_) < 0)
+          "Distances %f, %f, %f, %f", total_min, horizontal_min, dist_left, dist_right);
+      // double diff = rclcpp::Time(result.get()->left_transform.header.stamp.sec, result.get()->left_transform.header.stamp.nanosec).seconds() - clock_->now().seconds();
+
+      /* Current logic : Named SimpleAvoidance checks if human detected is within a distance threshold and if the received transform timeis within
+       * 1.5 seconds of now. Also check if the human is one side of the robot cmpletely and  not directly in front of the robot. If the human is
+       * is directly in front of the robot don't do anything. A stop command will be sent soon.
+       */
+
+      if (pow(total_min, 0.5) < human_dist_threshold_ && (left_transform.transform.translation.y * right_transform.transform.translation.y) >= 0)
       {
         RCLCPP_INFO(
             logger_,
-            "Human is really close on the side %f, %f", safe_dist_to_human_, horizontal_min);
-        // Calculate object pose changes.
-        std::ostringstream bimanual_msg;
-        double req_obj_translation = obj_translation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
-        double req_obj_orientation = obj_orientation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
-        // Check if calculated object pose changes are withing the limit.
-        req_obj_translation = (req_obj_translation < -obj_max_translation_) ? -obj_max_translation_ : req_obj_translation;
-        req_obj_translation = (req_obj_translation > obj_max_translation_) ? obj_max_translation_ : req_obj_translation;
-
-        req_obj_orientation = (req_obj_orientation < -obj_max_rotation_) ? -obj_max_rotation_ : req_obj_orientation;
-        req_obj_orientation = (req_obj_orientation > obj_max_rotation_) ? obj_max_rotation_ : req_obj_orientation;
-        // Create the bimanual message to send to Bimanual Server.
-        bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation;
-        if (std::fabs(req_obj_orientation) >= 0.04 || std::fabs(req_obj_translation) >= 0.01)
+            "Human is really close in front");
+        horizontal_min *= horizontal_dist_modifier_;
+        if (std::fabs(horizontal_min) - (safe_dist_to_human_) < 0)
         {
-          yarp::os::Bottle bimanual_bottle;
-          yarp::os::Bottle shift_bottle = nav_shift_port_.prepare();
-          shift_bottle.clear();
-          bimanual_bottle.clear();
-          bimanual_bottle.addString(bimanual_msg.str());
-          if (!obj_pose_action_executed_)
+          RCLCPP_INFO(
+              logger_,
+              "Human is really close on the side %f, %f", safe_dist_to_human_, horizontal_min);
+          // Calculate object pose changes.
+          std::ostringstream bimanual_msg;
+          double req_obj_translation = obj_translation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
+          double req_obj_orientation = obj_orientation_slope_ * (horizontal_min + ((horizontal_min < 0) ? 1.0 : -1.0) * (safe_dist_to_human_));
+          // Check if calculated object pose changes are withing the limit.
+          req_obj_translation = (req_obj_translation < -obj_max_translation_) ? -obj_max_translation_ : req_obj_translation;
+          req_obj_translation = (req_obj_translation > obj_max_translation_) ? obj_max_translation_ : req_obj_translation;
+
+          req_obj_orientation = (req_obj_orientation < -obj_max_rotation_) ? -obj_max_rotation_ : req_obj_orientation;
+          req_obj_orientation = (req_obj_orientation > obj_max_rotation_) ? obj_max_rotation_ : req_obj_orientation;
+          // Create the bimanual message to send to Bimanual Server.
+          bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation;
+          if (std::fabs(req_obj_orientation) >= 0.04 || std::fabs(req_obj_translation) >= 0.01)
           {
-            // If object pose change is being executed for the first time, setup sequencing variables.
-            current_human_horizontal_dist_ = horizontal_min;
-            obj_pose_action_executed_ = true;
-            bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
-            reset_executed_ = false;
-            RCLCPP_INFO(
-                logger_,
-                "Sending To Bimanual %s", bimanual_msg.str().c_str());
-            if (nav_shift_enabled_) // calculate nav shift if needed.
+            yarp::os::Bottle bimanual_bottle;
+            yarp::os::Bottle shift_bottle = nav_shift_port_.prepare();
+            shift_bottle.clear();
+            bimanual_bottle.clear();
+            bimanual_bottle.addString(bimanual_msg.str());
+            if (!obj_pose_action_executed_)
             {
-              if (std::fabs(horizontal_min) < 0.10)
-              {
-                int shift_required = ((horizontal_min < 0) ? 1 : 0);
-                shift_bottle.addInt32(1);
-                shift_bottle.addInt32(shift_required);
-                nav_shift_port_.write();
-                RCLCPP_INFO(
-                    logger_,
-                    "Sending Nav Shift %d", shift_required);
-              }
-            }
-          }
-          else
-          {
-            /*Send another bimanual message only if deteted human horizontal dists has changed w.r.t to the robot.
-             * Otherise skip to avoid sending too many messages to bimanual
-             */
-            if (std::fabs(current_human_horizontal_dist_) - std::fabs(horizontal_min) > 0.01)
-            {
+              // If object pose change is being executed for the first time, setup sequencing variables.
               current_human_horizontal_dist_ = horizontal_min;
+              obj_pose_action_executed_ = true;
               bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
               reset_executed_ = false;
               RCLCPP_INFO(
                   logger_,
                   "Sending To Bimanual %s", bimanual_msg.str().c_str());
-              if (nav_shift_enabled_)
+              if (nav_shift_enabled_) // calculate nav shift if needed.
               {
                 if (std::fabs(horizontal_min) < 0.10)
                 {
@@ -306,38 +296,68 @@ namespace ergocub_local_human_avoidance
                 }
               }
             }
+            else
+            {
+              /*Send another bimanual message only if deteted human horizontal dists has changed w.r.t to the robot.
+               * Otherise skip to avoid sending too many messages to bimanual
+               */
+              if (std::fabs(current_human_horizontal_dist_) - std::fabs(horizontal_min) > 0.01)
+              {
+                current_human_horizontal_dist_ = horizontal_min;
+                bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
+                reset_executed_ = false;
+                RCLCPP_INFO(
+                    logger_,
+                    "Sending To Bimanual %s", bimanual_msg.str().c_str());
+                if (nav_shift_enabled_)
+                {
+                  if (std::fabs(horizontal_min) < 0.10)
+                  {
+                    int shift_required = ((horizontal_min < 0) ? 1 : 0);
+                    shift_bottle.addInt32(1);
+                    shift_bottle.addInt32(shift_required);
+                    nav_shift_port_.write();
+                    RCLCPP_INFO(
+                        logger_,
+                        "Sending Nav Shift %d", shift_required);
+                  }
+                }
+              }
+            }
           }
         }
+        else
+        {
+          if (obj_pose_action_executed_)
+          { // If human is at a safe distance reset object pose.
+            if (!reset_executed_)
+            {
+              reset_executed_ = true;
+              bimanual_client_.perform_grasp_action("reset");
+              obj_pose_action_executed_ = false;
+              current_human_horizontal_dist_ = 100.0;
+            }
+          }
+        }
+
+        return cmd_vel;
       }
       else
-      {
-        if (obj_pose_action_executed_)
-        { // If human is at a safe distance reset object pose.
-          if (!reset_executed_)
-          {
-            reset_executed_ = true;
-            bimanual_client_.perform_grasp_action("reset");
-            obj_pose_action_executed_ = false;
-            current_human_horizontal_dist_ = 100.0;
-          }
-        }
-      }
+      { // If no human is detected or if human is too far away execute reset accordingly.
 
-      return cmd_vel;
+        if (!reset_executed_)
+        {
+          reset_executed_ = true;
+          bimanual_client_.perform_grasp_action("reset");
+        }
+        obj_pose_action_executed_ = false;
+        current_human_horizontal_dist_ = 100.0;
+
+        return cmd_vel;
+      }
     }
     else
-    { // If no human is detected or if human is too far away execute reset accordingly.
-
-      if (!reset_executed_)
-      {
-        reset_executed_ = true;
-        bimanual_client_.perform_grasp_action("reset");
-      }
-      obj_pose_action_executed_ = false;
-      current_human_horizontal_dist_ = 100.0;
-
       return cmd_vel;
-    }
   }
 
   void HumanAvoidanceController::setPlan(const nav_msgs::msg::Path &path) // Plugin Functions. Unmodified for now.

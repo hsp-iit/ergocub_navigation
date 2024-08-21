@@ -33,8 +33,11 @@
 #include <yarp/os/Port.h>
 #include <yarp/os/BufferedPort.h>
 #include <yarp/os/Bottle.h>
+#include <yarp/os/RpcClient.h>
 #include "ControlInterface.h"
 #include "ergocub_navigation/srv/get_human_extremes.hpp"
+#include "eCubPerceptionInterface/eCubPerceptionInterface.h"
+
 
 namespace ergocub_local_human_avoidance
 {
@@ -121,8 +124,10 @@ namespace ergocub_local_human_avoidance
         // yarp stuff
         yarp::os::Network yarp_; // Yarp network declaration to allow for sending messages to navigation and bimanual ports.
         yarp::os::Port bimannual_port_; // Port to the Bimanual Server to allow for held object pose change
+        yarp::os::RpcClient human_extremes_port_; 
         yarp::os::BufferedPort<yarp::os::Bottle> nav_shift_port_; //Port to path converter to shift planned path
         ControlInterface bimanual_client_; //Thrift interface for peforming grasp actions that cause object pose change
+        eCubPerceptionInterface human_data_client_;
         std::string nav_shift_port_name_; //Name of the port to send path shift command
         std::string bimanual_server_name_; //Name of the bimanual server.
 
