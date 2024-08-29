@@ -38,6 +38,8 @@ find_package(tf2_sensor_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(eCubPerceptionInterface REQUIRED)
+
 
 #include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
 #include_directories(/opt/ros/humble/include/tf2)
@@ -56,10 +58,10 @@ include_directories(/opt/ros/iron/include/pcl_conversions)
 include_directories(include)
 add_subdirectory(interfaces)
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "srv/GetHumanExtremes.srv"
-  DEPENDENCIES geometry_msgs
-)
+#rosidl_generate_interfaces(${PROJECT_NAME}
+#  "srv/GetHumanExtremes.srv"
+#  DEPENDENCIES geometry_msgs
+#)
   
 #add_executable(scan_filter_compensated src/scan_filtering_ros2_compensated.cpp)
 #ament_target_dependencies(scan_filter_compensated
@@ -260,6 +262,7 @@ set(dependencies
   nav2_core
   tf2
   YARP
+  eCubPerceptionInterface
 )
 
 
@@ -270,7 +273,7 @@ add_library(ergocub_local_human_avoidance_controller SHARED
 # prevent pluginlib from using boost
 target_compile_definitions(ergocub_local_human_avoidance_controller PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 
-rosidl_get_typesupport_target(ergocub_local_human_avoidance_controller ${PROJECT_NAME} "rosidl_typesupport_cpp")
+#rosidl_get_typesupport_target(ergocub_local_human_avoidance_controller ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 
 ament_target_dependencies(ergocub_local_human_avoidance_controller
@@ -339,12 +342,12 @@ install(FILES ergocub_local_human_avoidance_controller.xml
 
 
 ament_export_include_directories(include)
-rosidl_get_typesupport_target(cpp_typesupport_target
-  ${PROJECT_NAME} rosidl_typesupport_cpp)
-target_link_libraries(ergocub_local_human_avoidance_controller "${cpp_typesupport_target}")
+#rosidl_get_typesupport_target(cpp_typesupport_target
+#  ${PROJECT_NAME} rosidl_typesupport_cpp)
+#target_link_libraries(ergocub_local_human_avoidance_controller "${cpp_typesupport_target}")
 ament_export_libraries(ergocub_local_human_avoidance_controller)
 ament_export_dependencies(${dependencies})
-ament_export_dependencies(rosidl_default_runtime)
+#ament_export_dependencies(rosidl_default_runtime)
 
 pluginlib_export_plugin_description_file(nav2_core ergocub_local_human_avoidance_controller.xml)
 

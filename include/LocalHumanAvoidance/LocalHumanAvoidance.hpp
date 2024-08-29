@@ -35,7 +35,6 @@
 #include <yarp/os/Bottle.h>
 #include <yarp/os/RpcClient.h>
 #include "ControlInterface.h"
-#include "ergocub_navigation/srv/get_human_extremes.hpp"
 #include "eCubPerceptionInterface/eCubPerceptionInterface.h"
 
 
@@ -99,7 +98,6 @@ namespace ergocub_local_human_avoidance
         rclcpp::Logger logger_{rclcpp::get_logger("HumanAvoidanceController")};
         rclcpp::Clock::SharedPtr clock_;
         std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> global_pub_; //publisher to publish path
-        rclcpp::Client<ergocub_navigation::srv::GetHumanExtremes>::SharedPtr human_extremes_client_; //service client to get human extremes.
 
         double desired_linear_vel_; //velocity commands.
         double lookahead_dist_; // Distance to look ahead of current pose.
@@ -107,6 +105,8 @@ namespace ergocub_local_human_avoidance
         double object_size_; //size of the object held by the robot, currently unused.
         double safe_dist_to_human_; //Safe distance required between the robot and detected human.
         double current_human_horizontal_dist_; //Variable to store the current horizontal (y-axis) distance of the human extreme w.r.t robot.
+        double executed_translation_; //Variable to record the last executed object translation.
+        double executed_rotation_; //Variable to record the last executed object rotation.
         double human_dist_threshold_; // Threshold at which the robot should start making changes to the object pose if the human is close.
         double horizontal_dist_modifier_; // Typically a multiplier to horizontal dist from camera to account for inaccuracies.
         bool nav_shift_enabled_; //Bool to inform if nav shift is enabled.
@@ -126,6 +126,7 @@ namespace ergocub_local_human_avoidance
         yarp::os::Port bimannual_port_; // Port to the Bimanual Server to allow for held object pose change
         yarp::os::RpcClient human_extremes_port_; 
         yarp::os::BufferedPort<yarp::os::Bottle> nav_shift_port_; //Port to path converter to shift planned path
+        yarp::os::BufferedPort<yarp::os::Bottle> direct_human_data_port_; // Port to directly read human data
         ControlInterface bimanual_client_; //Thrift interface for peforming grasp actions that cause object pose change
         eCubPerceptionInterface human_data_client_;
         std::string nav_shift_port_name_; //Name of the port to send path shift command
