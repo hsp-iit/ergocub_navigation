@@ -81,7 +81,7 @@ namespace ergocub_local_human_avoidance
     // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
     bimannual_port_.open("/bimanual_nav_client");
     nav_shift_port_.open("/nav_shift_client");
-    human_extremes_port_.open("/eCubperception/rpc:o");
+    // human_extremes_port_.open("/eCubperception/rpc:o");
     direct_human_data_port_.open("/read_human_data");
     // Wait until bimanual server is available and connected to.
     while (!yarp_.connect("/bimanual_nav_client", bimanual_server_name_))
@@ -285,7 +285,7 @@ namespace ergocub_local_human_avoidance
             {
               // If object pose change is being executed for the first time, setup sequencing variables.
               // Create the bimanual message to send to Bimanual Server.
-              bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation<<", "<<double(std::fabs(req_obj_translation)/obj_max_translation_*3.0);
+              bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation << ", 3.0";
               bimanual_bottle.addString(bimanual_msg.str());
 
               current_human_horizontal_dist_ = horizontal_min;
@@ -293,6 +293,8 @@ namespace ergocub_local_human_avoidance
               executed_rotation_ = req_obj_orientation;
               executed_translation_ = req_obj_translation;
               bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
+              rclcpp::sleep_for(10ms);
+
               reset_executed_ = false;
               RCLCPP_INFO(
                   logger_,
@@ -312,7 +314,7 @@ namespace ergocub_local_human_avoidance
               }
               RCLCPP_INFO(
                   logger_,
-                  "Executed action %f,%f", executed_rotation_,executed_translation_);
+                  "Executed action %f,%f", executed_rotation_, executed_translation_);
             }
             else
             {
@@ -322,11 +324,13 @@ namespace ergocub_local_human_avoidance
               if (std::fabs(current_human_horizontal_dist_) - std::fabs(horizontal_min) > 0.01)
               {
                 current_human_horizontal_dist_ = horizontal_min;
-                bimanual_msg << "0.0, " << req_obj_translation - executed_translation_ << ", 0.0, " << req_obj_orientation - executed_rotation_<<", "<<double(std::fabs(req_obj_translation-executed_translation_)/obj_max_translation_*3.0);
-                
-                if(std::fabs(req_obj_translation-executed_translation_)>0.01 || std::fabs(req_obj_orientation-executed_rotation_)>0.04)
-                bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
+                bimanual_msg << "0.0, " << req_obj_translation << ", 0.0, " << req_obj_orientation << ", 3.0";
 
+                if (std::fabs(req_obj_translation - executed_translation_) > 0.01 || std::fabs(req_obj_orientation - executed_rotation_) > 0.04)
+                {
+                  bimanual_client_.perform_grasp_action(bimanual_msg.str().c_str());
+                  rclcpp::sleep_for(10ms);
+                }
                 executed_rotation_ = req_obj_orientation;
                 executed_translation_ = req_obj_translation;
                 reset_executed_ = false;
@@ -347,8 +351,8 @@ namespace ergocub_local_human_avoidance
                   }
                 }
                 RCLCPP_INFO(
-                  logger_,
-                  "Executed action %f,%f", executed_rotation_,executed_translation_);
+                    logger_,
+                    "Executed action %f,%f", executed_rotation_, executed_translation_);
               }
             }
           }
@@ -361,6 +365,8 @@ namespace ergocub_local_human_avoidance
             {
               reset_executed_ = true;
               bimanual_client_.perform_grasp_action("reset");
+              rclcpp::sleep_for(10ms);
+
               obj_pose_action_executed_ = false;
               current_human_horizontal_dist_ = 100.0;
               executed_rotation_ = executed_translation_ = 0.0;
