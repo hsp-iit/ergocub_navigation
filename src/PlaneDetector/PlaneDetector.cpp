@@ -8,11 +8,17 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
+
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 using std::placeholders::_1;
 
 void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in)
 {
+    if (!(m_left_foot_contact && m_right_foot_contact))
+    {
+        return;
+    }
+    
     pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(*pc_in, *in_cloud);
 
@@ -83,11 +89,48 @@ CallbackReturn PlaneDetector::on_configure(const rclcpp_lifecycle::State &)
         10,
         std::bind(&PlaneDetector::pc_callback, this, _1)
     );
+
+    m_right_foot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped> (
+        m_right_foot_topic,
+        10,
+        std::bind(&PlaneDetector::right_foot_callback, this, _1)
+    );
+    m_left_foot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped> (
+        m_left_foot_topic,
+        10,
+        std::bind(&PlaneDetector::left_foot_callback, this, _1)
+    );
     
     //Publisher
     m_pointcloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic, 10);
 
     return CallbackReturn::SUCCESS;
+}
+
+void PlaneDetector::right_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg)
+{
+    if (-msg->wrench.force.z >= m_wrench_threshold)  //detecting contact
+    {
+        if (!m_right_foot_contact)
+        {
+            m_right_foot_contact = true;
+            RCLCPP_INFO(this->get_logger(), "Right Foot in contact");
+        }
+    }
+    else{m_right_foot_contact = false;}
+}
+
+void PlaneDetector::left_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg)
+{
+    if (-msg->wrench.force.z >= m_wrench_threshold)  //detecting contact
+    {
+        if (!m_left_foot_contact)
+        {
+            m_left_foot_contact = true;
+            RCLCPP_INFO(this->get_logger(), "Left Foot in contact");
+        }
+    }
+    else{m_left_foot_contact = false;}
 }
 
 CallbackReturn PlaneDetector::on_activate(const rclcpp_lifecycle::State &)
@@ -122,4 +165,27 @@ CallbackReturn PlaneDetector::on_error(const rclcpp_lifecycle::State & state)
 {
     RCLCPP_FATAL(get_logger(), "Error Processing from %s", state.label().c_str());
     return CallbackReturn::SUCCESS;
+}
+
+
+int main(int argc, char** argv)
+{
+    rclcpp::init(argc, argv);
+    if (rclcpp::ok())
+    {
+        rclcpp::executors::SingleThreadedExecutor executor;
+        rclcpp::NodeOptions options;
+        auto node = std::make_shared<PlaneDetector>(options);
+        executor.add_node(node->get_node_base_interface());
+        std::cout << "Starting up node. \n";
+        executor.spin();
+        std::cout << "Shutting down" << std::endl;
+        rclcpp::shutdown();
+    }
+    else
+    {
+        std::cout << "ROS2 not available. Shutting down node. \n";
+    }
+    
+    return 0;
 }

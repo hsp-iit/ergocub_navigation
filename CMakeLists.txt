@@ -55,51 +55,6 @@ include_directories(/opt/ros/iron/include/pcl_conversions)
 include_directories(include)
 
 
-#add_executable(scan_filter_compensated src/scan_filtering_ros2_compensated.cpp)
-#ament_target_dependencies(scan_filter_compensated
-#  "std_msgs"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "rclcpp"
-#  "laser_geometry"
-#  "pcl_conversions"
-#  "geometry_msgs"
-#  "sensor_msgs"
-#)
-#target_link_libraries(scan_filter_compensated ${PCL_LIBRARIES})
-
-#add_executable(chest_projection src/chest_projection.cpp)
-#ament_target_dependencies(chest_projection
-#  "std_msgs"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "YARP"
-#  "rclcpp"
-#)
-
-#add_executable(footsteps_viewer src/footsteps_viewer.cpp)
-#ament_target_dependencies(footsteps_viewer
-#  "YARP"
-#  "rclcpp"
-#  "nav_msgs"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "tf2"
-#  "nav2_util"
-#  "nav_2d_msgs"
-#  "visualization_msgs"
-#)
-
-#add_executable(virtual_unicycle_publisher src/virtual_unicycle_publisher.cpp)
-#ament_target_dependencies(virtual_unicycle_publisher
-#  "YARP"
-#  "rclcpp"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "tf2"
-#  "tf2_kdl"
-#)
-
 add_executable(planner_trigger_server src/planner_trigger_server.cpp)
 ament_target_dependencies(planner_trigger_server
   "YARP"
@@ -107,18 +62,6 @@ ament_target_dependencies(planner_trigger_server
   "std_srvs"
   "rclcpp_action"
 )
-
-#add_executable(interpolation_walking_controller_talker src/interpolation_walking_controller_talker.cpp)
-#ament_target_dependencies(interpolation_walking_controller_talker
-#  "YARP"
-#  "rclcpp"
-#  "nav_msgs"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "tf2"
-#  "nav2_util"
-#  "nav_2d_msgs"
-#)
 
 add_executable(scan_filter src/ScanFilter.cpp)
 ament_target_dependencies(scan_filter
@@ -241,6 +184,20 @@ ament_target_dependencies(human_pose_goal_generator
   "rclcpp_action"
 )
 
+add_executable(plane_detector src/PlaneDetector/PlaneDetector.cpp)
+ament_target_dependencies(plane_detector
+  "rclcpp"
+  "rclcpp_lifecycle"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "tf2_sensor_msgs"
+  "sensor_msgs"
+  "geometry_msgs"
+  "pcl_ros"
+)
+target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
+
 set(dependencies
   rclcpp
   geometry_msgs
@@ -276,6 +233,7 @@ install(TARGETS
   phase_detector
   path_converter_v2
   human_pose_goal_generator
+  plane_detector
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory

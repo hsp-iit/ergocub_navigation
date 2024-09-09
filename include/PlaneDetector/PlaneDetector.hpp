@@ -13,6 +13,7 @@
 #include "tf2/transform_datatypes.h"
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
+#include <geometry_msgs/msg/wrench_stamped.hpp>
 
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
@@ -25,6 +26,10 @@ private:
     std::string m_contact_frame = "r_sole";             // reference frame of the foot in contact with the ground
     std::string m_pc_topic = "/camera/depth/color/points";               // topic name of the lidar scan
     std::string m_pub_topic = "/adjusted_depth_pc";           // name of the topic where the filtered pointcloud will be published
+    std::string m_right_foot_topic = "/right_foot_heel_ft";
+    std::string m_left_foot_topic = "/left_foot_heel_ft";
+    double m_wrench_threshold = 100.0;
+    bool m_right_foot_contact, m_left_foot_contact;
 
     float m_filter_z_low = 0.2;             // minimum height to accept laser readings, from the reference frame, in meters
     float m_filter_z_high = 2.5;            // maximum height to accept laser readings, from the reference frame, in meters
@@ -34,8 +39,12 @@ private:
 
     rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_pointcloud_pub;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr m_pc_sub;
+    // Unfortunately, message filters aren't available for lifecycle nodes
+    rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_right_foot_sub, m_left_foot_sub;
 
     void pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in);
+    void right_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
+    void left_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
 
 public:
     PlaneDetector(const rclcpp::NodeOptions & options);
@@ -51,52 +60,3 @@ public:
 };  // End of class PlaneDetector node
 
 #endif
-
-#include <iostream>
-#include <pcl/ModelCoefficients.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
-
-
-int main()
-{
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
-    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-    // Create the segmentation object
-    pcl::SACSegmentation<pcl::PointXYZ> seg;
-    
-    // Optional
-    seg.setOptimizeCoefficients (true);
-    
-    // Mandatory
-    seg.setModelType (pcl::SACMODEL_PLANE);
-    seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setDistanceThreshold (0.01);
-    
-    seg.setInputCloud (cloud);
-    seg.segment (*inliers, *coefficients);
-    
-    if (inliers->indices.size () == 0)
-    {
-      PCL_ERROR ("Could not estimate a planar model for the given dataset.\n");
-      return (-1);
-    }
-    
-    std::cerr << "Model coefficients: " << coefficients->values[0] << " " 
-                                        << coefficients->values[1] << " "
-                                        << coefficients->values[2] << " " 
-                                        << coefficients->values[3] << std::endl;
-    
-    std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
-    
-    for (const auto& idx: inliers->indices)
-        std::cerr << idx << "    " << cloud->points[idx].x << " "
-                                   << cloud->points[idx].y << " "
-                                   << cloud->points[idx].z << std::endl;
-    
-    return (0);
-}
