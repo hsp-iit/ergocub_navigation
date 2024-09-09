@@ -8,6 +8,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/filters/extract_indices.h>
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 using std::placeholders::_1;
@@ -23,6 +24,7 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     // Transform
     sensor_msgs::msg::PointCloud2 realsense_cloud;
     std::string transform_error;
+    geometry_msgs::msg::TransformStamped realsense_to_foot_tf;
     if (m_tf_buffer_in->canTransform(
                 pc_in->header.frame_id,
                 m_realsense_frame,
@@ -33,10 +35,11 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
         try
         {
             realsense_cloud = m_tf_buffer_in->transform(*pc_in, m_realsense_frame, tf2::durationFromSec(0.0));
+            realsense_to_foot_tf = m_tf_buffer_in->lookupTransform("r_sole", m_realsense_frame, rclcpp::Time(0));
         }
         catch(const std::exception& e)
         {
-           RCLCPP_WARN(this->get_logger(), "Cannot transform %s to %s: %s \n", pc_in->header.frame_id, m_realsense_frame, e.what());
+           RCLCPP_WARN(this->get_logger(), "Transform exception: %s \n", e.what());
            return;
         }
     }
@@ -55,13 +58,26 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     pass.setFilterFieldName ("z");
     pass.setFilterLimits(m_filter_z_low, m_filter_z_high);
     pass.filter (*filtered_cloud);
+    
+    /*****************Transform in the robot foot frame*/
+    sensor_msgs::msg::PointCloud2 ground_cloud;
+    pcl::toROSMsg(*filtered_cloud, ground_cloud);
+    try
+    {
+        tf2::doTransform(ground_cloud, ground_cloud, realsense_to_foot_tf);
+    }
+    catch(const std::exception& e)
+    {
+       RCLCPP_WARN(this->get_logger(), "Cannot transform: %s \n", e.what());
+       return;
+    }
+    pcl::fromROSMsg(ground_cloud, *filtered_cloud);
 
     /*****************Detect ground plane*/
     pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-    // Create the segmentation object
+
     pcl::SACSegmentation<pcl::PointXYZ> seg;
-    
     seg.setOptimizeCoefficients(true);
     seg.setModelType(pcl::SACMODEL_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
@@ -80,13 +96,32 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
                                         << coefficients->values[1] << " "
                                         << coefficients->values[2] << " " 
                                         << coefficients->values[3] << std::endl;
+    double A = coefficients->values[0];
+    double B = coefficients->values[1];
+    double C = coefficients->values[2];
     
     std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
     // Extract plane points
-    for (const auto& idx: inliers->indices)
-        std::cerr << idx << "    " << in_cloud->points[idx].x << " "
-                                   << in_cloud->points[idx].y << " "
-                                   << in_cloud->points[idx].z << std::endl;
+    pcl::ExtractIndices<pcl::PointXYZ> extract;
+    extract.setInputCloud (filtered_cloud);
+    extract.setIndices (inliers);
+    extract.setNegative (false);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr plane_points (new pcl::PointCloud<pcl::PointXYZ>);
+    extract.filter (*plane_points);
+    //for (const auto& idx: inliers->indices)
+    //    std::cerr << idx << "    " << in_cloud->points[idx].x << " "
+    //                               << in_cloud->points[idx].y << " "
+    //                               << in_cloud->points[idx].z << std::endl;
+
+    /*****************Get RPY angles from plane coeff*/
+    // TODO - check if it's correct
+    double tmp = std::sqrt(A*A + B*B + C*C);
+    double roll = std::cosh(A / tmp);
+    double pitch = std::cosh(B / tmp);
+    double yaw = std::cosh(C / tmp);
+
+    /*****************Publish static frame corrected by RPY angles*/
+
 }
 
 PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("floor_detector_node", options)
