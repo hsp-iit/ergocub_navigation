@@ -30,11 +30,13 @@ private:
     std::string m_left_foot_topic = "/left_foot_heel_ft";
     double m_wrench_threshold = 100.0;
     bool m_right_foot_contact, m_left_foot_contact;
+    std::string m_realsense_frame = "realsense";
+
 
     float m_filter_z_low = 0.2;             // minimum height to accept laser readings, from the reference frame, in meters
     float m_filter_z_high = 2.5;            // maximum height to accept laser readings, from the reference frame, in meters
 
-    std::shared_ptr<tf2_ros::TransformListener> m_tf_listener_{nullptr};
+    std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};
     std::unique_ptr<tf2_ros::Buffer> m_tf_buffer_in;
 
     rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_pointcloud_pub;

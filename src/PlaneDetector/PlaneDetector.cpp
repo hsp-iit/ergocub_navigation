@@ -7,50 +7,82 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
-
+#include <pcl/filters/passthrough.h>
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 using std::placeholders::_1;
+using namespace std::chrono_literals;
 
 void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in)
 {
+    // Check if the robot is in double support
     if (!(m_left_foot_contact && m_right_foot_contact))
     {
         return;
     }
-    
-    pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::fromROSMsg(*pc_in, *in_cloud);
+    // Transform
+    sensor_msgs::msg::PointCloud2 realsense_cloud;
+    std::string transform_error;
+    if (m_tf_buffer_in->canTransform(
+                pc_in->header.frame_id,
+                m_realsense_frame,
+                pc_in->header.stamp,
+                tf2::durationFromSec(0.02),  
+                & transform_error ))
+    {
+        try
+        {
+            realsense_cloud = m_tf_buffer_in->transform(*pc_in, m_realsense_frame, tf2::durationFromSec(0.0));
+        }
+        catch(const std::exception& e)
+        {
+           RCLCPP_WARN(this->get_logger(), "Cannot transform %s to %s: %s \n", pc_in->header.frame_id, m_realsense_frame, e.what());
+           return;
+        }
+    }
+    else
+    {
+        RCLCPP_WARN(this->get_logger(), "Cannot transform %s to %s: %s \n", pc_in->header.frame_id, m_realsense_frame, transform_error);
+        return;
+    }
 
+    pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::fromROSMsg(realsense_cloud, *in_cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    /*****************Cut roof*/
+    pcl::PassThrough<pcl::PointXYZ> pass;
+    pass.setInputCloud (in_cloud);
+    pass.setFilterFieldName ("z");
+    pass.setFilterLimits(m_filter_z_low, m_filter_z_high);
+    pass.filter (*filtered_cloud);
+
+    /*****************Detect ground plane*/
     pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
     // Create the segmentation object
     pcl::SACSegmentation<pcl::PointXYZ> seg;
     
-    // Optional
-    seg.setOptimizeCoefficients (true);
+    seg.setOptimizeCoefficients(true);
+    seg.setModelType(pcl::SACMODEL_PLANE);
+    seg.setMethodType(pcl::SAC_RANSAC);
+    seg.setDistanceThreshold(0.01);
     
-    // Mandatory
-    seg.setModelType (pcl::SACMODEL_PLANE);
-    seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setDistanceThreshold (0.01);
+    seg.setInputCloud(filtered_cloud);
+    seg.segment(*inliers, *coefficients);
     
-    seg.setInputCloud (in_cloud);
-    seg.segment (*inliers, *coefficients);
-    
-    if (inliers->indices.size () == 0)
+    if (inliers->indices.size() == 0)
     {
         RCLCPP_ERROR(get_logger(), "Could not estimate a planar model for the given cloud.");
         return;
     }
-    
+    // Plane coefficients: 
     std::cerr << "Model coefficients: " << coefficients->values[0] << " " 
                                         << coefficients->values[1] << " "
                                         << coefficients->values[2] << " " 
                                         << coefficients->values[3] << std::endl;
     
     std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
-    
+    // Extract plane points
     for (const auto& idx: inliers->indices)
         std::cerr << idx << "    " << in_cloud->points[idx].x << " "
                                    << in_cloud->points[idx].y << " "
@@ -66,7 +98,7 @@ PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
 
     
     m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-    m_tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
+    m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
 }
 
 CallbackReturn PlaneDetector::on_configure(const rclcpp_lifecycle::State &)
