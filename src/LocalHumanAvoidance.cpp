@@ -232,10 +232,10 @@ namespace ergocub_local_human_avoidance
     {
 
       Eigen::MatrixXd robot_from_base = Eigen::MatrixXd::Identity(4, 4);
-      robot_from_base.block(0, 0, 3, 3) = Eigen::Quaterniond(robot_transform.transform.rotation.w, robot_transform.transform.rotation.x, robot_transform.transform.rotation.y, robot_transform.transform.rotation.z).toRotationMatrix();
+      /*robot_from_base.block(0, 0, 3, 3) = Eigen::Quaterniond(robot_transform.transform.rotation.w, robot_transform.transform.rotation.x, robot_transform.transform.rotation.y, robot_transform.transform.rotation.z).toRotationMatrix();
       Eigen::Vector3d robot_trans_from_odom;
       robot_trans_from_odom << robot_transform.transform.translation.x, robot_transform.transform.translation.y, robot_transform.transform.translation.z;
-      robot_from_base.block(0, 3, 3, 1) = robot_trans_from_odom;
+      robot_from_base.block(0, 3, 3, 1) = robot_trans_from_odom;*/
       Eigen::MatrixXd human_left_from_camera = Eigen::MatrixXd::Identity(4, 4);
       Eigen::MatrixXd human_right_from_camera = Eigen::MatrixXd::Identity(4, 4);
 
@@ -255,8 +255,10 @@ namespace ergocub_local_human_avoidance
       Eigen::Quaterniond human_right_from_robot_quat(human_right_from_robot_rot);
 
       geometry_msgs::msg::TransformStamped left_transform, right_transform;
-      left_transform.header.stamp = right_transform.header.stamp = this->clock_->now();
-      left_transform.header.frame_id = right_transform.header.frame_id = "geometric_unicycle";
+      left_transform.header.stamp.sec = right_transform.header.stamp.sec = human_data->get(7).asInt64();
+      left_transform.header.stamp.nanosec = right_transform.header.stamp.nanosec = human_data->get(8).asInt64();
+
+      left_transform.header.frame_id = right_transform.header.frame_id = "realsense";
       left_transform.child_frame_id = human_left_frame_;
       right_transform.child_frame_id = human_right_frame_;
       left_transform.transform.translation.x = human_left_from_robot(0, 3);
