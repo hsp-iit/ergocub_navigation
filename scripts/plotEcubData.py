@@ -17,8 +17,64 @@ import sys
 import csv
 import math
 path = os.path.abspath(os.path.join(Path.home(),sys.argv[1]))
-allData = pandas.read_csv(path, header=None)
+allDataRaw = pandas.read_csv(path, header=None)
+allDataRaw.columns = ("x1","y1","x2","y2","hx1","hy1","hx2","hy2","rx1","ry1","at1","at2","ht1","ht2","rt1")
+
+def find_nearest(array, value):
+    array = numpy.asarray(array)
+    idx = (numpy.abs(array - value)).argmin()
+    return idx
+
+for i in range(allDataRaw["rt1"].values.shape[0]):
+    allDataRaw["at1"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["at1"].values[i]
+    allDataRaw["at2"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["at2"].values[i]
+    allDataRaw["ht1"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["ht1"].values[i]
+    allDataRaw["ht2"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["ht2"].values[i]
+    allDataRaw["rt1"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["rt1"].values[i]
+
+dataList = list()
+for i in range(allDataRaw["rt1"].values.shape[0]):
+    x1=None
+    y1=None
+    hx1=None
+    hy1=None
+
+    x2=None
+    y2=None
+    hx2=None
+    hy2=None
+
+    rx1=None
+    ry1=None
+    
+    rx1 = allDataRaw["rx1"].values[i]
+    ry1 = allDataRaw["ry1"].values[i]
+    if abs(allDataRaw["rt1"].values[i]-allDataRaw["at1"].values[find_nearest(allDataRaw["at1"].values, allDataRaw["rt1"].values[i])]) < 0.5:
+        x1 = allDataRaw["x1"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["rt1"].values[i])]+rx1
+        y1 = allDataRaw["y1"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["rt1"].values[i])]+ry1
+
+    if abs(allDataRaw["rt1"].values[i]-allDataRaw["at2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["rt1"].values[i])]) < 0.5:
+        x2 = allDataRaw["x2"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["rt1"].values[i])]+rx1
+        y2 = allDataRaw["y2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["rt1"].values[i])]+ry1
+    
+    if abs(allDataRaw["rt1"].values[i]-allDataRaw["ht1"].values[find_nearest(allDataRaw["ht1"].values,allDataRaw["rt1"].values[i])]) < 0.5:
+        hx1 = allDataRaw["hx1"].values[find_nearest(allDataRaw["ht1"].values,allDataRaw["rt1"].values[i])]+rx1
+        hy1 = allDataRaw["hy1"].values[find_nearest(allDataRaw["ht1"].values,allDataRaw["rt1"].values[i])]+ry1
+
+    if abs(allDataRaw["rt1"].values[i]-allDataRaw["at2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["rt1"].values[i])]) < 0.5:
+        hx2 = allDataRaw["hx2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["rt1"].values[i])]+rx1
+        hy2 = allDataRaw["hy2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["rt1"].values[i])]+ry1
+
+
+    dataList.append({'x1': x1,'y1':y1, 'x2':x2,'y2':y2, 'hx1':hx1,'hy1':hy1, 'hx2':hx2,'hy2':hy2,'rx1':rx1, 'ry1':ry1})
+
+allData=pandas.DataFrame(dataList)
 allData.columns = ("x1","y1","x2","y2","hx1","hy1","hx2","hy2","rx1","ry1")
+
+    
+
+
+
 
 robot_ellipse = None
 human_ellipse = None
@@ -46,7 +102,7 @@ def animate(i):
     rangle = math.atan2(allData["y1"].values[i]-allData["y2"].values[i],allData["x1"].values[i]-allData["x2"].values[i])
     if rangle<0:
         rangle = rangle + 2*math.pi
-    rline = Ellipse((0.5*(allData["x1"].values[i]+allData["x2"].values[i]),0.5*(allData["y1"].values[i]+allData["y2"].values[i])),rlength, 0.3,numpy.degrees(rangle), edgecolor = '#7348f1', lw=2, facecolor='none') 
+    rline = Ellipse((0.5*(allData["x1"].values[i]+allData["x2"].values[i]),0.5*(allData["y1"].values[i]+allData["y2"].values[i])),rlength, 0.3, numpy.degrees(rangle), edgecolor = '#7348f1', lw=2, facecolor='none') 
     robot_ellipse = ax1.add_patch(rline)
 
     
