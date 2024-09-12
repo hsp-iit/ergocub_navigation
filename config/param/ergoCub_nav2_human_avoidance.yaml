@@ -108,7 +108,7 @@ controller_server:
       object_translation_slope: 1.0
       object_orientation_slope: 2.2
       human_distance_threshold: 4.5
-      horizontal_dist_modifier: 2.0
+      horizontal_dist_modifier: 1.0
 
     # DWB parameters
     #FollowPath:
