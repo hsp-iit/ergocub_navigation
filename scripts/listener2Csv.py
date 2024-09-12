@@ -22,7 +22,7 @@ class ListenerToCsv(Node):
         my_new_param = rclpy.parameter.Parameter(
             'use_sim_time',
             rclpy.Parameter.Type.BOOL,
-            True
+            False
         )
         all_new_parameters = [my_new_param]
         self.set_parameters(all_new_parameters)

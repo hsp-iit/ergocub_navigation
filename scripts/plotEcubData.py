@@ -33,7 +33,7 @@ for i in range(allDataRaw["rt1"].values.shape[0]):
     allDataRaw["rt1"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["rt1"].values[i]
 
 dataList = list()
-for i in range(allDataRaw["rt1"].values.shape[0]):
+for i in range(allDataRaw["ht1"].values.shape[0]):
     x1=None
     y1=None
     hx1=None
@@ -47,26 +47,52 @@ for i in range(allDataRaw["rt1"].values.shape[0]):
     rx1=None
     ry1=None
     
-    rx1 = allDataRaw["rx1"].values[i]
-    ry1 = allDataRaw["ry1"].values[i]
-    if abs(allDataRaw["rt1"].values[i]-allDataRaw["at1"].values[find_nearest(allDataRaw["at1"].values, allDataRaw["rt1"].values[i])]) < 0.5:
-        x1 = allDataRaw["x1"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["rt1"].values[i])]+rx1
-        y1 = allDataRaw["y1"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["rt1"].values[i])]+ry1
-
-    if abs(allDataRaw["rt1"].values[i]-allDataRaw["at2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["rt1"].values[i])]) < 0.5:
-        x2 = allDataRaw["x2"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["rt1"].values[i])]+rx1
-        y2 = allDataRaw["y2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["rt1"].values[i])]+ry1
+    robot_set = False
+    left_arm_set = False
+    right_arm_set = False
+    right_human_set = False
+    left_human_set = False
     
-    if abs(allDataRaw["rt1"].values[i]-allDataRaw["ht1"].values[find_nearest(allDataRaw["ht1"].values,allDataRaw["rt1"].values[i])]) < 0.5:
-        hx1 = allDataRaw["hx1"].values[find_nearest(allDataRaw["ht1"].values,allDataRaw["rt1"].values[i])]+rx1
-        hy1 = allDataRaw["hy1"].values[find_nearest(allDataRaw["ht1"].values,allDataRaw["rt1"].values[i])]+ry1
+    hx1 = allDataRaw["hx1"].values[i]
+    hy1 = allDataRaw["hy1"].values[i]
+    
+    if abs(allDataRaw["ht1"].values[i]-allDataRaw["rt1"].values[find_nearest(allDataRaw["rt1"].values,allDataRaw["ht1"].values[i])]) < 0.5:
+        rx1 = allDataRaw["rx1"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["ht1"].values[i])]
+        ry1 = allDataRaw["ry1"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["ht1"].values[i])]
+        robot_set = True
 
-    if abs(allDataRaw["rt1"].values[i]-allDataRaw["at2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["rt1"].values[i])]) < 0.5:
-        hx2 = allDataRaw["hx2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["rt1"].values[i])]+rx1
-        hy2 = allDataRaw["hy2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["rt1"].values[i])]+ry1
+    if abs(allDataRaw["ht1"].values[i]-allDataRaw["at1"].values[find_nearest(allDataRaw["at1"].values, allDataRaw["ht1"].values[i])]) < 0.5:
+        x1 = allDataRaw["x1"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["ht1"].values[i])]
+        y1 = allDataRaw["y1"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["ht1"].values[i])]
+        left_arm_set = True
+        
 
+    if abs(allDataRaw["ht1"].values[i]-allDataRaw["at2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["ht1"].values[i])]) < 0.5:
+        x2 = allDataRaw["x2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["ht1"].values[i])]
+        y2 = allDataRaw["y2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["ht1"].values[i])]
+        right_arm_set = True
+    
+    if abs(allDataRaw["ht1"].values[i]-allDataRaw["ht2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["ht1"].values[i])]) < 0.5:
+        hx2 = allDataRaw["hx2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["ht1"].values[i])]
+        hy2 = allDataRaw["hy2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["ht1"].values[i])]
+        right_human_set = True
 
-    dataList.append({'x1': x1,'y1':y1, 'x2':x2,'y2':y2, 'hx1':hx1,'hy1':hy1, 'hx2':hx2,'hy2':hy2,'rx1':rx1, 'ry1':ry1})
+    
+
+    if robot_set is True and left_arm_set is True and right_arm_set is True and right_human_set is True:
+        hx1 = hx1+rx1
+        hy1 = hy1+ry1
+        
+        hx2 = hx2+rx1
+        hy2 = hy2+ry1
+        
+        x1 = x1+rx1
+        y1 = y1+ry1
+        
+        x2 = x2+rx1
+        y2 = y2+ry1
+        
+        dataList.append({'x1': x1,'y1':y1, 'x2':x2,'y2':y2, 'hx1':hx1,'hy1':hy1, 'hx2':hx2,'hy2':hy2,'rx1':rx1, 'ry1':ry1})
 
 allData=pandas.DataFrame(dataList)
 allData.columns = ("x1","y1","x2","y2","hx1","hy1","hx2","hy2","rx1","ry1")
