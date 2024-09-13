@@ -10,14 +10,16 @@ import tf2_py._tf2_py
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
+from tf_transformations import euler_from_quaternion
 from builtin_interfaces.msg import Time
 from tf2_msgs.msg import TFMessage
 import sys
 import csv
 
+
 class ListenerToCsv(Node):
 
-    def __init__(self, baseFrame, robotLeft, robotRight, humanLeft, humanRight,robotBaseFrame, dataList):
+    def __init__(self, baseFrame, robotLeft, robotRight, humanLeft, humanRight,robotBaseFrame, headFrame,dataList):
         super().__init__('ListenerToCsv')
         my_new_param = rclpy.parameter.Parameter(
             'use_sim_time',
@@ -34,6 +36,7 @@ class ListenerToCsv(Node):
         self.robot_right = robotRight
 
         self.base_frame = baseFrame
+        self.head_frame = headFrame
         self.tf_buffer = Buffer(rclpy.time.Duration(seconds=20))
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.data_list = dataList
@@ -68,14 +71,14 @@ class ListenerToCsv(Node):
         at2 =  t2.header.stamp.sec + 1e-9 *t2.header.stamp.nanosec
 
         try:
-            t3 = self.tf_buffer.lookup_transform( self.robot_base_frame, self.human_left,self.query_time, rclpy.time.Duration(seconds=0.1))
+            t3 = self.tf_buffer.lookup_transform( self.head_frame, self.human_left,self.query_time, rclpy.time.Duration(seconds=0.1))
         except TransformException as ex:
             self.get_logger().info(
             f'Could not transform {self.robot_base_frame} to {self.human_left}: {ex}')
             return
         ht1 =  t3.header.stamp.sec + 1e-9 *t3.header.stamp.nanosec
         try:
-            t4 = self.tf_buffer.lookup_transform( self.robot_base_frame,self.human_right, self.query_time, rclpy.time.Duration(seconds=0.1))
+            t4 = self.tf_buffer.lookup_transform( self.head_frame,self.human_right, self.query_time, rclpy.time.Duration(seconds=0.1))
         except TransformException as ex:
             self.get_logger().info(
             f'Could not transform {self.robot_base_frame} to {self.human_right}: {ex}')
@@ -88,11 +91,22 @@ class ListenerToCsv(Node):
             self.get_logger().info(
             f'Could not transform {self.base_frame} to {self.robot_base_frame}: {ex}')
             return
+        
+        rt1 =  t5.header.stamp.sec + 1e-9 *t5.header.stamp.nanosec
+        
+        try:
+            t6 = self.tf_buffer.lookup_transform( self.base_frame,self.head_frame, self.query_time, rclpy.time.Duration(seconds=0.1))
+        except TransformException as ex:
+            self.get_logger().info(
+            f'Could not transform {self.base_frame} to {self.robot_base_frame}: {ex}')
+            return
+        
+        rht1 = t6.header.stamp.sec + 1e-9 *t6.header.stamp.nanosec
         self.counter = self.counter+1
         print(self.counter)
-
-        rt1 =  t5.header.stamp.sec + 1e-9 *t5.header.stamp.nanosec
-        self.data_list.append({'x1':t1.transform.translation.x,'y1':t1.transform.translation.y, 'x2':t2.transform.translation.x,'y2':t2.transform.translation.y, 'hx1':t3.transform.translation.x,'hy1':t3.transform.translation.y, 'hx2':t4.transform.translation.x,'hy2':t4.transform.translation.y,'rx1':t5.transform.translation.x, 'ry1':t5.transform.translation.y, 'at1':at1,'at2':at2,'ht1':ht1,'ht2':ht2, 'rt1':rt1})
+        [roll,pitch,yaw] = euler_from_quaternion([t6.transform.rotation.x,t6.transform.rotation.y,t6.transform.rotation.x,t6.transform.rotation.w])
+        
+        self.data_list.append({'x1':t1.transform.translation.x,'y1':t1.transform.translation.y, 'x2':t2.transform.translation.x,'y2':t2.transform.translation.y, 'hx1':t3.transform.translation.x,'hy1':t3.transform.translation.y, 'hx2':t4.transform.translation.x,'hy2':t4.transform.translation.y,'rx1':t5.transform.translation.x, 'ry1':t5.transform.translation.y, 'rhx1':t6.transform.translation.x, 'rhy1':t6.transform.translation.y,'yaw':yaw, 'at1':at1,'at2':at2,'ht1':ht1,'ht2':ht2, 'rt1':rt1, 'rht1': rht1})
 
     def clock_callback(self, msg):
         self.query_time = msg 
@@ -108,15 +122,17 @@ def main():
     humanRight = sys.argv[4]
     baseFrame = sys.argv[5]
     robotBaseFrame = sys.argv[6]
-    filename = sys.argv[7]
-    node = ListenerToCsv(baseFrame, robotLeft,robotRight, humanLeft, humanRight,robotBaseFrame, dataList)
+    headFrame = sys.argv[7]
+
+    filename = sys.argv[8]
+    node = ListenerToCsv(baseFrame, robotLeft,robotRight, humanLeft, humanRight,robotBaseFrame, headFrame, dataList)
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     
     with open(filename,'w', newline='') as csvfile:
-        fieldnames = ['x1', 'y1', 'x2', 'y2', 'hx1', 'hy1', 'hx2', 'hy2', 'rx1','ry1', 'at1','at2','ht1','ht2','rt1']
+        fieldnames = ['x1', 'y1', 'x2', 'y2', 'hx1', 'hy1', 'hx2', 'hy2', 'rx1','ry1', 'rhx1','rhy1','yaw', 'at1','at2','ht1','ht2','rt1','rht1']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writerows(dataList)
         

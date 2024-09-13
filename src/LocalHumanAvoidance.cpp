@@ -208,27 +208,27 @@ namespace ergocub_local_human_avoidance
         "\n======================== Trying to get human values ==========================\n");
     yarp::os::Bottle *human_data = direct_human_data_port_.read(false);
 
-    double diff = std::fabs(rclcpp::Time(human_data->get(7).asInt64(), human_data->get(7).asInt64()).seconds() - clock_->now().seconds());
-    geometry_msgs::msg::TransformStamped robot_transform;
-    try
-    {
-      robot_transform = tf_->lookupTransform(
-          "geometric_unicycle", "realsense",
-          rclcpp::Time(human_data->get(7).asInt64(), human_data->get(7).asInt64()),15ms);
-    }
-    catch (const tf2::TransformException &ex)
-    {
-      RCLCPP_INFO(
-          logger_, "Could not transform %s to %s: %s",
-          human_tf_base_frame_.c_str(), human_right_frame_.c_str(), ex.what());
-      return cmd_vel;
-    }
-
     if (human_data != nullptr && human_data->get(2).asFloat64() > 0.0 && human_data->get(2).asFloat64() < 5.0)
     {
+      double diff = std::fabs(rclcpp::Time(human_data->get(7).asInt64(), human_data->get(7).asInt64()).seconds() - clock_->now().seconds());
+      geometry_msgs::msg::TransformStamped robot_transform;
+      try
+      {
+        robot_transform = tf_->lookupTransform(
+            "geometric_unicycle", "realsense",
+            rclcpp::Time(human_data->get(7).asInt64(), human_data->get(7).asInt64()), 15ms);
+      }
+      catch (const tf2::TransformException &ex)
+      {
+        RCLCPP_INFO(
+            logger_, "Could not transform %s to %s: %s",
+            human_tf_base_frame_.c_str(), human_right_frame_.c_str(), ex.what());
+        return cmd_vel;
+      }
+
       RCLCPP_INFO(
-        logger_,
-        "\n======================== Got human values %f==========================\n", human_data->get(2).asFloat64());
+          logger_,
+          "\n======================== Got human values %f==========================\n", human_data->get(2).asFloat64());
       Eigen::MatrixXd robot_from_base = Eigen::MatrixXd::Identity(4, 4);
       robot_from_base.block(0, 0, 3, 3) = Eigen::Quaterniond(robot_transform.transform.rotation.w, robot_transform.transform.rotation.x, robot_transform.transform.rotation.y, robot_transform.transform.rotation.z).toRotationMatrix();
       Eigen::Vector3d robot_trans_from_odom;
