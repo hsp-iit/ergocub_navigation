@@ -125,7 +125,7 @@ for i in range(allDataRaw["ht1"].values.shape[0]):
 
 allData=pandas.DataFrame(dataList)
 allData.columns = ("x1","y1","x2","y2","hx1","hy1","hx2","hy2","rx1","ry1")
-allData.to_csv("/home/ecub_docker/processed_data.csv", sep='\t', encoding='utf-8', index=False, header=True)
+allData.to_csv("/home/ergocub/processed_data.csv", sep='\t', encoding='utf-8', index=False, header=True)
 kernel_size = kernelSize 
 kernel = numpy.ones(kernel_size) / kernel_size    
 hx1_values =  numpy.convolve(allData["hx1"].values, kernel, mode="same")
