@@ -40,8 +40,6 @@
 #include <Eigen/Geometry>
 
 #include "ControlInterface.h"
-#include "eCubPerceptionInterface/eCubPerceptionInterface.h"
-
 namespace ergocub_local_human_avoidance
 {
     class HumanAvoidanceController : public nav2_core::Controller // class declaration based on nav2_tutorials custom controller plugin
@@ -102,7 +100,7 @@ namespace ergocub_local_human_avoidance
         rclcpp::Logger logger_{rclcpp::get_logger("HumanAvoidanceController")};
         rclcpp::Clock::SharedPtr clock_;
         std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> global_pub_; // publisher to publish path
-        std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+        std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;  // To broadcast any transform if needed
 
         double desired_linear_vel_;                  // velocity commands.
         double lookahead_dist_;                      // Distance to look ahead of current pose.
@@ -133,7 +131,6 @@ namespace ergocub_local_human_avoidance
         yarp::os::BufferedPort<yarp::os::Bottle> nav_shift_port_;         // Port to path converter to shift planned path
         yarp::os::BufferedPort<yarp::os::Bottle> direct_human_data_port_; // Port to directly read human data
         ControlInterface bimanual_client_;                                // Thrift interface for peforming grasp actions that cause object pose change
-        eCubPerceptionInterface human_data_client_;
         std::string nav_shift_port_name_;  // Name of the port to send path shift command
         std::string bimanual_server_name_; // Name of the bimanual server.
     };

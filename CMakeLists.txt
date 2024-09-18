@@ -38,8 +38,6 @@ find_package(tf2_sensor_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-find_package(eCubPerceptionInterface REQUIRED)
-
 
 #include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
 #include_directories(/opt/ros/humble/include/tf2)
@@ -262,7 +260,6 @@ set(dependencies
   nav2_core
   tf2
   YARP
-  eCubPerceptionInterface
 )
 
 

@@ -90,6 +90,7 @@ namespace ergocub_local_human_avoidance
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
+    // Wait until we have a connection to the human data port from the perception module.
     while (!yarp_.connect("/humanDataPort", "/read_human_data"))
     {
       std::cout << "Error! Could not connect to human data port\n";
@@ -97,7 +98,6 @@ namespace ergocub_local_human_avoidance
     }
 
     bimanual_client_.yarp().attachAsClient(bimannual_port_);
-    human_data_client_.yarp().attachAsClient(human_extremes_port_);
 
     // Setup variables to sequence bimanual actions
     current_human_horizontal_dist_ = 100.0;
@@ -169,71 +169,16 @@ namespace ergocub_local_human_avoidance
     cmd_vel.header.stamp = clock_->now();
     cmd_vel.twist.linear.x = 0.1;
 
-    // Get transforms to the left and right frames attached to the detected human.
-    /*geometry_msgs::msg::TransformStamped left_transform;
-    try
-    {
-      left_transform = tf_->lookupTransform(
-          human_tf_base_frame_, human_left_frame_,
-          tf2::TimePointZero);
-    }
-    catch (const tf2::TransformException &ex)
-    {
-      RCLCPP_INFO(
-          logger_, "Could not transform %s to %s: %s",
-          human_tf_base_frame_.c_str(), human_left_frame_.c_str(), ex.what());
-      return cmd_vel;
-    }
-
-
-    RCLCPP_INFO(
-        logger_,
-        "Detected Humans Close By");*/
-    /*bool received_response = false;
-    auto request = std::make_shared<ergocub_navigation::srv::GetHumanExtremes::Request>();
-    request->request = true;
-    auto result = human_extremes_client_->async_send_request(request);
-    if (result.wait_for(1s) == std::future_status::ready)
-    {
-      received_response = true;
-    }
-    else
-    {
-      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_three_ints");
-      return cmd_vel;
-    }*/
-
     RCLCPP_INFO(
         logger_,
         "\n======================== Trying to get human values ==========================\n");
-    yarp::os::Bottle *human_data = direct_human_data_port_.read(false);
+    yarp::os::Bottle *human_data = direct_human_data_port_.read(false); //Read the yarp port to get the last available human detection data.
 
     if (human_data != nullptr && human_data->get(2).asFloat64() > 0.0 && human_data->get(2).asFloat64() < 5.0)
     {
       double diff = std::fabs(rclcpp::Time(human_data->get(7).asInt64(), human_data->get(7).asInt64()).seconds() - clock_->now().seconds());
-      geometry_msgs::msg::TransformStamped robot_transform;
-      try
-      {
-        robot_transform = tf_->lookupTransform(
-            "geometric_unicycle", "realsense",
-            rclcpp::Time(human_data->get(7).asInt64(), human_data->get(7).asInt64()), 15ms);
-      }
-      catch (const tf2::TransformException &ex)
-      {
-        RCLCPP_INFO(
-            logger_, "Could not transform %s to %s: %s",
-            human_tf_base_frame_.c_str(), human_right_frame_.c_str(), ex.what());
-        return cmd_vel;
-      }
-
-      RCLCPP_INFO(
-          logger_,
-          "\n======================== Got human values %f==========================\n", human_data->get(2).asFloat64());
-      Eigen::MatrixXd robot_from_base = Eigen::MatrixXd::Identity(4, 4);
-      robot_from_base.block(0, 0, 3, 3) = Eigen::Quaterniond(robot_transform.transform.rotation.w, robot_transform.transform.rotation.x, robot_transform.transform.rotation.y, robot_transform.transform.rotation.z).toRotationMatrix();
-      Eigen::Vector3d robot_trans_from_odom;
-      robot_trans_from_odom << robot_transform.transform.translation.x, robot_transform.transform.translation.y, robot_transform.transform.translation.z;
-      robot_from_base.block(0, 3, 3, 1) = robot_trans_from_odom;
+      
+      Eigen::MatrixXd robot_from_base = Eigen::MatrixXd::Identity(4, 4); //For now left as Identity. To be replced with a transform from odom to realsense. 
       Eigen::MatrixXd human_left_from_camera = Eigen::MatrixXd::Identity(4, 4);
       Eigen::MatrixXd human_right_from_camera = Eigen::MatrixXd::Identity(4, 4);
 
@@ -255,7 +200,7 @@ namespace ergocub_local_human_avoidance
       geometry_msgs::msg::TransformStamped left_transform, right_transform;
       left_transform.header.stamp.sec = right_transform.header.stamp.sec = human_data->get(7).asInt64();
       left_transform.header.stamp.nanosec = right_transform.header.stamp.nanosec = human_data->get(8).asInt64();
-
+      //using full transform definitions for now. Will be replaced later.
       left_transform.header.frame_id = right_transform.header.frame_id = "realsense";
       left_transform.child_frame_id = human_left_frame_;
       right_transform.child_frame_id = human_right_frame_;
@@ -275,8 +220,8 @@ namespace ergocub_local_human_avoidance
       right_transform.transform.rotation.z = human_right_from_robot_quat.z();
       right_transform.transform.rotation.w = human_right_from_robot_quat.w();
 
-      tf_broadcaster_->sendTransform(left_transform);
-      tf_broadcaster_->sendTransform(right_transform);
+      //tf_broadcaster_->sendTransform(left_transform);
+      //tf_broadcaster_->sendTransform(right_transform); //Broadcast transforms for data collection.
 
       RCLCPP_INFO(
           logger_,
@@ -294,10 +239,10 @@ namespace ergocub_local_human_avoidance
       // double diff = rclcpp::Time(result.get()->left_transform.header.stamp.sec, result.get()->left_transform.header.stamp.nanosec).seconds() - clock_->now().seconds();
 
       /* Current logic : Named SimpleAvoidance checks if human detected is within a distance threshold and if the received transform timeis within
-       * 1.5 seconds of now. Also check if the human is one side of the robot cmpletely and  not directly in front of the robot. If the human is
+       * 2.0 seconds of now. Also check if the human is one side of the robot cmpletely and  not directly in front of the robot. If the human is
        * is directly in front of the robot don't do anything. A stop command will be sent soon.
        */
-
+      
       if (diff < 2.0 && pow(total_min, 0.5) < human_dist_threshold_ && (left_transform.transform.translation.y * right_transform.transform.translation.y) >= 0)
       {
         RCLCPP_INFO(
