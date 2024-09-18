@@ -6,7 +6,8 @@ import numpy
 from matplotlib.patches import Ellipse
 from matplotlib.patches import Circle
 from matplotlib.patches import Patch
-
+from matplotlib.patches import PathPatch
+from matplotlib.path import Path as Path2
 
 import math
 from time import sleep
@@ -17,28 +18,48 @@ import sys
 import csv
 import math
 path = os.path.abspath(os.path.join(Path.home(),sys.argv[1]))
-allDataRaw = pandas.read_csv(path, header=None)
+allDataRaw = pandas.read_csv(path, header=None) # Read Raw Data CSV Obtained After Running Bag Files
 allDataRaw.columns = ("x1","y1","x2","y2","hx1","hy1","hx2","hy2","rx1","ry1","rhx1","rhy1","yaw","at1","at2","ht1","ht2","rt1","rht1")
-startFrame = int(sys.argv[2])
-endFrame  = int(sys.argv[3])
-kernelSize = int(sys.argv[4])
-timeTolerance = float(sys.argv[5])
+# x1,y1 = Human Left Elbow Position in Odom Frame 
+# x2,y2 = Human Right Elbow in Odom Frame
+# at1,at2 = Time Stamp of Arm Data
+# hx1, hy2, hx2, hxy2 = Human Extreme Data Preferably in Odom Frame
+# rx,ry1, rhx1, rhy1 = Robot Odom to Base Transform and Robot Base to Head Transform Data
+# rt1, rht1  = Robot transfrom time stampes.
+startFrame = int(sys.argv[2]) # Start Frame to Begin Animation
+endFrame  = int(sys.argv[3]) # Frame to End Animation
+lowPassAlpha = float(sys.argv[4]) # Low Pass Filter For X-Position
+lowPassAlphaY = float(sys.argv[5])# Low Pass Filter For X-Position
+timeTolerance = float(sys.argv[6])# Allowed Time Tolerance Between Data to Be Matched
 
-def find_nearest(array, value):
+def find_nearest(array, value): 
     array = numpy.asarray(array)
     idx = (numpy.abs(array - value)).argmin()
     return idx
 
+init_time = allDataRaw["rt1"].values[0]
 for i in range(allDataRaw["rt1"].values.shape[0]):
-    allDataRaw["at1"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["at1"].values[i]
-    allDataRaw["at2"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["at2"].values[i]
-    allDataRaw["ht1"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["ht1"].values[i]
-    allDataRaw["ht2"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["ht2"].values[i]
-    allDataRaw["rt1"].values[i] = -allDataRaw["rt1"].values[0] + allDataRaw["rt1"].values[i]
-    allDataRaw["rht1"].values[i] = -allDataRaw["rht1"].values[0] + allDataRaw["rht1"].values[i]
+    allDataRaw["at1"].values[i] = allDataRaw["at1"].values[i] - init_time
+    allDataRaw["at2"].values[i] = allDataRaw["at2"].values[i] - init_time
+    allDataRaw["ht1"].values[i] = allDataRaw["ht1"].values[i] - init_time
+    allDataRaw["ht2"].values[i] = allDataRaw["ht2"].values[i] - init_time
+    allDataRaw["rt1"].values[i] = allDataRaw["rt1"].values[i] - init_time
+    allDataRaw["rht1"].values[i] = allDataRaw["rht1"].values[i] - init_time
 
 
+alpha = lowPassAlpha
+alphay = lowPassAlphaY # Pefroming Low Pass Filter on the Human Extreme Values.
+for i in range(allDataRaw["hx1"].values.shape[0]-1):
+    allDataRaw.at[i+1,'hx1'] =  alpha * allDataRaw.at[i+1,'hx1'] + (1-alpha)* allDataRaw.at[i,'hx1']
+    allDataRaw.at[i+1,'hy1'] =  alphay * allDataRaw.at[i+1,'hy1'] + (1-alphay)* allDataRaw.at[i,'hy1']
+    allDataRaw.at[i+1,'hx2'] =  alpha * allDataRaw.at[i+1,'hx2'] + (1-alpha)* allDataRaw.at[i,'hx2']
+    allDataRaw.at[i+1,'hy2'] =  alphay * allDataRaw.at[i+1,'hy2'] + (1-alphay)* allDataRaw.at[i,'hy2']
+
+
+
+    
 dataList = list()
+# Putting All the Porcessed Data after Matching Appropriate Transfroms
 for i in range(allDataRaw["ht1"].values.shape[0]):
     x1=None
     y1=None
@@ -94,114 +115,86 @@ for i in range(allDataRaw["ht1"].values.shape[0]):
 
     if robot_set is True and left_arm_set is True and right_arm_set is True and right_human_set is True and robot_head_set is True:
 
-        disth1 = pow(pow(hx1,2)+pow(hy1,2),0.5)     
-        disth2 = pow(pow(hx2,2)+pow(hy2,2),0.5)     
-        angle1 = math.atan2(hy1,hx1)
-        angle2 = math.atan2(hy2,hx2)
-        
-        if angle1<0:
-            angle1 = angle1 + 2*math.pi
-            
-        if angle2<0:
-            angle2 = angle2 + 2*math.pi
-        
-        change_angle = allDataRaw["yaw"].values[i]
-        if change_angle<0:
-            change_angle+change_angle+2*math.pi
-        hx1 = disth1*math.cos(angle1-change_angle)-rhx1
-        hx2 = disth2*math.cos(angle2-change_angle)-rhx1
-        
-        hy1 = disth1*math.sin(angle1-change_angle)-rhy1
-        hy2 = disth2*math.sin(angle2-change_angle)-rhy1
-
-      
         x1 = x1+rx1
         y1 = y1+ry1
         
         x2 = x2+rx1
         y2 = y2+ry1
-        
+   
         dataList.append({'x1': x1,'y1':y1, 'x2':x2,'y2':y2, 'hx1':hx1,'hy1':hy1, 'hx2':hx2,'hy2':hy2,'rx1':rx1, 'ry1':ry1})
 
-allData=pandas.DataFrame(dataList)
+allData=pandas.DataFrame(dataList) # Create New DataFrame and CSV with Processed Data
 allData.columns = ("x1","y1","x2","y2","hx1","hy1","hx2","hy2","rx1","ry1")
-allData.to_csv("/home/ergocub/processed_data.csv", sep='\t', encoding='utf-8', index=False, header=True)
-kernel_size = kernelSize 
-kernel = numpy.ones(kernel_size) / kernel_size    
-hx1_values =  numpy.convolve(allData["hx1"].values, kernel, mode="same")
-hy1_values =  numpy.convolve(allData["hy1"].values, kernel, mode="same")
-
-hx2_values =  numpy.convolve(allData["hx2"].values, kernel, mode="same")
-hy2_values =  numpy.convolve(allData["hy2"].values, kernel, mode="same")  
- 
+allData.to_csv(os.path.abspath(os.path.join(Path.home(),"processed_"+sys.argv[1])), index=False, header=False)
 
 
-
-
-robot_ellipse = None
+robot_ellipses = None
 human_ellipse = None
 robot_centre = None
-human_left = None
-human_right = None
+
 fig1, ax1 = matplotlib.pyplot.subplots(dpi=200)
-matplotlib.pyplot.xlim([-1, 5])
+matplotlib.pyplot.xlim([-1, 4])
 matplotlib.pyplot.ylim([-1, 2])
 
+# Make Initial Plot of Trajectories to Animate Them Later.
+rbx_line, = ax1.plot(allData["rx1"].values,allData["ry1"].values, 'r--', label='ErgoCub Base Frame ')
+relx_line, =  ax1.plot(allData["x1"].values,allData["y1"].values, linestyle='-.',color = '#fc9003', label='ErgoCub Elbows ')
 
+rerx_line, =ax1.plot(allData["x2"].values,allData["y2"].values, linestyle='-.',color = '#fc9003')
+
+hl_line, = ax1.plot(allData["hx1"].values,allData["hy1"].values, 'g-.', label = 'Human Extremes')
+hr_line, = ax1.plot(allData["hx2"].values,allData["hy2"].values, 'g-.')
+stopHuman = 506
 def animate(i):
     
-    global robot_ellipse
+    global robot_ellipses
     global human_ellipse
-    global robot_centre
-    global human_left
-    global human_right
-    
-    
+    global hl_line
+    global hr_line
+    global rbx_line
+    global relx_line
+    global rerx_line
+
     
     if i>startFrame and i <endFrame:
         
-        if robot_ellipse is not None:
-            robot_ellipse.remove()
-    
-        if human_ellipse is not None:
+        if robot_ellipses is not None:
+            robot_ellipses.remove()
+            
+        if human_ellipse is not None and i<stopHuman:
             human_ellipse.remove()
-    
-        if i < startFrame or i>endFrame:
-            human_left = None
-            human_right = None
-
+       
+        print(i)
         rlength = pow(pow(allData["x1"].values[i]-allData["x2"].values[i],2)+pow(allData["y1"].values[i]-allData["y2"].values[i],2),0.5)
         rangle = math.atan2(allData["y1"].values[i]-allData["y2"].values[i],allData["x1"].values[i]-allData["x2"].values[i])
         if rangle<0:
             rangle = rangle + 2*math.pi
-        rline = Ellipse((0.5*(allData["x1"].values[i]+allData["x2"].values[i]),0.5*(allData["y1"].values[i]+allData["y2"].values[i])),rlength, 0.3, numpy.degrees(rangle), edgecolor = '#7348f1', lw=2, facecolor='none') 
-        robot_ellipse = ax1.add_patch(rline)
+        robot_ellipse=Ellipse((0.5*(allData["x1"].values[i]+allData["x2"].values[i]),0.5*(allData["y1"].values[i]+allData["y2"].values[i])),rlength, 0.45, numpy.degrees(rangle), edgecolor = '#0380fc', lw=2, facecolor='#0380fc', alpha=(i/(allData["rx1"].values.shape[0])),label='ErgoCub Occupancy')
+        robot_ellipses = ax1.add_patch(robot_ellipse) # Animate Robot Ellipse
+
+        if(i < stopHuman):
+            hlength = pow(pow(allData["hx1"].values[i]-allData["hx2"].values[i],2)+pow(allData["hy1"].values[i]-allData["hy2"].values[i],2),0.5)
+            hangle = math.atan2(allData["hy1"].values[i]-allData["hy2"].values[i],allData["hx1"].values[i]-allData["hx2"].values[i])
+            if hangle<0:
+                hangle = hangle + 2*math.pi
+            hline = Ellipse((0.5*(allData["hx1"].values[i]+allData["hx2"].values[i]),0.5*(allData["hy1"].values[i]+allData["hy2"].values[i])),hlength,0.55,numpy.degrees(hangle), edgecolor = '#008000', lw=2, facecolor='#008000', label = 'Human Occupancy' )
+
+            human_ellipse = ax1.add_patch(hline) # Animate Human Ellipse
+            
+            hl_line.set_data(allData["hx1"].values[:i],allData["hy1"].values[:i])
+            hr_line.set_data(allData["hx2"].values[:i],allData["hy2"].values[:i])
+        rbx_line.set_data(allData["rx1"].values[:i],allData["ry1"].values[:i])
+        relx_line.set_data(allData["x1"].values[:i],allData["y1"].values[:i])
+        rerx_line.set_data(allData["x2"].values[:i],allData["y2"].values[:i]) 
+
+        matplotlib.pyplot.legend(loc="upper left")
+
+        return [robot_ellipses, human_ellipse, hl_line, hr_line, rbx_line, relx_line, rerx_line]
 
 
-        hlength = pow(pow(hx1_values[i]-hx2_values[i],2)+pow(hy1_values[i]-hy2_values[i],2),0.5)
-        hangle = math.atan2(hy1_values[i]-hy2_values[i],hx1_values[i]-hx2_values[i])
-        if hangle<0:
-            hangle = hangle + 2*math.pi
-
-
-
-        bline = Circle((allData["rx1"].values[i],allData["ry1"].values[i]), fill=True,facecolor='#FF0000', edgecolor='#FF0000', radius=0.01)
-        robot_centre = ax1.add_patch(bline)
-
-        hline = Ellipse((0.5*(hx1_values[i]+hx2_values[i]),0.5*(hy1_values[i]+hy2_values[i])),hlength,0.3,numpy.degrees(hangle), edgecolor = '#008000', lw=2, facecolor='none')
-        human_ellipse = ax1.add_patch(hline)
-        hleftline = Circle((hx1_values[i],hy1_values[i]),fill= False, facecolor='#0000FF', edgecolor='#0000FF', radius=0.005 )
-        human_left = ax1.add_patch(hleftline)
-        hrightline = Circle((hx2_values[i],hy2_values[i]),fill= False, facecolor='#0000FF', edgecolor='#0000FF', radius=0.005 )
-        human_right = ax1.add_patch(hrightline)
-    
-        return [robot_ellipse, human_ellipse, robot_centre, human_left,human_right]
-
-
-anim = FuncAnimation(fig1, animate, frames = allData["x1"].values.shape[0], interval = 1, repeat=False,cache_frame_data=False) 
-
-#anim.save(os.path.abspath(os.path.join(Path.home(),sys.argv[2])), writer = 'ffmpeg', fps = 10) 
+anim = FuncAnimation(fig1, animate, frames = allData["x1"].values.shape[0], interval = 30, repeat=False,cache_frame_data=False) 
 anim
+matplotlib.pyplot.legend(loc="upper left")
 matplotlib.pyplot.show()
 
 
