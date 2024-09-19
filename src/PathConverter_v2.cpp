@@ -166,6 +166,7 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                         m_shiftFlag = true;
                         //m_shiftLeft = data->data()[1]==1 ? true : false;
                         m_shiftLeft = (bool)data->get(1).asInt32();
+                        std::cout << "m_shiftLeft: " << m_shiftLeft << std::endl;
                         msg_counter = 0;
                     }
                     else
