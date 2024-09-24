@@ -106,7 +106,7 @@ namespace ergocub_local_human_avoidance
         double lookahead_dist_;                      // Distance to look ahead of current pose.
         double max_angular_vel_;                     // max allowed rotation speed.
         double object_size_;                         // size of the object held by the robot, currently unused.
-        double safe_dist_to_human_;                  // Safe distance required between the robot and detected human.
+        double safe_dist_to_human_;                  // Safe horizontal distance required between the robot and detected human.
         double current_human_horizontal_dist_;       // Variable to store the current horizontal (y-axis) distance of the human extreme w.r.t robot.
         double executed_translation_;                // Variable to record the last executed object translation.
         double executed_rotation_;                   // Variable to record the last executed object rotation.
@@ -126,8 +126,8 @@ namespace ergocub_local_human_avoidance
 
         // yarp stuff
         yarp::os::Network yarp_;        // Yarp network declaration to allow for sending messages to navigation and bimanual ports.
-        yarp::os::Port bimannual_port_; // Port to the Bimanual Server to allow for held object pose change
-        yarp::os::RpcClient human_extremes_port_;
+        yarp::os::Port bimanual_port_; // Port to the Bimanual Server to allow for held object pose change
+        yarp::os::RpcClient human_extremes_port_; //Port to connect to the perception module to receive human pose and extremes data.
         yarp::os::BufferedPort<yarp::os::Bottle> nav_shift_port_;         // Port to path converter to shift planned path
         yarp::os::BufferedPort<yarp::os::Bottle> direct_human_data_port_; // Port to directly read human data
         ControlInterface bimanual_client_;                                // Thrift interface for peforming grasp actions that cause object pose change

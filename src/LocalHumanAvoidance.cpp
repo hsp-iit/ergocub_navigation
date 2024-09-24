@@ -79,9 +79,8 @@ namespace ergocub_local_human_avoidance
     global_pub_ = node->create_publisher<nav_msgs::msg::Path>("received_global_plan", 1);
 
     // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
-    bimannual_port_.open("/bimanual_nav_client");
+    bimanual_port_.open("/bimanual_nav_client");
     nav_shift_port_.open("/nav_shift_client");
-    // human_extremes_port_.open("/eCubperception/rpc:o");
     direct_human_data_port_.open("/read_human_data");
     // Wait until bimanual server is available and connected to.
     while (!yarp_.connect("/bimanual_nav_client", bimanual_server_name_))
@@ -97,7 +96,7 @@ namespace ergocub_local_human_avoidance
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    bimanual_client_.yarp().attachAsClient(bimannual_port_);
+    bimanual_client_.yarp().attachAsClient(bimanual_port_);
 
     // Setup variables to sequence bimanual actions
     current_human_horizontal_dist_ = 100.0;
@@ -121,16 +120,20 @@ namespace ergocub_local_human_avoidance
   {
     RCLCPP_INFO(
         logger_,
-        "Cleaning up controller: %s of type local_human_avoidance",
+        "Cleaning up controller: %s of type erogocub_local_human_avoidance",
         plugin_name_.c_str());
     global_pub_.reset();
+    bimanual_port_.close();
+    direct_human_data_port_.close();
+    nav_shift_port_.close();
+
   }
 
   void HumanAvoidanceController::activate()
   {
     RCLCPP_INFO(
         logger_,
-        "Activating controller: %s of type local_human_avaoidance",
+        "Activating controller: %s of type erogcub_local_human_avaoidance",
         plugin_name_.c_str());
     global_pub_->on_activate();
   }
@@ -139,7 +142,7 @@ namespace ergocub_local_human_avoidance
   {
     RCLCPP_INFO(
         logger_,
-        "Dectivating controller: %s of type pure_pursuit_controller::PurePursuitController\"  %s",
+        "Dectivating controller: %s of type ergocub_local_human_avoidance\"  %s",
         plugin_name_.c_str(), plugin_name_.c_str());
     global_pub_->on_deactivate();
   }
@@ -149,7 +152,7 @@ namespace ergocub_local_human_avoidance
       const geometry_msgs::msg::Twist &velocity,
       nav2_core::GoalChecker *goal_checker)
   {
-
+    //For now don't send any velocity commands from Local controller
     (void)velocity;
     (void)goal_checker;
     //(void)pose;
@@ -174,18 +177,18 @@ namespace ergocub_local_human_avoidance
         "\n======================== Trying to get human values ==========================\n");
     yarp::os::Bottle *human_data = direct_human_data_port_.read(false); //Read the yarp port to get the last available human detection data.
 
-    if (human_data != nullptr && human_data->get(2).asFloat64() > 0.0 && human_data->get(2).asFloat64() < 4.0)
+    if (human_data != nullptr && human_data->get(2).asFloat64() > 0.0 && human_data->get(2).asFloat64() < human_dist_threshold_)
     {
-      double diff = std::fabs(rclcpp::Time(human_data->get(7).asInt64(), human_data->get(7).asInt64()).seconds() - clock_->now().seconds());
+      double diff = std::fabs(rclcpp::Time(human_data->get(7).asInt64(), human_data->get(7).asInt64()).seconds() - clock_->now().seconds()); //Get Time difference so that it can be ignored if the data is old.
       
-      Eigen::MatrixXd robot_from_base = Eigen::MatrixXd::Identity(4, 4); //For now left as Identity. To be replced with a transform from odom to realsense. 
+      Eigen::MatrixXd robot_from_base = Eigen::MatrixXd::Identity(4, 4); //For now left as Identity. To be replaced with a transform from odom to realsense. 
       Eigen::MatrixXd human_left_from_camera = Eigen::MatrixXd::Identity(4, 4);
       Eigen::MatrixXd human_right_from_camera = Eigen::MatrixXd::Identity(4, 4);
 
       Eigen::Vector3d human_left_trans_vector;
-      human_left_trans_vector << 2*human_data->get(2).asFloat64(), 2*(-human_data->get(0).asFloat64() - human_data->get(3).asFloat64()), 0.0;
+      human_left_trans_vector << horizontal_dist_modifier_*human_data->get(2).asFloat64(), horizontal_dist_modifier_*(-human_data->get(0).asFloat64() - human_data->get(3).asFloat64()), 0.0;
       Eigen::Vector3d human_right_trans_vector;
-      human_right_trans_vector << 2*human_data->get(2).asFloat64(), 2*(-human_data->get(0).asFloat64() - human_data->get(4).asFloat64()), 0.0;
+      human_right_trans_vector << horizontal_dist_modifier_*human_data->get(2).asFloat64(), horizontal_dist_modifier_*(-human_data->get(0).asFloat64() - human_data->get(4).asFloat64()), 0.0;
       human_left_from_camera.block(0, 3, 3, 1) = human_left_trans_vector;
       human_right_from_camera.block(0, 3, 3, 1) = human_right_trans_vector;
 
@@ -221,8 +224,7 @@ namespace ergocub_local_human_avoidance
       right_transform.transform.rotation.w = human_right_from_robot_quat.w();
 
       //tf_broadcaster_->sendTransform(left_transform);
-      //tf_broadcaster_->sendTransform(right_transform);
-      //tf_broadcaster_->sendTransform(right_transform); //Broadcast transforms for data collection.
+      //tf_broadcaster_->sendTransform(right_transform); //Broadcast transforms for data collection if needed.
 
       RCLCPP_INFO(
           logger_,
@@ -237,8 +239,6 @@ namespace ergocub_local_human_avoidance
       RCLCPP_INFO(
           logger_,
           "Distances %f, %f, %f, %f", total_min, horizontal_min, dist_left, dist_right);
-      // double diff = rclcpp::Time(result.get()->left_transform.header.stamp.sec, result.get()->left_transform.header.stamp.nanosec).seconds() - clock_->now().seconds();
-
       /* Current logic : Named SimpleAvoidance checks if human detected is within a distance threshold and if the received transform timeis within
        * 2.0 seconds of now. Also check if the human is one side of the robot cmpletely and  not directly in front of the robot. If the human is
        * is directly in front of the robot don't do anything. A stop command will be sent soon.
@@ -249,7 +249,6 @@ namespace ergocub_local_human_avoidance
         RCLCPP_INFO(
             logger_,
             "Human is really close in front");
-        //horizontal_min *= horizontal_dist_modifier_;
         if (std::fabs(horizontal_min) - (safe_dist_to_human_) < 0)
         {
           RCLCPP_INFO(
