@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+File name: listener2Csv.py
+Author: Vignesh Sushrutha Raghavan
+Created: September 2024
+Version: 1.0
+Description: Script to listen to publish robot and detected transforms and save them in a csv file for processing later.
+"""
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PointStamped
 from geometry_msgs.msg import PoseStamped

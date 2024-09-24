@@ -160,7 +160,7 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                 if (data!= nullptr)
                 {
                     //std::cout << data->data()[0] << " " << data->data()[1] << " " << data->data()[2] << " " << std::endl;
-                    if (data->get(0).asInt32() == 0)   //data->data()[0]
+                    if (data->get(0).asInt32() == 1)   //data->data()[0]
                     {
                         std::cout << "Red from port" << std::endl;
                         m_shiftFlag = true;

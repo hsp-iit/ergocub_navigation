@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+File name: plotEcubData.py
+Author: Vignesh Sushrutha Raghavan
+Created: September 2024
+Version: 1.0
+Description: Script to further process collected human pose, robot data and animate the experiments.
+"""
 import os                                                                      # For obtaining file directories
 import pandas                                                                  # For reading csv files
 import matplotlib.pyplot 
@@ -38,7 +45,7 @@ def find_nearest(array, value):
     array = numpy.asarray(array)
     idx = (numpy.abs(array - value)).argmin()
     return idx
-
+#Get earliest time and bring all timestamps to 0 and onwards.
 init_time = min(allDataRaw["rt1"].values[0],allDataRaw["rht1"].values[0],allDataRaw["at1"].values[0],allDataRaw["at2"].values[0],allDataRaw["ht1"].values[0],allDataRaw["ht2"].values[0])
 for i in range(allDataRaw["rt1"].values.shape[0]):
     allDataRaw["at1"].values[i] = allDataRaw["at1"].values[i] - init_time
@@ -57,6 +64,7 @@ for i in range(allDataRaw["hx1"].values.shape[0]-1):
     allDataRaw.at[i+1,'hx2'] =  alpha * allDataRaw.at[i+1,'hx2'] + (1-alpha)* allDataRaw.at[i,'hx2']
     allDataRaw.at[i+1,'hy2'] =  alphay * allDataRaw.at[i+1,'hy2'] + (1-alphay)* allDataRaw.at[i,'hy2']
 
+# Create common timestamp and interpolate
 common_time = reduce(numpy.union1d, [allDataRaw["at1"].values,allDataRaw["at2"].values,allDataRaw["ht1"].values,allDataRaw["ht2"].values, allDataRaw["rt1"].values, allDataRaw["rht1"].values])
 print(common_time)
 _,at1_unique = numpy.unique(allDataRaw["at1"].values, return_index=True)
@@ -65,10 +73,6 @@ _,ht1_unique = numpy.unique(allDataRaw["ht1"].values, return_index=True)
 _,ht2_unique = numpy.unique(allDataRaw["ht2"].values, return_index=True)
 _,rt1_unique = numpy.unique(allDataRaw["rt1"].values, return_index=True)
 _,rht1_unique = numpy.unique(allDataRaw["rht1"].values, return_index=True)
-
-
-
-
 
 
 interp_x1 = interp1d(allDataRaw["at1"].values[at1_unique], allDataRaw["x1"].values[at1_unique], kind='cubic', fill_value="extrapolate")
@@ -107,7 +111,7 @@ x1_interp+=rx1_interp
 x2_interp+=rx1_interp
 y1_interp+=ry1_interp
 y2_interp+=ry1_interp
-
+# Put interpolated and processed data into a dict to push to a new csv.
 dataDict = {'x1':x1_interp,
             'y1':y1_interp,
             'x2':x2_interp,
@@ -121,72 +125,7 @@ dataDict = {'x1':x1_interp,
             'time': common_time
 }
 
-    
 
-""" # Putting All the Porcessed Data after Matching Appropriate Transfroms
-for i in range(allDataRaw["ht1"].values.shape[0]):
-    x1=None
-    y1=None
-    hx1=None
-    hy1=None
-
-    x2=None
-    y2=None
-    hx2=None
-    hy2=None
-
-    rx1=None
-    ry1=None
-    
-    robot_set = False
-    left_arm_set = False
-    right_arm_set = False
-    right_human_set = False
-    left_human_set = False
-    robot_head_set = False
-    
-    hx1 = allDataRaw["hx1"].values[i]
-    hy1 = allDataRaw["hy1"].values[i]
-    
-    
-    if abs(allDataRaw["ht1"].values[i]-allDataRaw["rt1"].values[find_nearest(allDataRaw["rt1"].values,allDataRaw["ht1"].values[i])]) < timeTolerance:
-        rx1 = allDataRaw["rx1"].values[find_nearest(allDataRaw["rt1"].values,allDataRaw["ht1"].values[i])]
-        ry1 = allDataRaw["ry1"].values[find_nearest(allDataRaw["rt1"].values,allDataRaw["ht1"].values[i])]
-        robot_set = True
-
-    if abs(allDataRaw["ht1"].values[i]-allDataRaw["at1"].values[find_nearest(allDataRaw["at1"].values, allDataRaw["ht1"].values[i])]) < timeTolerance:
-        x1 = allDataRaw["x1"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["ht1"].values[i])]
-        y1 = allDataRaw["y1"].values[find_nearest(allDataRaw["at1"].values,allDataRaw["ht1"].values[i])]
-        left_arm_set = True
-        
-
-    if abs(allDataRaw["ht1"].values[i]-allDataRaw["at2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["ht1"].values[i])]) < timeTolerance:
-        x2 = allDataRaw["x2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["ht1"].values[i])]
-        y2 = allDataRaw["y2"].values[find_nearest(allDataRaw["at2"].values,allDataRaw["ht1"].values[i])]
-        right_arm_set = True
-    
-    if abs(allDataRaw["ht1"].values[i]-allDataRaw["ht2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["ht1"].values[i])]) < timeTolerance:
-        hx2 = allDataRaw["hx2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["ht1"].values[i])]
-        hy2 = allDataRaw["hy2"].values[find_nearest(allDataRaw["ht2"].values,allDataRaw["ht1"].values[i])]
-        right_human_set = True
-    
-    if abs(allDataRaw["ht1"].values[i]-allDataRaw["rht1"].values[find_nearest(allDataRaw["rht1"].values,allDataRaw["ht1"].values[i])]) < timeTolerance:
-        rhx1 = allDataRaw["rhx1"].values[find_nearest(allDataRaw["rht1"].values,allDataRaw["ht1"].values[i])]
-        rhy1 = allDataRaw["rhy1"].values[find_nearest(allDataRaw["rht1"].values,allDataRaw["ht1"].values[i])]
-        robot_head_set = True
-
-    
-
-    if robot_set is True and left_arm_set is True and right_arm_set is True and right_human_set is True and robot_head_set is True:
-
-        x1 = x1+rx1
-        y1 = y1+ry1
-        
-        x2 = x2+rx1
-        y2 = y2+ry1
-   
-        dataList.append({'x1': x1,'y1':y1, 'x2':x2,'y2':y2, 'hx1':hx1,'hy1':hy1, 'hx2':hx2,'hy2':hy2,'rx1':rx1, 'ry1':ry1})
- """
 allData=pandas.DataFrame(dataDict) # Create New DataFrame and CSV with Processed Data
 allData.columns = ("x1","y1","x2","y2","hx1","hy1","hx2","hy2","rx1","ry1","time")
 allData.to_csv(os.path.abspath(os.path.join(Path.home(),"processed_"+sys.argv[1])), index=False, header=False)
@@ -210,6 +149,7 @@ rerx_line, =ax1.plot(allData["x2"].values[startFrame:endFrame],allData["y2"].val
 hl_line, = ax1.plot(allData["hx1"].values[startFrame:stopHuman],allData["hy1"].values[startFrame:stopHuman], 'g-.', label = 'Human Extremes')
 hr_line, = ax1.plot(allData["hx2"].values[startFrame:stopHuman],allData["hy2"].values[startFrame:stopHuman], 'g-.')
 #matplotlib.pyplot.cla()
+# The animate function to animate all the human extreme and robot elbow data.
 def animate(i):
     
     global robot_ellipses
@@ -220,8 +160,8 @@ def animate(i):
     global relx_line
     global rerx_line
 
-    
-    if i>startFrame and i <endFrame:
+    # Start animating after cetain frames. Can be made better with Funcanimation args later
+    if i>startFrame and i <endFrame: 
         
         if robot_ellipses is not None:
             robot_ellipses.remove()
@@ -250,10 +190,10 @@ def animate(i):
             hr_line.set_data(allData["hx2"].values[startFrame:i],allData["hy2"].values[startFrame:i])
         
         else:
-            human_ellipse = None
-        rbx_line.set_data(allData["rx1"].values[startFrame:i],allData["ry1"].values[startFrame:i])
-        relx_line.set_data(allData["x1"].values[startFrame:i],allData["y1"].values[startFrame:i])
-        rerx_line.set_data(allData["x2"].values[startFrame:i],allData["y2"].values[startFrame:i]) 
+            human_ellipse = None # Stop animating human ellipse as it flies off after human leaves FOV.
+        rbx_line.set_data(allData["rx1"].values[startFrame:i],allData["ry1"].values[startFrame:i]) # Animate robot base line.
+        relx_line.set_data(allData["x1"].values[startFrame:i],allData["y1"].values[startFrame:i]) # Animate robot left elbow line.
+        rerx_line.set_data(allData["x2"].values[startFrame:i],allData["y2"].values[startFrame:i]) # Animate robot right line.
 
         matplotlib.pyplot.legend(loc="upper left")
 
