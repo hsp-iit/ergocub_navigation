@@ -11,4 +11,4 @@ path_converter_v2_node:
     zero_speed_threshold: 1e-03
     shift_enabled: true
     shift: 0.20
-    max_msg_counter: 4
+    max_msg_counter: 3
