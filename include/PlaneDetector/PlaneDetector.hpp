@@ -9,6 +9,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_broadcaster.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2/transform_datatypes.h"
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
@@ -38,8 +39,10 @@ private:
 
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};
     std::unique_ptr<tf2_ros::Buffer> m_tf_buffer_in;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> m_tf_broadcaster;
 
     rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_pointcloud_pub;
+    rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_plane_pub;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr m_pc_sub;
     // Unfortunately, message filters aren't available for lifecycle nodes
     rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_right_foot_sub, m_left_foot_sub;

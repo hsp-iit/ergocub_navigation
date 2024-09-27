@@ -17,10 +17,10 @@ using namespace std::chrono_literals;
 void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in)
 {
     // Check if the robot is in double support
-    if (!(m_left_foot_contact && m_right_foot_contact))
-    {
-        return;
-    }
+    //if (!(m_left_foot_contact && m_right_foot_contact))
+    //{
+    //    return;
+    //}
     // Transform
     sensor_msgs::msg::PointCloud2 realsense_cloud;
     std::string transform_error;
@@ -35,7 +35,7 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
         try
         {
             realsense_cloud = m_tf_buffer_in->transform(*pc_in, m_realsense_frame, tf2::durationFromSec(0.0));
-            realsense_to_foot_tf = m_tf_buffer_in->lookupTransform("r_sole", m_realsense_frame, rclcpp::Time(0));
+            realsense_to_foot_tf = m_tf_buffer_in->lookupTransform(m_contact_frame, m_realsense_frame, rclcpp::Time(0));
         }
         catch(const std::exception& e)
         {
@@ -50,15 +50,15 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     }
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::fromROSMsg(realsense_cloud, *in_cloud);
+    pcl::fromROSMsg(realsense_cloud, *in_cloud);    // Cloud expressed in camera frame
     pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    /*****************Cut roof*/
+    /*****************Cut roof (in camera frame)*/
     pcl::PassThrough<pcl::PointXYZ> pass;
     pass.setInputCloud (in_cloud);
     pass.setFilterFieldName ("z");
     pass.setFilterLimits(m_filter_z_low, m_filter_z_high);
     pass.filter (*filtered_cloud);
-    
+
     /*****************Transform in the robot foot frame*/
     sensor_msgs::msg::PointCloud2 ground_cloud;
     pcl::toROSMsg(*filtered_cloud, ground_cloud);
@@ -81,6 +81,7 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     seg.setOptimizeCoefficients(true);
     seg.setModelType(pcl::SACMODEL_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
+    seg.setMaxIterations(1000);
     seg.setDistanceThreshold(0.01);
     
     seg.setInputCloud(filtered_cloud);
@@ -92,36 +93,65 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
         return;
     }
     // Plane coefficients: 
-    std::cerr << "Model coefficients: " << coefficients->values[0] << " " 
+    RCLCPP_INFO_STREAM(get_logger(), "Model coefficients: " << coefficients->values[0] << " " 
                                         << coefficients->values[1] << " "
                                         << coefficients->values[2] << " " 
-                                        << coefficients->values[3] << std::endl;
+                                        << coefficients->values[3]);
+
     double A = coefficients->values[0];
     double B = coefficients->values[1];
     double C = coefficients->values[2];
+    RCLCPP_INFO_STREAM(get_logger(), "plane coefficients: A " << A << " B " 
+                                        << B << " C "
+                                        << C );
     
-    std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
+    RCLCPP_INFO_STREAM(get_logger(), "Model inliers: " << inliers->indices.size());
     // Extract plane points
     pcl::ExtractIndices<pcl::PointXYZ> extract;
     extract.setInputCloud (filtered_cloud);
     extract.setIndices (inliers);
     extract.setNegative (false);
     pcl::PointCloud<pcl::PointXYZ>::Ptr plane_points (new pcl::PointCloud<pcl::PointXYZ>);
-    extract.filter (*plane_points);
-    //for (const auto& idx: inliers->indices)
-    //    std::cerr << idx << "    " << in_cloud->points[idx].x << " "
-    //                               << in_cloud->points[idx].y << " "
-    //                               << in_cloud->points[idx].z << std::endl;
+    extract.filter(*plane_points);
 
+    pcl::toROSMsg(*plane_points, ground_cloud);
+    ground_cloud.header.stamp = pc_in->header.stamp;
+    m_plane_pub->publish(ground_cloud);
     /*****************Get RPY angles from plane coeff*/
     // TODO - check if it's correct
     double tmp = std::sqrt(A*A + B*B + C*C);
-    double roll = std::cosh(A / tmp);
-    double pitch = std::cosh(B / tmp);
-    double yaw = std::cosh(C / tmp);
+    double pitch = -(M_PI_2 - std::acos(A / tmp));
+    double roll, yaw = 0.0;
+    //double pitch = std::cosh(B / tmp);
+    //double yaw = std::cosh(C / tmp);
 
+    //RCLCPP_INFO_STREAM(get_logger(), "Plane RPY: " << roll << " , " << pitch << " , " << yaw );
+    
     /*****************Publish static frame corrected by RPY angles*/
+    geometry_msgs::msg::TransformStamped msg;
+    msg.header.frame_id = m_realsense_frame;
+    msg.child_frame_id = "compensated_realsense_frame";
+    msg.header.stamp = ground_cloud.header.stamp;
+    msg.transform.translation.x = 0.0;
+    msg.transform.translation.y = 0.0;
+    msg.transform.translation.z = 0.0;
+    tf2::Quaternion quat;
+    quat.setRPY(roll, pitch, yaw);
+    msg.transform.rotation = tf2::toMsg(quat);
+    m_tf_broadcaster->sendTransform(msg);
 
+    try
+    {
+        //sensor_msgs::msg::PointCloud2 compensated_cloud = m_tf_buffer_in->transform(
+        //                                            realsense_cloud, "compensated_realsense_frame", tf2::durationFromSec(0.05));
+        sensor_msgs::msg::PointCloud2 compensated_cloud = realsense_cloud;
+        compensated_cloud.header.frame_id = "compensated_realsense_frame";
+        m_pointcloud_pub->publish(compensated_cloud);
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
 }
 
 PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("floor_detector_node", options)
@@ -130,10 +160,13 @@ PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
     declare_parameter("contact_frame", "r_sole");
     declare_parameter("pointcloud_topic", "/camera/depth/color/points");
     declare_parameter("pub_topic", "/adjusted_depth_pc");
+    declare_parameter("filter_z_low", -2.0);
+    declare_parameter("filter_z_high", -1.3);
 
     
     m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
+    m_tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 }
 
 CallbackReturn PlaneDetector::on_configure(const rclcpp_lifecycle::State &)
@@ -170,6 +203,7 @@ CallbackReturn PlaneDetector::on_configure(const rclcpp_lifecycle::State &)
     
     //Publisher
     m_pointcloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic, 10);
+    m_plane_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("/plane_detector/ground_plane", 10);
 
     return CallbackReturn::SUCCESS;
 }
@@ -204,6 +238,7 @@ CallbackReturn PlaneDetector::on_activate(const rclcpp_lifecycle::State &)
 {
     RCLCPP_INFO(get_logger(), "Activating");
     m_pointcloud_pub->on_activate();
+    m_plane_pub->on_activate();
     return CallbackReturn::SUCCESS;
 }
 
@@ -211,6 +246,7 @@ CallbackReturn PlaneDetector::on_deactivate(const rclcpp_lifecycle::State &)
 {
     RCLCPP_INFO(get_logger(), "Deactivating");
     m_pointcloud_pub->on_deactivate();
+    m_plane_pub->on_deactivate();
     return CallbackReturn::SUCCESS;
 }
 
@@ -218,6 +254,7 @@ CallbackReturn PlaneDetector::on_cleanup(const rclcpp_lifecycle::State &)
 {
     RCLCPP_INFO(get_logger(), "Cleaning Up");
     m_pointcloud_pub.reset();
+    m_plane_pub.reset();
     m_pc_sub.reset();
     return CallbackReturn::SUCCESS;
 }
