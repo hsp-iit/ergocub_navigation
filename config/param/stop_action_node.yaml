@@ -1,0 +1,5 @@
+stop_action_node:
+  ros__parameters:
+    human_pose_port: /BT/human_state/pose:o
+    goal_markers_topic_name: /human_pose_goal_gen/goal
+

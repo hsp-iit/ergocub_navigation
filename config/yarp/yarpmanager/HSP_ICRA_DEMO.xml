@@ -1,0 +1,71 @@
+<application>
+    <name>HSP ICRA Demonstration</name>
+    <dependencies>
+    </dependencies>
+    <module>
+        <name>yarprobotinterface</name>
+        <parameters>--config sensors.xml</parameters>
+        <node>ergocub-head</node>
+    </module>
+    <module>
+        <name>ergoCubEmotions</name>
+        <parameters>--context ergoCubEmotions --from config.ini </parameters>
+        <node>ergocub-head</node>
+    </module>
+    <module>
+        <name>ergocub-rs-pose</name>
+        <parameters> ergocub /usr/local/src/robot/robotology-superbuild/build/src/ergocub-software/ergoCub/robots/ergoCubSN001/model.urdf</parameters>
+        <node>ergocub-head</node>
+    </module>
+    <module>
+        <name>ergocub-gaze-control</name>
+        <parameters>/usr/local/src/robot/hsp/ergocub-gaze-control/ecub_config.ini</parameters>
+        <node>ergocub-head</node>
+    </module>
+    <module>
+        <name> /usr/local/src/robot/hsp/ergocub-bimanual/build/command_server </name>
+        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubSN001/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real.ini </parameters>
+        <node> ergocub-torso </node>
+    </module>
+    <module>
+        <name> gnome-terminal --bash -c "/usr/local/src/robot/hsp/ergocub-visual-perception/start.sh -ri 10.0.2.4; exec bash" </name>
+        <parameters> </parameters>
+        <node> ergocub001-lap </node>
+    </module>
+    <module>
+        <name> /usr/local/src/robot/hsp/ergocub-bimanual/build/command_prompt </name>
+        <parameters> /Components/Manipulation /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real.ini  </parameters>
+        <node> ergocub-torso </node>
+    </module>
+    <module>
+        <name> run_bt </name>
+        <node> ergocub001-lap </node>
+        <subdirectory> /usr/local/src/robot/hsp/ergocub-behavior/build/bin </subdirectory>
+    </module>
+    <module>
+        <name> yarpmotorgui  </name>
+        <parameters>--from /usr/local/src/robot/hsp/visual_calibration/config/calibration_positions.ini </parameters>
+        <node> ergocub001-lap </node>
+    </module>
+    <module>
+        <name> /usr/local/src/robot/hsp/ergocub-bimanual/build/command_server </name>
+        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubSN001/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real_wristless.ini </parameters>
+        <node> ergocub-torso </node>
+    </module>
+    <module>
+        <name> yarpmotorgui  </name>
+        <parameters>--from custom_positions.ini </parameters>
+        <node> ergocub001-lap </node>
+    </module>
+    <module>
+        <name> /usr/local/src/robot/hsp/ergocub-bimanual/build/command_server </name>
+        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubSN001/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real_WALKING_wristless.ini </parameters>
+        <node> ergocub-torso </node>
+    </module>
+    <module>
+        <name> yarprobotinterface </name>
+        <parameters> --config launch-yarp-robot-logger.xml </parameters>
+        <node> ergocub001-lap </node>
+        <workdir>/usr/local/src/robot/hsp/wrench_logs</workdir>
+    </module>
+</application>

@@ -241,6 +241,18 @@ ament_target_dependencies(human_pose_goal_generator
   "rclcpp_action"
 )
 
+add_executable(stop_action_node src/StopActionNode/main.cpp src/StopActionNode/StopActionNode.cpp 
+                src/StopActionNode/CommunicationWrapper.cpp)
+ament_target_dependencies(stop_action_node
+  "YARP"
+  "rclcpp"
+  "rclcpp_lifecycle"
+  "nav_msgs"
+  "nav2_util"
+  "nav_2d_msgs"
+  "rclcpp_action"
+)
+
 set(dependencies
   rclcpp
   geometry_msgs
@@ -276,6 +288,7 @@ install(TARGETS
   phase_detector
   path_converter_v2
   human_pose_goal_generator
+  stop_action_node
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
