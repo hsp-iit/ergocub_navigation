@@ -73,7 +73,7 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     }
     pcl::fromROSMsg(ground_cloud, *filtered_cloud);
 
-    /*****************Detect ground plane*/
+    /*****************Detect ground plane RANSAC*/
     pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
 
@@ -107,16 +107,20 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     
     RCLCPP_INFO_STREAM(get_logger(), "Model inliers: " << inliers->indices.size());
     // Extract plane points
-    pcl::ExtractIndices<pcl::PointXYZ> extract;
-    extract.setInputCloud (filtered_cloud);
-    extract.setIndices (inliers);
-    extract.setNegative (false);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr plane_points (new pcl::PointCloud<pcl::PointXYZ>);
-    extract.filter(*plane_points);
+    if (m_debug_publish)
+    {
+        pcl::ExtractIndices<pcl::PointXYZ> extract;
+        extract.setInputCloud (filtered_cloud);
+        extract.setIndices (inliers);
+        extract.setNegative (false);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr plane_points (new pcl::PointCloud<pcl::PointXYZ>);
+        extract.filter(*plane_points);
 
-    pcl::toROSMsg(*plane_points, ground_cloud);
-    ground_cloud.header.stamp = pc_in->header.stamp;
-    m_plane_pub->publish(ground_cloud);
+        pcl::toROSMsg(*plane_points, ground_cloud);
+        ground_cloud.header.stamp = pc_in->header.stamp;
+        m_plane_pub->publish(ground_cloud);
+    }
+    
     /*****************Get RPY angles from plane coeff*/
     // TODO - check if it's correct
     double tmp = std::sqrt(A*A + B*B + C*C);
@@ -140,6 +144,12 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     msg.transform.rotation = tf2::toMsg(quat);
     m_tf_broadcaster->sendTransform(msg);
 
+    if (m_tf_list.size() >= 5)
+    {
+        return;
+    }
+    m_tf_list.push_back(msg);
+
     try
     {
         //sensor_msgs::msg::PointCloud2 compensated_cloud = m_tf_buffer_in->transform(
@@ -152,6 +162,16 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     {
         std::cerr << e.what() << '\n';
     }
+}
+
+std::list<geometry_msgs::msg::TransformStamped> PlaneDetector::median_filter(std::list<geometry_msgs::msg::TransformStamped> tf_list_in)
+{
+    int filter_size = 3;
+    for (geometry_msgs::msg::TransformStamped tf : tf_list_in)
+    {
+        /* code */
+    }
+    
 }
 
 PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("floor_detector_node", options)
@@ -167,6 +187,7 @@ PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
     m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
     m_tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    m_tf_list.clear();
 }
 
 CallbackReturn PlaneDetector::on_configure(const rclcpp_lifecycle::State &)

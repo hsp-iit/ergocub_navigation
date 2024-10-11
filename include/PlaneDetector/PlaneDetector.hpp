@@ -14,7 +14,6 @@
 #include "tf2/transform_datatypes.h"
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
-#include <geometry_msgs/msg/wrench_stamped.hpp>
 
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
@@ -32,7 +31,8 @@ private:
     double m_wrench_threshold = 100.0;
     bool m_right_foot_contact, m_left_foot_contact;
     std::string m_realsense_frame = "realsense";
-
+    std::list<geometry_msgs::msg::TransformStamped> m_tf_list;
+    bool m_debug_publish = false;
 
     float m_filter_z_low = 0.2;             // minimum height to accept laser readings, from the reference frame, in meters
     float m_filter_z_high = 2.5;            // maximum height to accept laser readings, from the reference frame, in meters
@@ -45,11 +45,13 @@ private:
     rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_plane_pub;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr m_pc_sub;
     // Unfortunately, message filters aren't available for lifecycle nodes
-    rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_right_foot_sub, m_left_foot_sub;
+    //rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_right_foot_sub, m_left_foot_sub;
 
     void pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in);
-    void right_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
-    void left_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
+    //void right_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
+    //void left_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
+    geometry_msgs::msg::TransformStamped average_tf(std::list<geometry_msgs::msg::TransformStamped> tf_list_in);
+    std::list<geometry_msgs::msg::TransformStamped> median_filter(std::list<geometry_msgs::msg::TransformStamped> tf_list_in);
 
 public:
     PlaneDetector(const rclcpp::NodeOptions & options);
