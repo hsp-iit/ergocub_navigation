@@ -16,7 +16,7 @@ using namespace std::chrono_literals;
 
 void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in)
 {
-    // Check if the robot is in double support
+    // TODO: Check if the robot is in double support
     //if (!(m_left_foot_contact && m_right_foot_contact))
     //{
     //    return;
@@ -49,6 +49,15 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
         return;
     }
 
+    // do Ransac only for the first N times
+    if (m_tf_vec.size() >= m_sample_size)
+    {
+        sensor_msgs::msg::PointCloud2 compensated_cloud = realsense_cloud;
+        compensated_cloud.header.frame_id = m_frame_name;
+        m_pointcloud_pub->publish(compensated_cloud);
+        return;
+    }
+
     pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(realsense_cloud, *in_cloud);    // Cloud expressed in camera frame
     pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -71,6 +80,8 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
        RCLCPP_WARN(this->get_logger(), "Cannot transform: %s \n", e.what());
        return;
     }
+    
+    
     pcl::fromROSMsg(ground_cloud, *filtered_cloud);
 
     /*****************Detect ground plane RANSAC*/
@@ -125,16 +136,14 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     // TODO - check if it's correct
     double tmp = std::sqrt(A*A + B*B + C*C);
     double pitch = -(M_PI_2 - std::acos(A / tmp));
-    double roll, yaw = 0.0;
-    //double pitch = std::cosh(B / tmp);
-    //double yaw = std::cosh(C / tmp);
-
-    //RCLCPP_INFO_STREAM(get_logger(), "Plane RPY: " << roll << " , " << pitch << " , " << yaw );
+    double roll = (M_PI_2 - std::acos(B / tmp));
+    double yaw = 0.0;
+    RCLCPP_INFO(get_logger(), "roll: %f pitch: %f yaw: %f ", roll, pitch, yaw);
     
     /*****************Publish static frame corrected by RPY angles*/
     geometry_msgs::msg::TransformStamped msg;
     msg.header.frame_id = m_realsense_frame;
-    msg.child_frame_id = "compensated_realsense_frame";
+    msg.child_frame_id = m_frame_name;
     msg.header.stamp = ground_cloud.header.stamp;
     msg.transform.translation.x = 0.0;
     msg.transform.translation.y = 0.0;
@@ -142,20 +151,25 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     tf2::Quaternion quat;
     quat.setRPY(roll, pitch, yaw);
     msg.transform.rotation = tf2::toMsg(quat);
-    m_tf_broadcaster->sendTransform(msg);
+    m_tf_vec.push_back({roll, pitch});
+    RCLCPP_INFO(get_logger(), "tf msg rotation x: %f y: %f z: %f w: %f", msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w);
 
-    if (m_tf_list.size() >= 5)
+    if (m_tf_vec.size() >= m_sample_size)
     {
-        return;
+        m_avg_tf = average_pitch(m_tf_vec, ground_cloud.header.stamp);
+        m_static_tf_broadcaster->sendTransform(m_avg_tf);
     }
-    m_tf_list.push_back(msg);
+    else
+    {
+        m_tf_broadcaster->sendTransform(msg);
+    }
 
     try
     {
         //sensor_msgs::msg::PointCloud2 compensated_cloud = m_tf_buffer_in->transform(
         //                                            realsense_cloud, "compensated_realsense_frame", tf2::durationFromSec(0.05));
         sensor_msgs::msg::PointCloud2 compensated_cloud = realsense_cloud;
-        compensated_cloud.header.frame_id = "compensated_realsense_frame";
+        compensated_cloud.header.frame_id = m_frame_name;
         m_pointcloud_pub->publish(compensated_cloud);
     }
     catch(const std::exception& e)
@@ -164,13 +178,39 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     }
 }
 
-std::list<geometry_msgs::msg::TransformStamped> PlaneDetector::median_filter(std::list<geometry_msgs::msg::TransformStamped> tf_list_in)
+geometry_msgs::msg::TransformStamped PlaneDetector::average_pitch(std::vector<std::tuple<double, double>> tf_vec_in, builtin_interfaces::msg::Time stmp)
+{
+    geometry_msgs::msg::TransformStamped avg_tf;
+    double roll_sum, pitch_sum;
+    for (size_t i = 0; i < tf_vec_in.size(); i++)
+    {
+        roll_sum += std::get<0>(tf_vec_in[i]);
+        pitch_sum += std::get<1>(tf_vec_in[i]);
+    }
+    avg_tf.header.frame_id = m_realsense_frame;
+    avg_tf.header.stamp = stmp;
+    avg_tf.child_frame_id = m_frame_name;
+    tf2::Quaternion q;
+    double avg_roll = roll_sum/tf_vec_in.size();
+    double avg_pitch = pitch_sum/tf_vec_in.size();
+    RCLCPP_INFO_STREAM(this->get_logger(), "Average pitch: " << avg_pitch << " roll: " << avg_roll);
+    q.setRPY(avg_roll, avg_pitch, 0.0);
+    avg_tf.transform.rotation = tf2::toMsg(q);
+    // could be skipped, but do it to be sure we have a 0 traslation
+    avg_tf.transform.translation.x = 0.0;
+    avg_tf.transform.translation.y = 0.0;
+    avg_tf.transform.translation.z = 0.0;
+    return avg_tf;
+}
+
+std::vector<geometry_msgs::msg::TransformStamped> PlaneDetector::median_filter(std::vector<geometry_msgs::msg::TransformStamped> tf_vec_in)
 {
     int filter_size = 3;
-    for (geometry_msgs::msg::TransformStamped tf : tf_list_in)
+    for (size_t i = 0; i < tf_vec_in.size(); i++)
     {
         /* code */
     }
+    
     
 }
 
@@ -187,7 +227,7 @@ PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
     m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
     m_tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
-    m_tf_list.clear();
+    m_static_tf_broadcaster = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
 }
 
 CallbackReturn PlaneDetector::on_configure(const rclcpp_lifecycle::State &)
@@ -211,16 +251,16 @@ CallbackReturn PlaneDetector::on_configure(const rclcpp_lifecycle::State &)
         std::bind(&PlaneDetector::pc_callback, this, _1)
     );
 
-    m_right_foot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped> (
-        m_right_foot_topic,
-        10,
-        std::bind(&PlaneDetector::right_foot_callback, this, _1)
-    );
-    m_left_foot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped> (
-        m_left_foot_topic,
-        10,
-        std::bind(&PlaneDetector::left_foot_callback, this, _1)
-    );
+    //m_right_foot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped> (
+    //    m_right_foot_topic,
+    //    10,
+    //    std::bind(&PlaneDetector::right_foot_callback, this, _1)
+    //);
+    //m_left_foot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped> (
+    //    m_left_foot_topic,
+    //    10,
+    //    std::bind(&PlaneDetector::left_foot_callback, this, _1)
+    //);
     
     //Publisher
     m_pointcloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic, 10);
@@ -229,7 +269,7 @@ CallbackReturn PlaneDetector::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::SUCCESS;
 }
 
-void PlaneDetector::right_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg)
+/*void PlaneDetector::right_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg)
 {
     if (-msg->wrench.force.z >= m_wrench_threshold)  //detecting contact
     {
@@ -254,6 +294,7 @@ void PlaneDetector::left_foot_callback(const geometry_msgs::msg::WrenchStamped::
     }
     else{m_left_foot_contact = false;}
 }
+*/
 
 CallbackReturn PlaneDetector::on_activate(const rclcpp_lifecycle::State &)
 {
