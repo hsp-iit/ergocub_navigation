@@ -95,78 +95,92 @@ controller_server:
       yaw_goal_tolerance: 0.9
       stateful: true
     
-    # DWB parameters
     FollowPath:
-      plugin: dwb_core::DWBLocalPlanner
+      plugin: "ergocub_local_human_avoidance::HumanAvoidanceController"
+      safe_dist_to_human: 0.30
+      human_left_frame: human_left_frame
+      human_right_frame: human_right_frame
+      human_tf_base_frame: virtual_unicycle_base
+      nav_shift_port_name: /path_converter/shift_command:i
+      bimanual_manipulation_sever: /Components/Manipulation
+      object_max_translation: 0.15
+      object_max_rotation: 0.35
+      object_translation_slope: 1.0
+      object_orientation_slope: 2.2
+      human_distance_threshold: 4.5
+
+    # DWB parameters
+    #FollowPath:
+    #  plugin: dwb_core::DWBLocalPlanner
 
       # Generic
-      prune_distance: 2.0   #2.0
-      prune_plan: true
-      shorten_transformed_plan: true
-      debug_trajectory_details: false
-      trajectory_generator_name: dwb_plugins::StandardTrajectoryGenerator
-      transform_tolerance: 0.2
-      short_circuit_trajectory_evaluation: true
-      xy_goal_tolerance: 0.4
+    #  prune_distance: 2.0   #2.0
+    #  prune_plan: true
+    #  shorten_transformed_plan: true
+    #  debug_trajectory_details: false
+    #  trajectory_generator_name: dwb_plugins::StandardTrajectoryGenerator
+    #  transform_tolerance: 0.2
+    #  short_circuit_trajectory_evaluation: true
+    #  xy_goal_tolerance: 0.4
 
-      # XYTheta Iterator
-      vx_samples: 20
-      vy_samples: 10
-      vtheta_samples: 10
+    #  # XYTheta Iterator
+    #  vx_samples: 20
+    #  vy_samples: 10
+    #  vtheta_samples: 10
 
       # Kinematic Parameters
-      max_vel_x: 1.0
-      max_vel_y: 0.5
-      max_vel_theta: 0.2
-      min_vel_x: 0.0
-      min_vel_y: 0.0
-      min_speed_xy: 0.0
-      max_speed_xy: 1.2
-      min_speed_theta: 0.0
-      acc_lim_x: 2.5
-      acc_lim_y: 2.5
-      acc_lim_theta: 3.2
-      decel_lim_x: -2.5
-      decel_lim_y: -2.5
-      decel_lim_theta: -3.2
-      trans_stopped_velocity: 0.01
+    #  max_vel_x: 1.0
+    #  max_vel_y: 0.5
+    #  max_vel_theta: 0.2
+    #  min_vel_x: 0.0
+    #  min_vel_y: 0.0
+    #  min_speed_xy: 0.0
+    #  max_speed_xy: 1.2
+    #  min_speed_theta: 0.0
+    #  acc_lim_x: 2.5
+    #  acc_lim_y: 2.5
+    #  acc_lim_theta: 3.2
+    #  decel_lim_x: -2.5
+    #  decel_lim_y: -2.5
+    #  decel_lim_theta: -3.2
+    #  trans_stopped_velocity: 0.01
 
       # Publisher params
-      publish_cost_grid_pc: false
-      publish_evaluation: false
-      publish_global_plan: true
-      publish_local_plan: true
-      publish_trajectories: false
-      publish_transformed_plan: false
-      marker_lifetime: 0.1
+    #  publish_cost_grid_pc: false
+    #  publish_evaluation: false
+    #  publish_global_plan: true
+    #  publish_local_plan: true
+    #  publish_trajectories: false
+    #  publish_transformed_plan: false
+    #  marker_lifetime: 0.1
 
       # Trajectory generator
-      sim_time: 2.0
-      discretize_by_time: false
-      time_granularity: 0.5
-      linear_granularity: 0.1  #0.05
-      angular_granularity: 0.025
-      include_last_point: true
+    #  sim_time: 2.0
+    #  discretize_by_time: false
+    #  time_granularity: 0.5
+    #  linear_granularity: 0.1  #0.05
+    #  angular_granularity: 0.025
+    #  include_last_point: true
 
       # Critics
       #- RotateToGoal
       #- Oscillation
       #- GoalAlign
-      critics:
-      - BaseObstacle
-      - PathAlign
-      - PathDist
-      - GoalDist
-      BaseObstacle.scale: 0.02
-      BaseObstacle.sum_scores: false
+    #  critics:
+    #  - BaseObstacle
+    #  - PathAlign
+    #  - PathDist
+    #  - GoalDist
+    #  BaseObstacle.scale: 0.02
+    #  BaseObstacle.sum_scores: false
 
-      PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
+    #  PathAlign.scale: 32.0
+    #  PathAlign.forward_point_distance: 0.1
 
       #GoalAlign.scale: 24.0
       #GoalAlign.forward_point_distance: 0.1
 
-      PathDist.scale: 32.0
+    #  PathDist.scale: 32.0
 
       #Oscillation.oscillation_reset_angle: 0.2
       #Oscillation.oscillation_reset_dist: 0.05
@@ -174,7 +188,7 @@ controller_server:
       #Oscillation.scale: 1.0
       #Oscillation.x_only_threshold: 0.05
 
-      GoalDist.scale: 24.0
+    #  GoalDist.scale: 24.0
 
       #RotateToGoal.scale: 32.0
       #RotateToGoal.slowing_factor: 5.0
