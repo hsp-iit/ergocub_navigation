@@ -60,51 +60,6 @@ add_subdirectory(interfaces)
 #  "srv/GetHumanExtremes.srv"
 #  DEPENDENCIES geometry_msgs
 #)
-  
-#add_executable(scan_filter_compensated src/scan_filtering_ros2_compensated.cpp)
-#ament_target_dependencies(scan_filter_compensated
-#  "std_msgs"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "rclcpp"
-#  "laser_geometry"
-#  "pcl_conversions"
-#  "geometry_msgs"
-#  "sensor_msgs"
-#)
-#target_link_libraries(scan_filter_compensated ${PCL_LIBRARIES})
-
-#add_executable(chest_projection src/chest_projection.cpp)
-#ament_target_dependencies(chest_projection
-#  "std_msgs"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "YARP"
-#  "rclcpp"
-#)
-
-#add_executable(footsteps_viewer src/footsteps_viewer.cpp)
-#ament_target_dependencies(footsteps_viewer
-#  "YARP"
-#  "rclcpp"
-#  "nav_msgs"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "tf2"
-#  "nav2_util"
-#  "nav_2d_msgs"
-#  "visualization_msgs"
-#)
-
-#add_executable(virtual_unicycle_publisher src/virtual_unicycle_publisher.cpp)
-#ament_target_dependencies(virtual_unicycle_publisher
-#  "YARP"
-#  "rclcpp"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "tf2"
-#  "tf2_kdl"
-#)
 
 add_executable(planner_trigger_server src/planner_trigger_server.cpp)
 ament_target_dependencies(planner_trigger_server
@@ -113,18 +68,6 @@ ament_target_dependencies(planner_trigger_server
   "std_srvs"
   "rclcpp_action"
 )
-
-#add_executable(interpolation_walking_controller_talker src/interpolation_walking_controller_talker.cpp)
-#ament_target_dependencies(interpolation_walking_controller_talker
-#  "YARP"
-#  "rclcpp"
-#  "nav_msgs"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "tf2"
-#  "nav2_util"
-#  "nav_2d_msgs"
-#)
 
 add_executable(scan_filter src/ScanFilter.cpp)
 ament_target_dependencies(scan_filter
@@ -142,8 +85,8 @@ ament_target_dependencies(scan_filter
 )
 target_link_libraries(scan_filter ${PCL_LIBRARIES})
 
-add_executable(footsteps_viewer_ src/FootstepsViewer/main.cpp src/FootstepsViewer/FootstepsViewerYarp.cpp src/FootstepsViewer/FootstepsViewerRos.cpp)
-ament_target_dependencies(footsteps_viewer_
+add_executable(footsteps_viewer src/FootstepsViewer/main.cpp src/FootstepsViewer/FootstepsViewerYarp.cpp src/FootstepsViewer/FootstepsViewerRos.cpp)
+ament_target_dependencies(footsteps_viewer
   "YARP"
   "rclcpp"
   "nav_msgs"
@@ -155,15 +98,15 @@ ament_target_dependencies(footsteps_viewer_
   "visualization_msgs"
 )
 
-add_executable(base_projector src/BaseProjector.cpp)
-ament_target_dependencies(base_projector
-  "std_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "YARP"
-  "rclcpp"
-  "tf2_geometry_msgs"
-)
+#add_executable(base_projector src/BaseProjector.cpp)
+#ament_target_dependencies(base_projector
+#  "std_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "YARP"
+#  "rclcpp"
+#  "tf2_geometry_msgs"
+#)
 
 add_executable(odom_node src/OdomNode.cpp)
 ament_target_dependencies(odom_node
@@ -178,17 +121,17 @@ ament_target_dependencies(odom_node
   "tf2_geometry_msgs"
 )
 
-add_executable(path_converter src/PathConverter.cpp)
-ament_target_dependencies(path_converter
-  "YARP"
-  "rclcpp"
-  "nav_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "tf2"
-  "nav2_util"
-  "nav_2d_msgs"
-)
+#add_executable(path_converter src/PathConverter.cpp)
+#ament_target_dependencies(path_converter
+#  "YARP"
+#  "rclcpp"
+#  "nav_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "tf2"
+#  "nav2_util"
+#  "nav_2d_msgs"
+#)
 
 add_executable(pointcloud_filter src/PointcloudFilter.cpp)
 ament_target_dependencies(pointcloud_filter
@@ -298,9 +241,7 @@ install(TARGETS
   odom_node
   planner_trigger_server
   scan_filter
-  footsteps_viewer_
-  base_projector
-  path_converter
+  footsteps_viewer
   pointcloud_filter
   phase_detector
   path_converter_v2

@@ -13,11 +13,6 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/setup_robot/robot_state_publisher.launch.py'])
         )
-    projection_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/setup_robot/chest_projection.launch.py'])
-        )
     scan_filtering_compensated = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ergocub_navigation'), 'launch'),
@@ -50,7 +45,6 @@ def generate_launch_description():
         )
     return LaunchDescription([
         state_publisher,
-        projection_node,
         scan_filtering_compensated,
         #depth_to_pointcloud,
         virtual_unicycle,
