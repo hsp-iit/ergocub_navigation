@@ -37,6 +37,7 @@ find_package(tf2_sensor_msgs REQUIRED)
 
 find_package(rclcpp_action REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_eigen REQUIRED)
 
 #include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
 #include_directories(/opt/ros/humble/include/tf2)
@@ -195,6 +196,7 @@ ament_target_dependencies(plane_detector
   "sensor_msgs"
   "geometry_msgs"
   "pcl_ros"
+  "tf2_eigen"
 )
 target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
 

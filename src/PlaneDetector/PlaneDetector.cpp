@@ -9,6 +9,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/extract_indices.h>
+#include <tf2_eigen/tf2_eigen.hpp>
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 using std::placeholders::_1;
@@ -24,7 +25,7 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     // Transform
     sensor_msgs::msg::PointCloud2 realsense_cloud;
     std::string transform_error;
-    geometry_msgs::msg::TransformStamped realsense_to_foot_tf;
+    geometry_msgs::msg::TransformStamped realsense_to_foot_tf, realsense_frame_to_XYZ;
     if (m_tf_buffer_in->canTransform(
                 pc_in->header.frame_id,
                 m_realsense_frame,
@@ -36,6 +37,7 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
         {
             realsense_cloud = m_tf_buffer_in->transform(*pc_in, m_realsense_frame, tf2::durationFromSec(0.0));
             realsense_to_foot_tf = m_tf_buffer_in->lookupTransform(m_contact_frame, m_realsense_frame, rclcpp::Time(0));
+            realsense_frame_to_XYZ = m_tf_buffer_in->lookupTransform("realsense", "realsense_rgb_frame", rclcpp::Time(0));
         }
         catch(const std::exception& e)
         {
@@ -158,6 +160,11 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     {
         m_avg_tf = average_pitch(m_tf_vec, ground_cloud.header.stamp);
         m_static_tf_broadcaster->sendTransform(m_avg_tf);
+        auto m_avg_tf_ = tf2::eigenToTransform(tf2::transformToEigen(realsense_frame_to_XYZ.transform) * tf2::transformToEigen(m_avg_tf.transform));
+        m_avg_tf_.header.stamp = m_avg_tf.header.stamp;
+        m_avg_tf_.child_frame_id = "realsense_compensated";
+        m_avg_tf_.header.frame_id = m_avg_tf.child_frame_id;
+        m_static_tf_broadcaster->sendTransform(m_avg_tf_);
     }
     else
     {
