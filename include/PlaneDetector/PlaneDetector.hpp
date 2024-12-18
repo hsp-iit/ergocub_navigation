@@ -30,13 +30,13 @@ private:
     std::string m_right_foot_topic = "/right_foot_heel_ft";
     std::string m_left_foot_topic = "/left_foot_heel_ft";
     std::string m_frame_name = "compensated_realsense_frame";
+    std::string m_realsense_frame = "realsense";
     double m_wrench_threshold = 100.0;
     bool m_right_foot_contact, m_left_foot_contact;
-    std::string m_realsense_frame = "realsense";
     std::vector<std::tuple<double, double>> m_tf_vec;
-    bool m_debug_publish = false;
+    bool m_debug_publish = true;
     geometry_msgs::msg::TransformStamped m_avg_tf;
-    int m_sample_size = 5;                  // how many timess collect RANSAC readings before averaging roll and pitch angles
+    int m_sample_size = 10;                  // how many timess collect RANSAC readings before averaging roll and pitch angles
     float m_filter_z_low = 0.2;             // minimum height to accept laser readings, from the reference frame, in meters
     float m_filter_z_high = 2.5;            // maximum height to accept laser readings, from the reference frame, in meters
 

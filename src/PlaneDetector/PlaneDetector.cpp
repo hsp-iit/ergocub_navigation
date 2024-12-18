@@ -51,7 +51,7 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
         return;
     }
 
-    // do Ransac only for the first N times
+    // do Ransac only for the first N samples
     if (m_tf_vec.size() >= m_sample_size)
     {
         sensor_msgs::msg::PointCloud2 compensated_cloud = realsense_cloud;
@@ -65,10 +65,10 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     /*****************Cut roof (in camera frame)*/
     pcl::PassThrough<pcl::PointXYZ> pass;
-    pass.setInputCloud (in_cloud);
-    pass.setFilterFieldName ("z");
+    pass.setInputCloud(in_cloud);
+    pass.setFilterFieldName("z");
     pass.setFilterLimits(m_filter_z_low, m_filter_z_high);
-    pass.filter (*filtered_cloud);
+    pass.filter(*filtered_cloud);
 
     /*****************Transform in the robot foot frame*/
     sensor_msgs::msg::PointCloud2 ground_cloud;
@@ -82,8 +82,6 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
        RCLCPP_WARN(this->get_logger(), "Cannot transform: %s \n", e.what());
        return;
     }
-    
-    
     pcl::fromROSMsg(ground_cloud, *filtered_cloud);
 
     /*****************Detect ground plane RANSAC*/
@@ -95,7 +93,7 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     seg.setModelType(pcl::SACMODEL_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
     seg.setMaxIterations(1000);
-    seg.setDistanceThreshold(0.01);
+    seg.setDistanceThreshold(0.05);
     
     seg.setInputCloud(filtered_cloud);
     seg.segment(*inliers, *coefficients);
@@ -106,10 +104,10 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
         return;
     }
     // Plane coefficients: 
-    RCLCPP_INFO_STREAM(get_logger(), "Model coefficients: " << coefficients->values[0] << " " 
-                                        << coefficients->values[1] << " "
-                                        << coefficients->values[2] << " " 
-                                        << coefficients->values[3]);
+    //RCLCPP_INFO_STREAM(get_logger(), "Model coefficients: " << coefficients->values[0] << " " 
+    //                                    << coefficients->values[1] << " "
+    //                                    << coefficients->values[2] << " " 
+    //                                    << coefficients->values[3]);
 
     double A = coefficients->values[0];
     double B = coefficients->values[1];
@@ -135,16 +133,21 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     }
     
     /*****************Get RPY angles from plane coeff*/
-    // TODO - check if it's correct
-    double tmp = std::sqrt(A*A + B*B + C*C);
-    double pitch = -(M_PI_2 - std::acos(A / tmp));
-    double roll = (M_PI_2 - std::acos(B / tmp));
-    double yaw = 0.0;
+    double tmp = std::sqrt(A*A + B*B + C*C);    // This should be = 1
+    double pitch = std::acos(A / tmp) - M_PI_2; // We remove M_PI_2 since Ransac adds a strange rotation
+    double roll = - (std::acos(B / tmp) - M_PI_2);
+    double yaw = std::acos(C / tmp);
     RCLCPP_INFO(get_logger(), "roll: %f pitch: %f yaw: %f ", roll, pitch, yaw);
+    // New computation
+    //double pitch_ = std::atan2(C, std::sqrt(A * A + B * B));
+    //double roll_ = std::atan2(B, A);
+    //double yaw_ = std::atan2(A, C);
+    //RCLCPP_INFO(get_logger(), "NEW FORMULATION roll: %f pitch: %f yaw: %f ", roll_, pitch_, yaw_);
     
     /*****************Publish static frame corrected by RPY angles*/
     geometry_msgs::msg::TransformStamped msg;
     msg.header.frame_id = m_realsense_frame;
+    //msg.header.frame_id = "";
     msg.child_frame_id = m_frame_name;
     msg.header.stamp = ground_cloud.header.stamp;
     msg.transform.translation.x = 0.0;
@@ -228,7 +231,7 @@ PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifec
     declare_parameter("pointcloud_topic", "/camera/depth/color/points");
     declare_parameter("pub_topic", "/adjusted_depth_pc");
     declare_parameter("filter_z_low", -2.0);
-    declare_parameter("filter_z_high", -1.3);
+    declare_parameter("filter_z_high", -0.7);
 
     
     m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -257,17 +260,6 @@ CallbackReturn PlaneDetector::on_configure(const rclcpp_lifecycle::State &)
         10,
         std::bind(&PlaneDetector::pc_callback, this, _1)
     );
-
-    //m_right_foot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped> (
-    //    m_right_foot_topic,
-    //    10,
-    //    std::bind(&PlaneDetector::right_foot_callback, this, _1)
-    //);
-    //m_left_foot_sub = this->create_subscription<geometry_msgs::msg::WrenchStamped> (
-    //    m_left_foot_topic,
-    //    10,
-    //    std::bind(&PlaneDetector::left_foot_callback, this, _1)
-    //);
     
     //Publisher
     m_pointcloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(m_pub_topic, 10);
