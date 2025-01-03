@@ -13,7 +13,7 @@ def generate_launch_description():
     #robot_urdf = '/usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubSN001/model.urdf'
     #robot_urdf = '/home/ecub_docker/ergocub-software/urdf/ergoCub/robots/ergoCubSN002/model.urdf'
     ROBOT_NAME = os.getenv('YARP_ROBOT_NAME')
-    if ROBOT_NAME == None:
+    if ROBOT_NAME == 'ergoCubSN002':
         robot_urdf = '/home/ecub_docker/ergocub-software/urdf/ergoCub/robots/ergoCubSN002/model.urdf'
     else: 
         robot_urdf = f'/usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/{ROBOT_NAME}/model.urdf'
