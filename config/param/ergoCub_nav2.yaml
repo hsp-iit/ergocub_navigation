@@ -7,7 +7,9 @@ bt_navigator:
     default_nav_to_pose_bt_xml: /home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml
     #/usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml
     bt_loop_duration: 10
-    goal_reached_tol: 0.25 #0.25
+    goal_reached_tol: 0.20 #0.25
+    goal_angular_tol: 0.4
+    check_angular_alignment: True
     default_server_timeout: 4000
     transform_tolerance: 0.2  #0.3
     #enable_groot_monitoring: True
@@ -92,8 +94,8 @@ controller_server:
     # Goal checker parameters
     goal_checker:
       plugin: nav2_controller::SimpleGoalChecker
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.9
+      xy_goal_tolerance: 0.20
+      yaw_goal_tolerance: 0.4
       stateful: true
     
     # DWB parameters
