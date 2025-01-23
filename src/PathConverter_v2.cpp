@@ -4,6 +4,7 @@
  */
 
 #include "PathConverter/PathConverter_v2.hpp"
+#include <signal.h>
 
 using namespace std::chrono_literals;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -232,6 +233,46 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
         }
 }
 
+void PathConverter_v2::exit_handler(int signum) 
+{
+    ++ m_exit_count;
+    
+    // Send stop command only once
+    if (m_exit_count == 1)
+    {
+        RCLCPP_INFO(this->get_logger(), "Caught CTRL+C, sending stop command to walking-controller");
+        //Write a path with all 0 poses
+        try
+        {
+            auto& out = m_port.prepare();
+            out.clear();
+            for (int i = 0; i < 3; ++i)
+            {
+                out.push_back(0.0);
+                out.push_back(0.0);
+                out.push_back(0.0);
+                RCLCPP_INFO_STREAM(get_logger(), "Passing Path i-th element: " << i << " X : " << out[3*i] << " Y: " << out[3*i+1] << " Angle: " << out[3*i+2] );
+            }
+            m_port.write();
+        }
+        catch(const std::exception& e)
+        {
+            RCLCPP_INFO_STREAM(get_logger(), "Got exception while passing stop command to walking-controller: " << e.what());
+        }
+        // Terminate program
+        exit(signum);
+    }
+    else if(m_exit_count > 5)
+    {
+        RCLCPP_INFO(this->get_logger(), "Caught too many CTRL+C, killing");
+        exit(signum);
+    }
+    else
+    {
+        RCLCPP_INFO_STREAM(this->get_logger(), "Caught " << m_exit_count << " CTRL+C, ignoring");
+    }
+}
+
 void PathConverter_v2::state_callback(const std_msgs::msg::Bool::ConstPtr& in)
 {
     if (in->data)
@@ -306,7 +347,6 @@ nav_msgs::msg::Path PathConverter_v2::transformPlan(const nav_msgs::msg::Path::C
         //std::cout << "Transformed X: " << transformed_plan_.poses.at(i).pose.position.x << "Transformed Y: " << transformed_plan_.poses.at(i).pose.position.y <<std::endl;
     }
     
-    //
     if (m_shift_enabled && m_shiftFlag)
     {
         std::cout << "Shifting Plan" << std::endl;
@@ -316,7 +356,6 @@ nav_msgs::msg::Path PathConverter_v2::transformPlan(const nav_msgs::msg::Path::C
         
     if (transformed_plan_.poses.empty()) {
         RCLCPP_ERROR_STREAM(get_logger(), "Resulting plan has 0 poses in it" );
-        //throw std::runtime_error("Resulting plan has 0 poses in it");
     }
     return transformed_plan_;
 }

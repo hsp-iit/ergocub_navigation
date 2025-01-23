@@ -59,6 +59,7 @@ private:
     std::shared_ptr<tf2_ros::Buffer> m_tf_buffer;
     std::mutex m_mutex;             // mutex between the state callback and the path convertion
     bool m_goalReached = false;     // goal reached state red from a topic
+    int m_exit_count = 0;           // Number of ctrl+c caught
 
     //Each time I have a new path we transform the path and pass it to the walking controller
     void msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in);
@@ -83,6 +84,8 @@ private:
      */
     nav_msgs::msg::Path shiftPlan(const nav_msgs::msg::Path &path,
                                     bool directionLeft);
+    
+    void exit_handler(int signum);
 
 public:
     PathConverter_v2(const rclcpp::NodeOptions & options);
