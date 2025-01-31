@@ -8,7 +8,7 @@
                 "/usr/include/eigen3/**",
                 "/usr/include/pcl-1.12/**",
                 "/usr/local/src/robot/robotology-superbuild/build/install/include/",
-                "/opt/ros/humble/include/nav_msgs",
+                "/opt/ros/iron/include/nav_msgs",
                 "~/robotology-superbuild/build/install/include/",
             ],
             "defines": [],
