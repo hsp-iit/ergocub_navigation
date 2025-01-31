@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NAV2_THETA_STAR_PLANNER__THETA_STAR_PLANNER_HPP_
-#define NAV2_THETA_STAR_PLANNER__THETA_STAR_PLANNER_HPP_
+#ifndef NAV2_THETA_STAR_ORIENTED_PLANNER__THETA_STAR_PLANNER_HPP_
+#define NAV2_THETA_STAR_ORIENTED_PLANNER__THETA_STAR_PLANNER_HPP_
 
 #include <iostream>
 #include <cmath>
@@ -37,10 +37,10 @@
 
 using rcl_interfaces::msg::ParameterType;
 
-namespace nav2_theta_star_planner
+namespace nav2_theta_star_oriented_planner
 {
 
-class ThetaStarPlanner : public nav2_core::GlobalPlanner
+class ThetaStarOrientedPlanner : public nav2_core::GlobalPlanner
 {
 public:
   void configure(
@@ -61,7 +61,7 @@ public:
 protected:
   std::shared_ptr<tf2_ros::Buffer> tf_;
   rclcpp::Clock::SharedPtr clock_;
-  rclcpp::Logger logger_{rclcpp::get_logger("ThetaStarPlanner")};
+  rclcpp::Logger logger_{rclcpp::get_logger("ThetaStarOrientedPlanner")};
   std::string global_frame_, name_;
   bool use_final_approach_orientation_;
 

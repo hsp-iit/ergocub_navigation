@@ -21,9 +21,9 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 
-namespace nav2_theta_star_planner
+namespace nav2_theta_star_oriented_planner
 {
-void ThetaStarPlanner::configure(
+void ThetaStarOrientedPlanner::configure(
   const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent,
   std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
@@ -67,27 +67,27 @@ void ThetaStarPlanner::configure(
   node->get_parameter(name + ".use_final_approach_orientation", use_final_approach_orientation_);
 }
 
-void ThetaStarPlanner::cleanup()
+void ThetaStarOrientedPlanner::cleanup()
 {
   RCLCPP_INFO(logger_, "CleaningUp plugin %s of type nav2_theta_star_planner", name_.c_str());
   planner_.reset();
 }
 
-void ThetaStarPlanner::activate()
+void ThetaStarOrientedPlanner::activate()
 {
   RCLCPP_INFO(logger_, "Activating plugin %s of type nav2_theta_star_planner", name_.c_str());
   // Add callback for dynamic parameters
   auto node = parent_node_.lock();
   dyn_params_handler_ = node->add_on_set_parameters_callback(
-    std::bind(&ThetaStarPlanner::dynamicParametersCallback, this, std::placeholders::_1));
+    std::bind(&ThetaStarOrientedPlanner::dynamicParametersCallback, this, std::placeholders::_1));
 }
 
-void ThetaStarPlanner::deactivate()
+void ThetaStarOrientedPlanner::deactivate()
 {
   RCLCPP_INFO(logger_, "Deactivating plugin %s of type nav2_theta_star_planner", name_.c_str());
 }
 
-nav_msgs::msg::Path ThetaStarPlanner::createPlan(
+nav_msgs::msg::Path ThetaStarOrientedPlanner::createPlan(
   const geometry_msgs::msg::PoseStamped & start,
   const geometry_msgs::msg::PoseStamped & goal)
 {
@@ -181,7 +181,7 @@ nav_msgs::msg::Path ThetaStarPlanner::createPlan(
   return global_path;
 }
 
-void ThetaStarPlanner::getPlan(nav_msgs::msg::Path & global_path)
+void ThetaStarOrientedPlanner::getPlan(nav_msgs::msg::Path & global_path)
 {
   std::vector<coordsW> path;
   if (planner_->isUnsafeToPlan()) {
@@ -197,7 +197,7 @@ void ThetaStarPlanner::getPlan(nav_msgs::msg::Path & global_path)
   global_path.header.frame_id = global_frame_;
 }
 
-nav_msgs::msg::Path ThetaStarPlanner::linearInterpolation(
+nav_msgs::msg::Path ThetaStarOrientedPlanner::linearInterpolation(
   const std::vector<coordsW> & raw_path,
   const double & dist_bw_points)
 {
@@ -230,7 +230,7 @@ nav_msgs::msg::Path ThetaStarPlanner::linearInterpolation(
 }
 
 rcl_interfaces::msg::SetParametersResult
-ThetaStarPlanner::dynamicParametersCallback(std::vector<rclcpp::Parameter> parameters)
+ThetaStarOrientedPlanner::dynamicParametersCallback(std::vector<rclcpp::Parameter> parameters)
 {
   rcl_interfaces::msg::SetParametersResult result;
   for (auto parameter : parameters) {
@@ -263,4 +263,4 @@ ThetaStarPlanner::dynamicParametersCallback(std::vector<rclcpp::Parameter> param
 }  // namespace nav2_theta_star_planner
 
 #include "pluginlib/class_list_macros.hpp"
-PLUGINLIB_EXPORT_CLASS(nav2_theta_star_planner::ThetaStarPlanner, nav2_core::GlobalPlanner)
+PLUGINLIB_EXPORT_CLASS(nav2_theta_star_oriented_planner::ThetaStarOrientedPlanner, nav2_core::GlobalPlanner)

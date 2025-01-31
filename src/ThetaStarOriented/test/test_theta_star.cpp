@@ -145,9 +145,9 @@ TEST(ThetaStarTest, test_theta_star) {
 }
 
 // Smoke tests meant to detect issues arising from the plugin part rather than the algorithm
-TEST(ThetaStarPlanner, test_theta_star_planner) {
+TEST(ThetaStarOrientedPlanner, test_theta_star_planner) {
   rclcpp_lifecycle::LifecycleNode::SharedPtr life_node =
-    std::make_shared<rclcpp_lifecycle::LifecycleNode>("ThetaStarPlannerTest");
+    std::make_shared<rclcpp_lifecycle::LifecycleNode>("ThetaStarOrientedPlannerTest");
 
   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros =
     std::make_shared<nav2_costmap_2d::Costmap2DROS>("global_costmap");
@@ -158,7 +158,7 @@ TEST(ThetaStarPlanner, test_theta_star_planner) {
   start.pose.position.y = 0.0;
   start.pose.orientation.w = 1.0;
   goal = start;
-  auto planner_2d = std::make_unique<nav2_theta_star_planner::ThetaStarPlanner>();
+  auto planner_2d = std::make_unique<nav2_theta_star_oriented_planner::ThetaStarOrientedPlanner>();
   planner_2d->configure(life_node, "test", nullptr, costmap_ros);
   planner_2d->activate();
 
@@ -185,16 +185,16 @@ TEST(ThetaStarPlanner, test_theta_star_planner) {
   costmap_ros.reset();
 }
 
-TEST(ThetaStarPlanner, test_theta_star_reconfigure)
+TEST(ThetaStarOrientedPlanner, test_theta_star_reconfigure)
 {
   rclcpp_lifecycle::LifecycleNode::SharedPtr life_node =
-    std::make_shared<rclcpp_lifecycle::LifecycleNode>("ThetaStarPlannerTest");
+    std::make_shared<rclcpp_lifecycle::LifecycleNode>("ThetaStarOrientedPlannerTest");
 
   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros =
     std::make_shared<nav2_costmap_2d::Costmap2DROS>("global_costmap");
   costmap_ros->on_configure(rclcpp_lifecycle::State());
 
-  auto planner = std::make_unique<nav2_theta_star_planner::ThetaStarPlanner>();
+  auto planner = std::make_unique<nav2_theta_star_oriented_planner::ThetaStarOrientedPlanner>();
   try {
     // Expect to throw due to invalid prims file in param
     planner->configure(life_node, "test", nullptr, costmap_ros);
