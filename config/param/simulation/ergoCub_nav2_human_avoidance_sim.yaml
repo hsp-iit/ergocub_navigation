@@ -4,9 +4,9 @@ bt_navigator:
     global_frame: map
     robot_base_frame: geometric_unicycle  #update it also in the BT xml
     odom_topic: odom
-    default_nav_to_pose_bt_xml: /usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml
+    default_nav_to_pose_bt_xml: /home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator_sim.xml #"/home/user1/ros2_workspace/src/ergoCub_ros2/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml"
     bt_loop_duration: 10
-    goal_reached_tol: 0.25 #0.25
+    goal_reached_tol: 0.10 #0.25
     default_server_timeout: 4000
     transform_tolerance: 0.2  #0.3
     #enable_groot_monitoring: True
@@ -91,82 +91,96 @@ controller_server:
     # Goal checker parameters
     goal_checker:
       plugin: nav2_controller::SimpleGoalChecker
-      xy_goal_tolerance: 0.25
+      xy_goal_tolerance: 0.3
       yaw_goal_tolerance: 0.9
       stateful: true
     
-    # DWB parameters
     FollowPath:
-      plugin: dwb_core::DWBLocalPlanner
+      plugin: "ergocub_local_human_avoidance::HumanAvoidanceController"
+      safe_dist_to_human: 0.30
+      human_left_frame: human_left_frame
+      human_right_frame: human_right_frame
+      human_tf_base_frame: virtual_unicycle_base
+      nav_shift_port_name: /path_converter/shift_command:i
+      bimanual_manipulation_sever: /Components/Manipulation
+      object_max_translation: 0.15
+      object_max_rotation: 0.35
+      object_translation_slope: 1.0
+      object_orientation_slope: 2.2
+      human_distance_threshold: 4.5
+
+    # DWB parameters
+    #FollowPath:
+    #  plugin: dwb_core::DWBLocalPlanner
 
       # Generic
-      prune_distance: 2.0   #2.0
-      prune_plan: true
-      shorten_transformed_plan: true
-      debug_trajectory_details: false
-      trajectory_generator_name: dwb_plugins::StandardTrajectoryGenerator
-      transform_tolerance: 0.2
-      short_circuit_trajectory_evaluation: true
-      xy_goal_tolerance: 0.4
+    #  prune_distance: 2.0   #2.0
+    #  prune_plan: true
+    #  shorten_transformed_plan: true
+    #  debug_trajectory_details: false
+    #  trajectory_generator_name: dwb_plugins::StandardTrajectoryGenerator
+    #  transform_tolerance: 0.2
+    #  short_circuit_trajectory_evaluation: true
+    #  xy_goal_tolerance: 0.4
 
-      # XYTheta Iterator
-      vx_samples: 20
-      vy_samples: 10
-      vtheta_samples: 10
+    #  # XYTheta Iterator
+    #  vx_samples: 20
+    #  vy_samples: 10
+    #  vtheta_samples: 10
 
       # Kinematic Parameters
-      max_vel_x: 1.0
-      max_vel_y: 0.5
-      max_vel_theta: 0.2
-      min_vel_x: 0.0
-      min_vel_y: 0.0
-      min_speed_xy: 0.0
-      max_speed_xy: 1.2
-      min_speed_theta: 0.0
-      acc_lim_x: 2.5
-      acc_lim_y: 2.5
-      acc_lim_theta: 3.2
-      decel_lim_x: -2.5
-      decel_lim_y: -2.5
-      decel_lim_theta: -3.2
-      trans_stopped_velocity: 0.01
+    #  max_vel_x: 1.0
+    #  max_vel_y: 0.5
+    #  max_vel_theta: 0.2
+    #  min_vel_x: 0.0
+    #  min_vel_y: 0.0
+    #  min_speed_xy: 0.0
+    #  max_speed_xy: 1.2
+    #  min_speed_theta: 0.0
+    #  acc_lim_x: 2.5
+    #  acc_lim_y: 2.5
+    #  acc_lim_theta: 3.2
+    #  decel_lim_x: -2.5
+    #  decel_lim_y: -2.5
+    #  decel_lim_theta: -3.2
+    #  trans_stopped_velocity: 0.01
 
       # Publisher params
-      publish_cost_grid_pc: false
-      publish_evaluation: false
-      publish_global_plan: true
-      publish_local_plan: true
-      publish_trajectories: false
-      publish_transformed_plan: false
-      marker_lifetime: 0.1
+    #  publish_cost_grid_pc: false
+    #  publish_evaluation: false
+    #  publish_global_plan: true
+    #  publish_local_plan: true
+    #  publish_trajectories: false
+    #  publish_transformed_plan: false
+    #  marker_lifetime: 0.1
 
       # Trajectory generator
-      sim_time: 2.0
-      discretize_by_time: false
-      time_granularity: 0.5
-      linear_granularity: 0.1  #0.05
-      angular_granularity: 0.025
-      include_last_point: true
+    #  sim_time: 2.0
+    #  discretize_by_time: false
+    #  time_granularity: 0.5
+    #  linear_granularity: 0.1  #0.05
+    #  angular_granularity: 0.025
+    #  include_last_point: true
 
       # Critics
       #- RotateToGoal
       #- Oscillation
       #- GoalAlign
-      critics:
-      - BaseObstacle
-      - PathAlign
-      - PathDist
-      - GoalDist
-      BaseObstacle.scale: 0.02
-      BaseObstacle.sum_scores: false
+    #  critics:
+    #  - BaseObstacle
+    #  - PathAlign
+    #  - PathDist
+    #  - GoalDist
+    #  BaseObstacle.scale: 0.02
+    #  BaseObstacle.sum_scores: false
 
-      PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
+    #  PathAlign.scale: 32.0
+    #  PathAlign.forward_point_distance: 0.1
 
       #GoalAlign.scale: 24.0
       #GoalAlign.forward_point_distance: 0.1
 
-      PathDist.scale: 32.0
+    #  PathDist.scale: 32.0
 
       #Oscillation.oscillation_reset_angle: 0.2
       #Oscillation.oscillation_reset_dist: 0.05
@@ -174,7 +188,7 @@ controller_server:
       #Oscillation.scale: 1.0
       #Oscillation.x_only_threshold: 0.05
 
-      GoalDist.scale: 24.0
+    #  GoalDist.scale: 24.0
 
       #RotateToGoal.scale: 32.0
       #RotateToGoal.slowing_factor: 5.0
@@ -287,7 +301,7 @@ global_costmap:
       - static_layer
       - obstacle_layer
       - inflation_layer
-      filters: ["inflation_layer"] #["keepout_filter"] 
+      #filters: ["keepout_filter"] #["keepout_filter", "inflation_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
@@ -364,8 +378,8 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
-        cost_scaling_factor: 1.5    #2.5    0.2
-        inflation_radius: 4.0    #0.55      0.3
+        cost_scaling_factor: 0.2    #2.5
+        inflation_radius: 0.3    #0.55
         inflate_unknown: false
         inflate_around_unknown: false
 
@@ -388,12 +402,12 @@ global_costmap:
 #    use_sim_time: false
 #    frame_id: "map"
 #    topic_name: "/keepout_filter_mask"
-#    yaml_filename: "/home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/maps/empty_map.yaml"
+#    yaml_filename: "/home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/maps/keepout_fake_corridor.yaml"
 
 map_server:
   ros__parameters:
     use_sim_time: false
-    yaml_filename: "empty_map.yaml"
+    yaml_filename: "map.yaml"
 
 map_saver:
   ros__parameters:
@@ -430,7 +444,7 @@ planner_server:
       angle_quantization_bins: 72         # 64 For Hybrid nodes: Number of angle bins for search, must be 1 for 2D node (no angle search)
       analytic_expansion_ratio: 3.5       # For Hybrid/Lattice nodes: The ratio to attempt analytic expansions during search for final approach.
       analytic_expansion_max_length: 3.0    # For Hybrid/Lattice nodes: The maximum length of the analytic expansion to be considered valid to prevent unsafe shortcutting (in meters). This should be scaled with minimum turning radius and be no less than 4-5x the minimum radius
-      minimum_turning_radius: 0.050        # 0.01 For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
+      minimum_turning_radius: 0.10        # 0.3 For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
       reverse_penalty: 2.1                # For Reeds-Shepp model: penalty to apply if motion is reversing, must be => 1
       change_penalty: 0.0                 # For Hybrid nodes: penalty to apply if motion is changing directions, must be >= 0
       non_straight_penalty: 1.40          # For Hybrid nodes: penalty to apply if motion is non-straight, must be => 1

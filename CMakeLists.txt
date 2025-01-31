@@ -37,7 +37,9 @@ find_package(tf2_sensor_msgs REQUIRED)
 
 find_package(rclcpp_action REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
-find_package(tf2_eigen REQUIRED)
+
+find_package(rosidl_default_generators REQUIRED)
+
 
 #include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
 #include_directories(/opt/ros/humble/include/tf2)
@@ -54,7 +56,13 @@ include_directories(/opt/ros/iron/include/tf2_ros)
 include_directories(/opt/ros/iron/include/laser_geometry)
 include_directories(/opt/ros/iron/include/pcl_conversions)
 include_directories(include)
+add_subdirectory(interfaces)
 
+
+#rosidl_generate_interfaces(${PROJECT_NAME}
+#  "srv/GetHumanExtremes.srv"
+#  DEPENDENCIES geometry_msgs
+#)
 
 add_executable(planner_trigger_server src/planner_trigger_server.cpp)
 ament_target_dependencies(planner_trigger_server
@@ -80,8 +88,8 @@ ament_target_dependencies(scan_filter
 )
 target_link_libraries(scan_filter ${PCL_LIBRARIES})
 
-add_executable(footsteps_viewer_ src/FootstepsViewer/main.cpp src/FootstepsViewer/FootstepsViewerYarp.cpp src/FootstepsViewer/FootstepsViewerRos.cpp)
-ament_target_dependencies(footsteps_viewer_
+add_executable(footsteps_viewer src/FootstepsViewer/main.cpp src/FootstepsViewer/FootstepsViewerYarp.cpp src/FootstepsViewer/FootstepsViewerRos.cpp)
+ament_target_dependencies(footsteps_viewer
   "YARP"
   "rclcpp"
   "nav_msgs"
@@ -93,15 +101,15 @@ ament_target_dependencies(footsteps_viewer_
   "visualization_msgs"
 )
 
-add_executable(base_projector src/BaseProjector.cpp)
-ament_target_dependencies(base_projector
-  "std_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "YARP"
-  "rclcpp"
-  "tf2_geometry_msgs"
-)
+#add_executable(base_projector src/BaseProjector.cpp)
+#ament_target_dependencies(base_projector
+#  "std_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "YARP"
+#  "rclcpp"
+#  "tf2_geometry_msgs"
+#)
 
 add_executable(odom_node src/OdomNode.cpp)
 ament_target_dependencies(odom_node
@@ -116,17 +124,17 @@ ament_target_dependencies(odom_node
   "tf2_geometry_msgs"
 )
 
-add_executable(path_converter src/PathConverter.cpp)
-ament_target_dependencies(path_converter
-  "YARP"
-  "rclcpp"
-  "nav_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "tf2"
-  "nav2_util"
-  "nav_2d_msgs"
-)
+#add_executable(path_converter src/PathConverter.cpp)
+#ament_target_dependencies(path_converter
+#  "YARP"
+#  "rclcpp"
+#  "nav_msgs"
+#  "tf2_ros"
+#  "tf2_msgs"
+#  "tf2"
+#  "nav2_util"
+#  "nav_2d_msgs"
+#)
 
 add_executable(pointcloud_filter src/PointcloudFilter.cpp)
 ament_target_dependencies(pointcloud_filter
@@ -202,15 +210,38 @@ target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
 
 set(dependencies
   rclcpp
+  rclcpp_action
+  rclcpp_lifecycle
   geometry_msgs
   nav2_costmap_2d
   pluginlib
+  nav2_msgs
   nav_msgs
   nav2_util
   nav2_core
   tf2
+  YARP
 )
 
+
+add_library(ergocub_local_human_avoidance_controller SHARED
+        src/LocalHumanAvoidance.cpp src/ControlInterface.cpp)
+
+
+# prevent pluginlib from using boost
+target_compile_definitions(ergocub_local_human_avoidance_controller PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+
+#rosidl_get_typesupport_target(ergocub_local_human_avoidance_controller ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+
+ament_target_dependencies(ergocub_local_human_avoidance_controller
+  ${dependencies} 
+)
+
+
+install(DIRECTORY include/
+  DESTINATION include/
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -228,14 +259,13 @@ install(TARGETS
   odom_node
   planner_trigger_server
   scan_filter
-  footsteps_viewer_
-  base_projector
-  path_converter
+  footsteps_viewer
   pointcloud_filter
   phase_detector
   path_converter_v2
   human_pose_goal_generator
   plane_detector
+  ergocub_local_human_avoidance_controller
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
@@ -263,6 +293,19 @@ install(DIRECTORY include/
   DESTINATION include/
 )
 
+install(FILES ergocub_local_human_avoidance_controller.xml
+  DESTINATION share/${PROJECT_NAME}
+)
+
+
 ament_export_include_directories(include)
+#rosidl_get_typesupport_target(cpp_typesupport_target
+#  ${PROJECT_NAME} rosidl_typesupport_cpp)
+#target_link_libraries(ergocub_local_human_avoidance_controller "${cpp_typesupport_target}")
+ament_export_libraries(ergocub_local_human_avoidance_controller)
+ament_export_dependencies(${dependencies})
+#ament_export_dependencies(rosidl_default_runtime)
+
+pluginlib_export_plugin_description_file(nav2_core ergocub_local_human_avoidance_controller.xml)
 
 ament_package()

@@ -77,12 +77,17 @@ CallbackReturn PathConverter_v2::on_configure(const rclcpp_lifecycle::State &)
         m_shift_port.open(m_shift_portName);
         m_shiftFlag = false;
         //TODO add connection and its check TO ENABLE
-        //yarp::os::Network::connect(m_shift_portConnectionName, m_shift_portName);
-        //if (!yarp::os::Network::isConnected(m_shift_portConnectionName, m_shift_portName))
-        //{
-        //    RCLCPP_ERROR(this->get_logger(), "Could not connect ports for shift");
-        //    return CallbackReturn::FAILURE;
-        //}
+        yarp::os::Network::connect(m_shift_portConnectionName, m_shift_portName);
+        if (!yarp::os::Network::isConnected(m_shift_portConnectionName, m_shift_portName))
+        {
+            RCLCPP_ERROR(this->get_logger(), "Could not connect ports for shift");
+            //return CallbackReturn::FAILURE;
+        }
+        else
+        {
+            RCLCPP_INFO_STREAM(this->get_logger(), "Connected: " << m_shift_portConnectionName);
+        }
+        
     }
     
     return CallbackReturn::SUCCESS;
@@ -161,10 +166,11 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_shift_enabled)
         {
+            RCLCPP_INFO_STREAM(get_logger(), "Shift Enabled" );
             if (msg_counter < m_max_msg_counter && m_shiftFlag)
             {
                 ++msg_counter;
-                std::cout << "Msg counter: " << msg_counter << std::endl;
+                RCLCPP_INFO_STREAM(get_logger(), "Msg counter: " << msg_counter);
                 return;
             }
 
@@ -174,12 +180,13 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                 if (data!= nullptr)
                 {
                     //std::cout << data->data()[0] << " " << data->data()[1] << " " << data->data()[2] << " " << std::endl;
-                    if (data->get(0).asBool())   //data->data()[0]
+                    if (data->get(0).asInt32() == 1)   //data->data()[0]
                     {
                         std::cout << "Red from port" << std::endl;
                         m_shiftFlag = true;
                         //m_shiftLeft = data->data()[1]==1 ? true : false;
-                        m_shiftLeft = data->get(1).asBool();
+                        m_shiftLeft = (bool)data->get(1).asInt32();
+                        std::cout << "m_shiftLeft: " << m_shiftLeft << std::endl;
                         msg_counter = 0;
                     }
                     else

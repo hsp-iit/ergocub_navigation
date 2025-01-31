@@ -94,7 +94,7 @@ controller_server:
       xy_goal_tolerance: 0.3
       yaw_goal_tolerance: 0.9
       stateful: true
-    
+
     # DWB parameters
     FollowPath:
       plugin: dwb_core::DWBLocalPlanner
@@ -109,12 +109,12 @@ controller_server:
       short_circuit_trajectory_evaluation: true
       xy_goal_tolerance: 0.4
 
-      # XYTheta Iterator
+    #  # XYTheta Iterator
       vx_samples: 20
       vy_samples: 10
       vtheta_samples: 10
 
-      # Kinematic Parameters
+    # Kinematic Parameters
       max_vel_x: 1.0
       max_vel_y: 0.5
       max_vel_theta: 0.2
@@ -185,8 +185,8 @@ local_costmap:
     ros__parameters:
       update_frequency: 5.0
       publish_frequency: 5.0
-      global_frame: map  #odom
-      robot_base_frame: geometric_unicycle #virtual_unicycle_base
+      global_frame: map
+      robot_base_frame: geometric_unicycle
       use_sim_time: True
       rolling_window: true
       width: 6    #3

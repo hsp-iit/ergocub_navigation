@@ -97,7 +97,7 @@ controller_server:
       xy_goal_tolerance: 0.20
       yaw_goal_tolerance: 0.4
       stateful: true
-    
+
     # DWB parameters
     FollowPath:
       plugin: dwb_core::DWBLocalPlanner
@@ -182,12 +182,12 @@ controller_server:
       #RotateToGoal.scale: 32.0
       #RotateToGoal.slowing_factor: 5.0
       #RotateToGoal.lookahead_time: -1.0
-
+ 
 local_costmap:
   local_costmap:
     ros__parameters:
-      update_frequency: 5.0
-      publish_frequency: 5.0
+      update_frequency: 30.0
+      publish_frequency: 30.0
       global_frame: map  #odom
       robot_base_frame: geometric_unicycle #virtual_unicycle_base
       use_sim_time: True
@@ -460,7 +460,7 @@ recoveries_server:
   ros__parameters:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
-    cycle_frequency: 10.0
+    cycle_frequency: 30.0
     recovery_plugins: ["spin", "backup", "wait"]
     spin:
       plugin: "nav2_recoveries/Spin"
@@ -508,7 +508,7 @@ behavior_server:
   ros__parameters:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
-    cycle_frequency: 10.0
+    cycle_frequency: 30.0
     behavior_plugins: ["spin", "backup", "drive_on_heading", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"

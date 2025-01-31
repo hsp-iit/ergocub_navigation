@@ -18,11 +18,6 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/simulation/ergoCub_rviz_sim.launch.py'])
         )
-    projection_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/simulation/setup_robot/chest_projection_sim.launch.py'])
-        )
     scan_filtering_compensated = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ergocub_navigation'), 'launch'),
@@ -45,7 +40,6 @@ def generate_launch_description():
         )
     return LaunchDescription([
         state_publisher,
-        #projection_node,
         #rviz_node,
         scan_filtering_compensated,
         #depth_to_pointcloud,
