@@ -21,37 +21,37 @@ from launch.substitutions import LaunchConfiguration
 def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
     ld = launch.LaunchDescription()
-    human_pose_goal_generator_dir = launch.substitutions.LaunchConfiguration(
-        'human_pose_goal_generator',
+    plane_detector_dir = launch.substitutions.LaunchConfiguration(
+        'plane_detector',
         default=os.path.join(
             get_package_share_directory('ergocub_navigation'),
             'param',
-            'human_pose_goal_generator.yaml'))
+            'plane_detector.yaml'))
     
-    human_pose_goal_generator = launch_ros.actions.LifecycleNode(
-            name = 'human_pose_goal_generator',
+    plane_detector = launch_ros.actions.LifecycleNode(
+            name = 'plane_detector',
             namespace='',
             package='ergocub_navigation',
-            executable='human_pose_goal_generator',
+            executable='plane_detector',
             output='screen',
-            parameters=[human_pose_goal_generator_dir]
+            parameters=[plane_detector_dir]
         )
     
     to_inactive = launch.actions.EmitEvent(
         event=launch_ros.events.lifecycle.ChangeState(
-            lifecycle_node_matcher=launch.events.matches_action(human_pose_goal_generator),
+            lifecycle_node_matcher=launch.events.matches_action(plane_detector),
             transition_id=lifecycle_msgs.msg.Transition.TRANSITION_CONFIGURE,
         )
     )
     
     from_unconfigured_to_inactive = launch.actions.RegisterEventHandler(
         launch_ros.event_handlers.OnStateTransition(
-            target_lifecycle_node=human_pose_goal_generator, 
+            target_lifecycle_node=plane_detector, 
             goal_state='unconfigured',
             entities=[
                 launch.actions.LogInfo(msg="-- Unconfigured --"),
                 launch.actions.EmitEvent(event=launch_ros.events.lifecycle.ChangeState(
-                    lifecycle_node_matcher=launch.events.matches_action(human_pose_goal_generator),
+                    lifecycle_node_matcher=launch.events.matches_action(plane_detector),
                     transition_id=lifecycle_msgs.msg.Transition.TRANSITION_CONFIGURE,
                 )),
             ],
@@ -60,13 +60,13 @@ def generate_launch_description():
 
     from_inactive_to_active = launch.actions.RegisterEventHandler(
         launch_ros.event_handlers.OnStateTransition(
-            target_lifecycle_node=human_pose_goal_generator, 
+            target_lifecycle_node=plane_detector, 
             start_state = 'configuring',
             goal_state='inactive',
             entities=[
                 launch.actions.LogInfo(msg="-- Inactive --"),
                 launch.actions.EmitEvent(event=launch_ros.events.lifecycle.ChangeState(
-                    lifecycle_node_matcher=launch.events.matches_action(human_pose_goal_generator),
+                    lifecycle_node_matcher=launch.events.matches_action(plane_detector),
                     transition_id=lifecycle_msgs.msg.Transition.TRANSITION_ACTIVATE,
                 )),
             ],
@@ -75,7 +75,7 @@ def generate_launch_description():
 
     ld.add_action(from_unconfigured_to_inactive)
     ld.add_action(from_inactive_to_active)
-    ld.add_action(human_pose_goal_generator)
+    ld.add_action(plane_detector)
     ld.add_action(to_inactive)
     
     return LaunchDescription([

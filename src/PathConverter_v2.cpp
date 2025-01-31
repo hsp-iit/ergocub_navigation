@@ -4,6 +4,7 @@
  */
 
 #include "PathConverter/PathConverter_v2.hpp"
+#include <signal.h>
 
 using namespace std::chrono_literals;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -123,6 +124,25 @@ CallbackReturn PathConverter_v2::on_cleanup(const rclcpp_lifecycle::State &)
 CallbackReturn PathConverter_v2::on_shutdown(const rclcpp_lifecycle::State & state)
 {
     RCLCPP_INFO(get_logger(), "Shutting Down from %s", state.label().c_str());
+    try
+        {
+            RCLCPP_INFO(get_logger(), "Trying to stop the walking-controller");
+            auto& out = m_port.prepare();
+            out.clear();
+            for (int i = 0; i < 3; ++i)
+            {
+                out.push_back(0.0);
+                out.push_back(0.0);
+                out.push_back(0.0);
+                RCLCPP_INFO_STREAM(get_logger(), "Passing Path i-th element: " << i << " X : " << out[3*i] << " Y: " << out[3*i+1] << " Angle: " << out[3*i+2] );
+            }
+            m_port.write();
+            RCLCPP_INFO(get_logger(), "Stop command sent");
+        }
+        catch(const std::exception& e)
+        {
+            RCLCPP_INFO_STREAM(get_logger(), "Got exception while passing stop command to walking-controller: " << e.what());
+        }
     if (!m_port.isClosed())
     {
         m_port.close();
@@ -195,7 +215,7 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                 transformed_plan = transformPlan(msg_in, TF, false);    //true
             }
             
-            if (transformed_plan.poses.size()>0)
+            if (transformed_plan.poses.size()>=3)
             {
                 //Convert Path to yarp vector
                 auto& out = m_port.prepare();
@@ -217,6 +237,36 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                 //std::cout << "Writing port buffer" << std::endl;
                 m_port.write();            
             }
+            else if(transformed_plan.poses.size()>0 && transformed_plan.poses.size()<3)
+            {
+                //Convert Path to yarp vector
+                auto& out = m_port.prepare();
+                out.clear();
+                // Fill the missing poses with zeroes
+                for (int i = 0; i < 3 - transformed_plan.poses.size(); ++i)
+                {
+                    out.push_back(0.0);
+                    out.push_back(0.0);
+                    out.push_back(0.0);
+                }
+                int j = 1;
+                for (int i = 0; i < transformed_plan.poses.size(); ++i)
+                {
+                    out.push_back(transformed_plan.poses.at(i).pose.position.x);
+                    out.push_back(transformed_plan.poses.at(i).pose.position.y);
+                    //Angle conversion
+                    tf2::Quaternion q;
+                    tf2::fromMsg(transformed_plan.poses.at(i).pose.orientation, q);
+                    tf2::Matrix3x3 conversion_matrix(q);
+                    double roll, pitch, yaw;
+                    conversion_matrix.getRPY(roll, pitch, yaw);
+                    out.push_back(yaw);
+                    std::cout << "Passing Path i-th element: " << i << " X : " << out[3*(i + j)] << " Y: " << out[3*(i + j)+1] << " Angle: " << out[3*(i + j)+2] << std::endl;
+                }
+                std::cout << "Original path size: " << transformed_plan.poses.size() << std::endl;
+                //std::cout << "Writing port buffer" << std::endl;
+                m_port.write();   
+            }
             else
             {
                 RCLCPP_WARN_STREAM(get_logger(), "Returned empty transformed path" );
@@ -237,6 +287,46 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
             }
             m_port.write();
         }
+}
+
+void PathConverter_v2::exit_handler(int signum) 
+{
+    ++ m_exit_count;
+    
+    // Send stop command only once
+    if (m_exit_count == 1)
+    {
+        RCLCPP_INFO(this->get_logger(), "Caught CTRL+C, sending stop command to walking-controller");
+        //Write a path with all 0 poses
+        try
+        {
+            auto& out = m_port.prepare();
+            out.clear();
+            for (int i = 0; i < 3; ++i)
+            {
+                out.push_back(0.0);
+                out.push_back(0.0);
+                out.push_back(0.0);
+                RCLCPP_INFO_STREAM(get_logger(), "Passing Path i-th element: " << i << " X : " << out[3*i] << " Y: " << out[3*i+1] << " Angle: " << out[3*i+2] );
+            }
+            m_port.write();
+        }
+        catch(const std::exception& e)
+        {
+            RCLCPP_INFO_STREAM(get_logger(), "Got exception while passing stop command to walking-controller: " << e.what());
+        }
+        // Terminate program
+        exit(signum);
+    }
+    else if(m_exit_count > 5)
+    {
+        RCLCPP_INFO(this->get_logger(), "Caught too many CTRL+C, killing");
+        exit(signum);
+    }
+    else
+    {
+        RCLCPP_INFO_STREAM(this->get_logger(), "Caught " << m_exit_count << " CTRL+C, ignoring");
+    }
 }
 
 void PathConverter_v2::state_callback(const std_msgs::msg::Bool::ConstPtr& in)
@@ -313,7 +403,6 @@ nav_msgs::msg::Path PathConverter_v2::transformPlan(const nav_msgs::msg::Path::C
         //std::cout << "Transformed X: " << transformed_plan_.poses.at(i).pose.position.x << "Transformed Y: " << transformed_plan_.poses.at(i).pose.position.y <<std::endl;
     }
     
-    //
     if (m_shift_enabled && m_shiftFlag)
     {
         std::cout << "Shifting Plan" << std::endl;
@@ -323,7 +412,6 @@ nav_msgs::msg::Path PathConverter_v2::transformPlan(const nav_msgs::msg::Path::C
         
     if (transformed_plan_.poses.empty()) {
         RCLCPP_ERROR_STREAM(get_logger(), "Resulting plan has 0 poses in it" );
-        //throw std::runtime_error("Resulting plan has 0 poses in it");
     }
     return transformed_plan_;
 }

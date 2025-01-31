@@ -37,7 +37,9 @@ find_package(tf2_sensor_msgs REQUIRED)
 
 find_package(rclcpp_action REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+
 find_package(rosidl_default_generators REQUIRED)
+
 
 #include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
 #include_directories(/opt/ros/humble/include/tf2)
@@ -55,6 +57,7 @@ include_directories(/opt/ros/iron/include/laser_geometry)
 include_directories(/opt/ros/iron/include/pcl_conversions)
 include_directories(include)
 add_subdirectory(interfaces)
+
 
 #rosidl_generate_interfaces(${PROJECT_NAME}
 #  "srv/GetHumanExtremes.srv"
@@ -190,6 +193,21 @@ ament_target_dependencies(human_pose_goal_generator
   "rclcpp_action"
 )
 
+add_executable(plane_detector src/PlaneDetector/PlaneDetector.cpp)
+ament_target_dependencies(plane_detector
+  "rclcpp"
+  "rclcpp_lifecycle"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "tf2_sensor_msgs"
+  "sensor_msgs"
+  "geometry_msgs"
+  "pcl_ros"
+  "tf2_eigen"
+)
+target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
+
 set(dependencies
   rclcpp
   rclcpp_action
@@ -246,6 +264,7 @@ install(TARGETS
   phase_detector
   path_converter_v2
   human_pose_goal_generator
+  plane_detector
   ergocub_local_human_avoidance_controller
   DESTINATION lib/${PROJECT_NAME})
 

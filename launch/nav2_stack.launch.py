@@ -237,7 +237,10 @@ def generate_launch_description():
              name='filter_mask_server',
              output='screen',
              emulate_tty=True,
-             parameters=[params_file])
+             parameters=[{'use_sim_time': use_sim_time},
+                        {'frame_id': "map"},
+                        {'topic_name': "/keepout_filter_mask"},
+                        {'yaml_filename': os.path.join(get_package_share_directory('ergocub_navigation') + "/maps/robot_arena_keepout_zones.yaml")}])
 
     start_costmap_filter_info_server_cmd = Node(
              package='nav2_map_server',

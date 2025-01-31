@@ -4,9 +4,12 @@ bt_navigator:
     global_frame: map
     robot_base_frame: geometric_unicycle  #update it also in the BT xml
     odom_topic: odom
-    default_nav_to_pose_bt_xml: /usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml
+    default_nav_to_pose_bt_xml: /home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml
+    #/usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/behavior_trees/navigate_to_pose_w_replanning_and_recovery_decorator.xml
     bt_loop_duration: 10
-    goal_reached_tol: 0.25 #0.25
+    goal_reached_tol: 0.20 #0.25
+    goal_angular_tol: 0.4
+    check_angular_alignment: True
     default_server_timeout: 4000
     transform_tolerance: 0.2  #0.3
     #enable_groot_monitoring: True
@@ -91,8 +94,8 @@ controller_server:
     # Goal checker parameters
     goal_checker:
       plugin: nav2_controller::SimpleGoalChecker
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.9
+      xy_goal_tolerance: 0.20
+      yaw_goal_tolerance: 0.4
       stateful: true
 
     # DWB parameters
@@ -240,7 +243,7 @@ local_costmap:
         observation_sources: pointcloud_mark pointcloud_clear
         combination_method: 1
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
+          topic: /adjusted_depth_pc #/imu_filtered_depth
           max_obstacle_height: 2.0
           min_obstacle_height: 0.15
           obstacle_max_range: 7.0
@@ -251,7 +254,7 @@ local_costmap:
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
+          topic: /adjusted_depth_pc #/imu_filtered_depth
           max_obstacle_height: 4.8
           min_obstacle_height: -4.8
           obstacle_max_range: 8.0
@@ -339,7 +342,7 @@ global_costmap:
           data_type: "LaserScan"
           inf_is_valid: false
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
+          topic: /adjusted_depth_pc #/imu_filtered_depth
           max_obstacle_height: 2.0
           min_obstacle_height: 0.3  #0.15
           obstacle_max_range: 6.0
@@ -350,7 +353,7 @@ global_costmap:
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
+          topic: /adjusted_depth_pc #/imu_filtered_depth
           max_obstacle_height: 3.5
           min_obstacle_height: -3.5
           obstacle_max_range: 7.0
@@ -383,12 +386,12 @@ costmap_filter_info_server:
     base: 0.0
     multiplier: 1.0
 
-filter_mask_server:
-  ros__parameters:
-    use_sim_time: false
-    frame_id: "map"
-    topic_name: "/keepout_filter_mask"
-    yaml_filename: "/usr/local/src/robot/hsp/ros2_workspace/src/ergocub_navigation/config/maps/robot_arena_keepout_zones.yaml"
+#filter_mask_server:
+#  ros__parameters:
+#    use_sim_time: false
+#    frame_id: "map"
+#    topic_name: "/keepout_filter_mask"
+#    yaml_filename: "/maps/robot_arena_keepout_zones.yaml"
 
 map_server:
   ros__parameters:
@@ -401,7 +404,7 @@ map_saver:
     save_map_timeout: 5.0
     free_thresh_default: 0.25
     occupied_thresh_default: 0.65
-    map_subscribe_transient_local: true
+    map_subscribe_transient_local: false
 
 planner_server:
   ros__parameters:
@@ -418,7 +421,7 @@ planner_server:
     #  map_image_res: 0.05
     GridBased:
       plugin: "nav2_smac_planner/SmacPlannerHybrid"
-      tolerance: 0.5                      # tolerance for planning if unable to reach exact pose, in meters, for 2D node
+      tolerance: 0.05                      # tolerance for planning if unable to reach exact pose, in meters, for 2D node
       downsample_costmap: false           # whether or not to downsample the map
       downsampling_factor: 1              # multiplier for the resolution of the costmap layer (e.g. 2 on a 5cm costmap would be 10cm)
       allow_unknown: false                # allow traveling in unknown space
@@ -433,7 +436,7 @@ planner_server:
       minimum_turning_radius: 0.050        # 0.01 For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
       reverse_penalty: 2.1                # For Reeds-Shepp model: penalty to apply if motion is reversing, must be => 1
       change_penalty: 0.0                 # For Hybrid nodes: penalty to apply if motion is changing directions, must be >= 0
-      non_straight_penalty: 1.40          # For Hybrid nodes: penalty to apply if motion is non-straight, must be => 1
+      non_straight_penalty: 2.00          # For Hybrid nodes: penalty to apply if motion is non-straight, must be => 1
       cost_penalty: 2.0                   # For Hybrid nodes: penalty to apply to higher cost areas when adding into the obstacle map dynamic programming distance expansion heuristic. This drives the robot more towards the center of passages. A value between 1.3 - 3.5 is reasonable.
       retrospective_penalty: 0.015        # 0.025 For Hybrid/Lattice nodes: penalty to prefer later maneuvers before earlier along the path. Saves search time since earlier nodes are not expanded until it is necessary. Must be >= 0.0 and <= 1.0
       rotation_penalty: 5.0               # For Lattice node: Penalty to apply only to pure rotate in place commands when using minimum control sets containing rotate in place primitives. This should always be set sufficiently high to weight against this action unless strictly necessary for obstacle avoidance or there may be frequent discontinuities in the plan where it requests the robot to rotate in place to short-cut an otherwise smooth path for marginal path distance savings.
@@ -489,15 +492,17 @@ waypoint_follower:
       enabled: True
       waypoint_pause_duration: 200
 
-smoother_server:
-  ros__parameters:
-    use_sim_time: True
-    smoother_plugins: ["simple_smoother"]
-    simple_smoother:
-      plugin: "nav2_smoother::SimpleSmoother"
-      tolerance: 1.0e-10
-      max_its: 1000
-      do_refinement: True
+#smoother_server:
+#  ros__parameters:
+#    costmap_topic: global_costmap/costmap_raw
+#    footprint_topic: global_costmap/published_footprint
+#    robot_base_frame: geometric_unicycle
+#    transform_timeout: 0.1
+#    smoother_plugins: ["simple_smoother"]
+#    simple_smoother:
+#      plugin: "nav2_smoother::SimpleSmoother"
+#      tolerance: 1.0e-10
+#      do_refinement: True
 
 behavior_server:
   ros__parameters:

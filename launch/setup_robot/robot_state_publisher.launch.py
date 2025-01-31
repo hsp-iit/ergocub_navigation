@@ -9,7 +9,7 @@ def generate_launch_description():
         robot_urdf = '/home/ecub_docker/ergocub-software/urdf/ergoCub/robots/ergoCubSN002/model.urdf'
     else:
         robot_urdf = f'/usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/{robotname}/model.urdf'
-    
+
     with open(robot_urdf, 'r') as infp:
         robot_desc = infp.read()
 
