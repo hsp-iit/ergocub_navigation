@@ -1,8 +1,8 @@
 scan_node:
   ros__parameters:
-    use_sim_time: false
+    use_sim_time: true
     referece_frame: "geometric_unicycle"
-    scan_topic: "/scan"
+    scan_topic: "/scan_local"
     pub_topic: "/compensated_pc2"
     imu_topic: "/head_imu"  # /head_imu
     filter_z_low: 0.2
