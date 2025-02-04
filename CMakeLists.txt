@@ -32,6 +32,7 @@ find_package(pluginlib REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2_kdl REQUIRED)
+find_package(tf2_eigen)
 
 find_package(tf2_sensor_msgs REQUIRED)
 
