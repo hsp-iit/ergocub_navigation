@@ -1,0 +1,5 @@
+<library path="nav2_theta_star_oriented_planner">
+    <class type="nav2_theta_star_oriented_planner::ThetaStarOrientedPlanner" base_class_type="nav2_core::GlobalPlanner">
+        <description>A modified implementation of the Theta* Algorithm with poses orientation</description>
+    </class>
+</library>
