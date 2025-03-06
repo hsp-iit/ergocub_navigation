@@ -76,7 +76,7 @@ namespace ergocub_local_human_avoidance
     node->get_parameter(plugin_name_ + ".human_distance_threshold", human_dist_threshold_);
     node->get_parameter(plugin_name_ + ".horizontal_dist_modifier", horizontal_dist_modifier_);
 
-    global_pub_ = node->create_publisher<nav_msgs::msg::Path>("received_global_plan", 1);
+    global_pub_ = node->create_publisher<nav_msgs::msg::Path>("processed_global_plan", 1);
 
     // Setup Yarp Ports for connection to Bimanual Module and Nav Shift
     bimanual_port_.open("/bimanual_nav_client");
