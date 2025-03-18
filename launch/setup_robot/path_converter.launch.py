@@ -28,10 +28,10 @@ def generate_launch_description():
             'path_converter.yaml'))
     
     path_converter_node = launch_ros.actions.LifecycleNode(
-            name = 'path_converter_node',
+            name = 'path_converter_v2_node',
             namespace='',
             package='ergocub_navigation',
-            executable='path_converter',
+            executable='path_converter_v2',
             output='screen',
             parameters=[path_converter_param_dir]
         )
