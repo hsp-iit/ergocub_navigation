@@ -18,7 +18,9 @@ The ROS2 setup must use `cyclone_dds` as DDS, instead of the ROS2 default, and u
 
 0- Turn on the robot and use the `yarpmanager` to run the yarpserver and its nodes while the robot is suspended on the crane.
 
-1- SSH to the robot torso: `ssh -X ergocub-torso` from the laptop. Set up the robot using the command `yarprobotinterface --config ergocub_wbd_ros2.xml` in the ergoCub torso `robot_configuration` folder (you can go there using the alias `gotoRobotConfigurationFolder`)
+1- SSH to the robot torso: `ssh -X ergocub-torso` from the laptop. Set up the robot using the command in the ergoCub torso `robot_configuration` folder:
+```yarprobotinterface --config ergocub.xml --enable_tags "(enable_ros2)" ```
+ (you can go there using the alias `gotoRobotConfigurationFolder`)
 
 2- Calibrate the FT sensors by:
 
