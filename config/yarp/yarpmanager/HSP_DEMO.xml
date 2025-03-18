@@ -14,17 +14,17 @@
     </module>
     <module>
         <name>ergocub-rs-pose</name>
-        <parameters> ergocub /usr/local/src/robot/robotology-superbuild/build/src/ergocub-software/ergoCub/robots/ergoCubSN002/model.urdf</parameters>
-        <node>ergocub-head</node>
+        <parameters> ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/$YARP_ROBOT_NAME/model.urdf</parameters>
+        <node>ergocub-torso</node>
     </module>
     <module>
         <name>ergocub-gaze-control</name>
         <parameters>/usr/local/src/robot/hsp/ergocub-gaze-control/config/ecub_docker_config.ini</parameters>
-        <node>ergocub-docker</node>
+        <node>ergocub-torso</node>
     </module>
     <module>
         <name> /usr/local/src/robot/hsp/ergocub-bimanual/build/command_server </name>
-        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubSN002/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real.ini </parameters>
+        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/$YARP_ROBOT_NAME/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real.ini </parameters>
         <node> ergocub-torso </node>
     </module>
     <module>
@@ -44,7 +44,7 @@
     </module>
     <module>
         <name> /usr/local/src/robot/hsp/ergocub-bimanual/build/command_server </name>
-        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubSN002/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real_wristless.ini </parameters>
+        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/$YARP_ROBOT_NAME/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real_wristless.ini </parameters>
         <node> ergocub-torso </node>
     </module>
     <module>
@@ -54,7 +54,12 @@
     </module>
     <module>
         <name> /usr/local/src/robot/hsp/ergocub-bimanual/build/command_server </name>
-        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubSN002/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real_WALKING_wristless.ini </parameters>
+        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/$YARP_ROBOT_NAME/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real_WALKING_wristless.ini </parameters>
+        <node> ergocub-torso </node>
+    </module>
+    <module>
+        <name> /usr/local/src/robot/hsp/ergocub-bimanual/build/command_server </name>
+        <parameters> /Components/Manipulation /ergocub /usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/$YARP_ROBOT_NAME/model.urdf /usr/local/src/robot/hsp/ergocub-bimanual/config/ergocub_real_WALKING_parallelgrasp.ini </parameters>
         <node> ergocub-torso </node>
     </module>
 </application>
