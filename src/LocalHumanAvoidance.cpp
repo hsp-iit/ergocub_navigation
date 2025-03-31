@@ -83,14 +83,14 @@ namespace ergocub_local_human_avoidance
     nav_shift_port_.open("/nav_shift_client");
     direct_human_data_port_.open("/read_human_data");
     // Wait until bimanual server is available and connected to.
-    while (!yarp_.connect("/bimanual_nav_client", bimanual_server_name_))
+    if (!yarp_.connect("/bimanual_nav_client", bimanual_server_name_))
     {
       std::cout << "Error! Could not connect to bimanual server\n";
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     // Wait until we have a connection to the human data port from the perception module.
-    while (!yarp_.connect("/humanDataPort", "/read_human_data"))
+    if (!yarp_.connect("/humanDataPort", "/read_human_data"))
     {
       std::cout << "Error! Could not connect to human data port\n";
       std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -156,7 +156,9 @@ namespace ergocub_local_human_avoidance
     (void)velocity;
     (void)goal_checker;
     //(void)pose;
-
+    RCLCPP_INFO(
+      logger_,
+      "\n======================== The Frame of Robot pose %s ==========================\n",pose.header.frame_id.c_str());
     // Check Once again for connection to nav shift in path converter.
     if (!yarp::os::Network::isConnected("/nav_shift_client", nav_shift_port_name_))
     {
