@@ -28,27 +28,9 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/simulation/setup_robot/odom_sim.launch.py'])
         )
-    amcl = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/simulation/setup_localization_sim.launch.py'])
-        )
-    footprints_viewer = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/simulation/footprints_viewer.launch.py'])
-        )
     return LaunchDescription([
         state_publisher,
         rviz_node,
         scan_filtering_compensated,
-        #depth_to_pointcloud,
-        virtual_unicycle,
-        #amcl,
-        #footprints_viewer,
-        #Node(
-        #    package='ergocub_navigation',
-        #    executable='pointcloud_filter',
-        #    output='screen',
-        #)
+        virtual_unicycle
     ])
