@@ -65,7 +65,7 @@ bt_navigator_navigate_to_pose_rclcpp_node:
 
 controller_server:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: True
     controller_frequency: 30.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001    #0.5
@@ -203,9 +203,12 @@ local_costmap:
       robot_base_frame: geometric_unicycle #virtual_unicycle_base
       use_sim_time: True
       rolling_window: true
-      width: 6    #3
-      height: 6   #3
+      width: 3.0    #3
+      height: 3.0   #3
       resolution: 0.05
+      origin_x: 0.0
+      origin_y: 0.0
+      rolling: true
       footprint: "[ [0.2, 0.35], [0.2, -0.35], [-0.2, -0.35], [-0.2, 0.35] ]"
       track_unknown_space: false
       always_send_full_costmap: true
@@ -217,14 +220,14 @@ local_costmap:
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         enabled: true
-        inflation_radius: 4.0   #2.0
+        inflation_radius: 0.2   #2.0
         cost_scaling_factor: 1.5  #2.5
         inflate_unknown: false
         inflate_around_unknown: false
       obstacle_layer:
         plugin: nav2_costmap_2d::ObstacleLayer
         enabled: true
-        observation_sources: scan
+        observation_sources: scan scan_clear_right scan_clear_left pointcloud_mark pointcloud_clear
         footprint_clearing_enabled: true
         max_obstacle_height: 2.0
         combination_method: 1
@@ -240,6 +243,53 @@ local_costmap:
           marking: true
           data_type: "LaserScan"
           inf_is_valid: false
+        scan_clear_right:
+          topic: /rear_scan_compensated_right
+          obstacle_max_range: 20.0
+          obstacle_min_range: 0.3
+          raytrace_max_range: 22.2
+          raytrace_min_range: 0.2
+          max_obstacle_height: 2.0
+          min_obstacle_height: 0.0
+          clearing: false
+          marking: false
+          data_type: "LaserScan"
+          inf_is_valid: false
+        scan_clear_left:
+          topic: /rear_scan_compensated_left
+          obstacle_max_range: 20.0
+          obstacle_min_range: 0.3
+          raytrace_max_range: 22.2
+          raytrace_min_range: 0.2
+          max_obstacle_height: 2.0
+          min_obstacle_height: 0.0
+          clearing: false
+          marking: false
+          data_type: "LaserScan"
+          inf_is_valid: false
+        pointcloud_mark:  # no frame set, uses frame from message
+          topic: /imu_filtered_depth
+          max_obstacle_height: 2.0
+          min_obstacle_height: 0.3  #0.15
+          obstacle_max_range: 6.0
+          obstacle_min_range: 0.4
+          raytrace_max_range: 7.0
+          raytrace_min_range: 0.0
+          clearing: false
+          marking: true
+          data_type: "PointCloud2"
+        pointcloud_clear:  # no frame set, uses frame from message
+          topic: /imu_filtered_depth
+          max_obstacle_height: 3.5
+          min_obstacle_height: -3.5
+          obstacle_max_range: 7.0
+          obstacle_min_range: 0.0
+          raytrace_max_range: 7.5
+          raytrace_min_range: 0.0
+          clearing: true
+          marking: false
+          data_type: "PointCloud2"
+
       voxel_layer:
         plugin: nav2_costmap_2d::VoxelLayer
         enabled: true
@@ -406,12 +456,12 @@ global_costmap:
 
 map_server:
   ros__parameters:
-    use_sim_time: false
+    use_sim_time: true
     yaml_filename: "map.yaml"
 
 map_saver:
   ros__parameters:
-    use_sim_time: false
+    use_sim_time: falstruee
     save_map_timeout: 5.0
     free_thresh_default: 0.25
     occupied_thresh_default: 0.65
@@ -420,7 +470,7 @@ map_saver:
 planner_server:
   ros__parameters:
     planner_plugins: ['GridBased']
-    use_sim_time: false
+    use_sim_time: true
     expected_planner_frequency: 10.0   #20.0  
     #GridBased:
     #  plugin: "ergocub_footprint_planner/FootprintPlanner"
@@ -465,7 +515,7 @@ planner_server:
 
 planner_server_rclcpp_node:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
 
 recoveries_server:
   ros__parameters:
@@ -530,7 +580,7 @@ behavior_server:
     global_frame: odom
     robot_base_frame: geometric_unicycle #virtual_unicycle_base #base_link
     transform_tolerance: 0.2  #0.1
-    use_sim_time: true
+    use_sim_time: True
     simulate_ahead_time: 2.0
     max_rotational_vel: 0.2   #1.0
     min_rotational_vel: 0.05   #0.1
