@@ -65,7 +65,7 @@ bt_navigator_navigate_to_pose_rclcpp_node:
 
 controller_server:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
     controller_frequency: 30.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001    #0.5
@@ -203,12 +203,11 @@ local_costmap:
       robot_base_frame: geometric_unicycle #virtual_unicycle_base
       use_sim_time: True
       rolling_window: true
-      width: 3.0    #3
-      height: 3.0   #3
+      width: 7   #3
+      height: 5   #3
       resolution: 0.05
       origin_x: 0.0
       origin_y: 0.0
-      rolling: true
       footprint: "[ [0.2, 0.35], [0.2, -0.35], [-0.2, -0.35], [-0.2, 0.35] ]"
       track_unknown_space: false
       always_send_full_costmap: true
@@ -456,12 +455,12 @@ global_costmap:
 
 map_server:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
     yaml_filename: "map.yaml"
 
 map_saver:
   ros__parameters:
-    use_sim_time: falstruee
+    use_sim_time: false
     save_map_timeout: 5.0
     free_thresh_default: 0.25
     occupied_thresh_default: 0.65
@@ -515,7 +514,7 @@ planner_server:
 
 planner_server_rclcpp_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 recoveries_server:
   ros__parameters:
