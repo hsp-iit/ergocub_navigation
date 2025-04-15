@@ -120,12 +120,8 @@ namespace ergocub_local_human_avoidance
 
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(node);
     path_trigger_client_  = node->create_client<std_srvs::srv::Trigger>("is_on_double_support_srv");
-    while (!path_trigger_client_->wait_for_service(1s)) {
-      if (!rclcpp::ok()) {
-        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
-        return;
-      }
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
+    if (!path_trigger_client_->wait_for_service(1s)) {
+      RCLCPP_INFO(logger_, "service not available, waiting again...");
     }
   }
 
@@ -203,7 +199,12 @@ namespace ergocub_local_human_avoidance
     auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
     auto result = path_trigger_client_->async_send_request(request);
     if(result.get()->success)
-    global_pub_->publish(glocal_plan_);
+    {
+      global_pub_->publish(glocal_plan_);
+      RCLCPP_INFO(
+        logger_,
+        "\n======================== On Double Support and Publishing ==========================\n");
+    }
 
     RCLCPP_INFO(
         logger_,
