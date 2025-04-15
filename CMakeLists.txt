@@ -223,6 +223,7 @@ set(dependencies
   nav2_util
   nav2_core
   tf2
+  std_srvs
   YARP
 )
 

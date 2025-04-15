@@ -38,6 +38,7 @@
 #include <yarp/os/RpcClient.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <std_srvs/srv/trigger.hpp>
 
 #include "ControlInterface.h"
 namespace ergocub_local_human_avoidance
@@ -100,8 +101,10 @@ namespace ergocub_local_human_avoidance
         rclcpp::Logger logger_{rclcpp::get_logger("HumanAvoidanceController")};
         rclcpp::Clock::SharedPtr clock_;
         std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> global_pub_; // publisher to publish path
+        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr path_trigger_client_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;  // To broadcast any transform if needed
 
+        double max_local_path_dist_;                 // maximum distance of allowed for global path point w.r.t current pose to be considered a local path point.
         double desired_linear_vel_;                  // velocity commands.
         double lookahead_dist_;                      // Distance to look ahead of current pose.
         double max_angular_vel_;                     // max allowed rotation speed.

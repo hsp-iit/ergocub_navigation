@@ -9,6 +9,7 @@
 #include "nav2_util/node_utils.hpp"
 #include "nav2_util/geometry_utils.hpp"
 
+
 #include "LocalHumanAvoidance/LocalHumanAvoidance.hpp"
 
 using nav2_util::declare_parameter_if_not_declared;
@@ -54,6 +55,8 @@ namespace ergocub_local_human_avoidance
     declare_parameter_if_not_declared(node, plugin_name_ + ".object_orientation_slope", rclcpp::ParameterValue(3.0));
     declare_parameter_if_not_declared(node, plugin_name_ + ".human_distance_threshold", rclcpp::ParameterValue(3.0));
     declare_parameter_if_not_declared(node, plugin_name_ + ".horizontal_dist_modifier", rclcpp::ParameterValue(2.0));
+    declare_parameter_if_not_declared(node, plugin_name_ + ".max_local_path_dist", rclcpp::ParameterValue(5.0));
+
 
     node->get_parameter(plugin_name_ + ".desired_linear_vel", desired_linear_vel_);
     node->get_parameter(plugin_name_ + ".lookahead_dist", lookahead_dist_);
@@ -75,6 +78,8 @@ namespace ergocub_local_human_avoidance
     node->get_parameter(plugin_name_ + ".object_orientation_slope", obj_orientation_slope_);
     node->get_parameter(plugin_name_ + ".human_distance_threshold", human_dist_threshold_);
     node->get_parameter(plugin_name_ + ".horizontal_dist_modifier", horizontal_dist_modifier_);
+    node->get_parameter(plugin_name_ + ".max_local_path_dist", max_local_path_dist_);
+
 
     global_pub_ = node->create_publisher<nav_msgs::msg::Path>("processed_global_plan", 1);
 
@@ -114,6 +119,14 @@ namespace ergocub_local_human_avoidance
       nav_shift_enabled_ = true;
 
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(node);
+    path_trigger_client_  = node->create_client<std_srvs::srv::Trigger>("is_on_double_support_srv");
+    while (!path_trigger_client_->wait_for_service(1s)) {
+      if (!rclcpp::ok()) {
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
+        return;
+      }
+      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
+    }
   }
 
   void HumanAvoidanceController::cleanup()
@@ -173,6 +186,24 @@ namespace ergocub_local_human_avoidance
     cmd_vel.header.frame_id = pose.header.frame_id;
     cmd_vel.header.stamp = clock_->now();
     cmd_vel.twist.linear.x = 0.1;
+    
+    auto current_path_element = std::min_element(global_plan_.poses.begin(),global_plan_.poses.end(),[&pose](const geometry_msgs::msg::PoseStamped a, const geometry_msgs::msg::PoseStamped b ){return nav2_util::geometry_utils::euclidean_distance(a, pose) < nav2_util::geometry_utils::euclidean_distance(b, pose);});
+    nav_msgs::msg::Path glocal_plan_;
+    bool end_it = false;
+    for(auto it =current_path_element; it != global_plan_.poses.end() && !end_it; ++it)
+    {
+      if (nav2_util::geometry_utils::euclidean_distance(*it, pose)<max_local_path_dist_)
+      {
+        glocal_plan_.poses.push_back(*it);
+      }
+      else 
+        end_it = true;
+
+    }
+    auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+    auto result = path_trigger_client_->async_send_request(request);
+    if(result.get()->success)
+    global_pub_->publish(glocal_plan_);
 
     RCLCPP_INFO(
         logger_,
@@ -388,7 +419,7 @@ namespace ergocub_local_human_avoidance
 
   void HumanAvoidanceController::setPlan(const nav_msgs::msg::Path &path) // Plugin Functions. Unmodified for now.
   {
-    global_pub_->publish(path);
+    //global_pub_->publish(path);
     global_plan_ = path;
   }
 
