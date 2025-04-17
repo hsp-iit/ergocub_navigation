@@ -182,12 +182,13 @@ namespace ergocub_local_human_avoidance
     cmd_vel.header.frame_id = pose.header.frame_id;
     cmd_vel.header.stamp = clock_->now();
     cmd_vel.twist.linear.x = 0.1;
-    
+    //Truncating global to local plan
     auto current_path_element = std::min_element(global_plan_.poses.begin(),global_plan_.poses.end(),[&pose](const geometry_msgs::msg::PoseStamped a, const geometry_msgs::msg::PoseStamped b ){return nav2_util::geometry_utils::euclidean_distance(a, pose) < nav2_util::geometry_utils::euclidean_distance(b, pose);});
     nav_msgs::msg::Path glocal_plan_;
     bool end_it = false;
     for(auto it =current_path_element; it != global_plan_.poses.end() && !end_it; ++it)
     {
+     
       if (nav2_util::geometry_utils::euclidean_distance(*it, pose)<max_local_path_dist_)
       {
         glocal_plan_.poses.push_back(*it);
@@ -200,10 +201,8 @@ namespace ergocub_local_human_avoidance
     auto result = path_trigger_client_->async_send_request(request);
     if(result.get()->success)
     {
+      glocal_plan_.header = global_plan_.header;
       global_pub_->publish(glocal_plan_);
-      RCLCPP_INFO(
-        logger_,
-        "\n======================== On Double Support and Publishing ==========================\n");
     }
 
     RCLCPP_INFO(
