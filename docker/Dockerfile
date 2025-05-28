@@ -259,7 +259,16 @@ RUN git clone https://github.com/hsp-iit/ergocub-rpc-interfaces && \
     make install -j5 && \
     cd && echo "alias run_gaze_controller='cd /home/ecub_docker/ergocub-gaze-control/build/bin && ./ergocub-gaze-control /home/ecub_docker/ergocub-gaze-control/ecub_config.ini'" >> ~/.bashrc
 
-WORKDIR /home/$USERNAME
+# Hospital world for gazebo
+RUN git clone https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps && cd Dataset-of-Gazebo-Worlds-Models-and-Maps/worlds/hospital && \
+    unzip models_part1.zip && unzip models_part2.zip && unzip models_part3.zip && unzip models_part4.zip && \
+    mkdir models && \
+    cp -a models_part1/. models && cp -a models_part2/. models && cp -a models_part3/. models && cp -a models_part4/. models && \
+    rm -rf models_part1 && rm -rf models_part2 && rm -rf models_part3 && rm -rf models_part4 && \
+    echo "export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/home/ecub_docker/Dataset-of-Gazebo-Worlds-Models-and-Maps/worlds/hospital/models" >> ~/.bashrc && \
+    echo "export GAZEBO_RESOURCE_PATH=$GAZEBO_RESOURCE_PATH:/home/ecub_docker/Dataset-of-Gazebo-Worlds-Models-and-Maps/worlds/hospital" >> ~/.bashrc && \
+    echo "alias 9_gazebo_hospital='export YARP_CLOCK=/clock && gazebo /home/ecub_docker/Dataset-of-Gazebo-Worlds-Models-and-Maps/worlds/hospital/hospital.world -s libgazebo_yarp_clock.so -s libgazebo_ros_init.so'" >> ~/.bashrc
+
 RUN sudo apt install -y mlocate && sudo apt clean && sudo rm -rf /var/lib/apt/lists/* && sudo updatedb
 
 
