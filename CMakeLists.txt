@@ -59,7 +59,6 @@ include_directories(/opt/ros/iron/include/laser_geometry)
 include_directories(/opt/ros/iron/include/pcl_conversions)
 include_directories(include)
 add_subdirectory(interfaces)
-add_subdirectory(src/ThetaStarOriented)
 
 
 #rosidl_generate_interfaces(${PROJECT_NAME}
