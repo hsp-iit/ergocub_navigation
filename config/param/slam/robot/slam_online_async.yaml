@@ -13,7 +13,7 @@ slam_toolbox:
     odom_frame: odom
     map_frame: map
     base_frame: geometric_unicycle
-    scan_topic: /filtered_scan_compensated
+    scan_topic: /filtered_scan_compensated #scan_compensated_front
     use_map_saver: true
     mode: mapping #localization
 

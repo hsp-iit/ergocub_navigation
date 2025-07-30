@@ -109,7 +109,7 @@ def generate_launch_description():
                 'angle_max': 2.7,    #2.61799,  # M_PI
                 'angle_increment': 0.003926991,  # 2M_PI/360.0
                 'scan_time': 0.05,
-                'range_min': 0.2,
+                'range_min': 0.5,
                 'range_max': 30.0,
                 'use_inf': True,
                 'inf_epsilon': 1.0
@@ -152,6 +152,27 @@ def generate_launch_description():
                 'angle_increment': 0.003926991,  # 2M_PI/360.0
                 'scan_time': 0.05,
                 'range_min': 0.2,
+                'range_max': 30.0,
+                'use_inf': True,
+                'inf_epsilon': 1.0
+                #'concurrency_level': 2
+            }],
+            name='rear_pointcloud_to_laserscan_left'
+        ),
+        Node(
+            package='pointcloud_to_laserscan', executable='pointcloud_to_laserscan_node',
+            remappings=[('cloud_in', '/compensated_pc2'),
+                        ('scan', '/scan_compensated_front')],
+            parameters=[{
+                'target_frame': 'geometric_unicycle',    #virtual_unicycle_base
+                'transform_tolerance': 0.03,        #0.01
+                'min_height': -0.2,  #-300
+                'max_height': 3.0,  #300
+                'angle_min': -1.4,   #-3.141592653,  # -M_PI
+                'angle_max': 1.4,    #3.141592653,  # M_PI
+                'angle_increment': 0.003926991,  # 2M_PI/360.0
+                'scan_time': 0.05,
+                'range_min': 0.5,
                 'range_max': 30.0,
                 'use_inf': True,
                 'inf_epsilon': 1.0
