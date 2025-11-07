@@ -143,9 +143,6 @@ RUN cd robotology-superbuild && mkdir build && cd build && \
 RUN git clone https://github.com/robotology/gazebo-yarp-plugins.git && cd gazebo-yarp-plugins && mkdir build && cd build && \
     cmake -DCMAKE_BUILD_TYPE="Release "../ -DCMAKE_INSTALL_PREFIX=/home/$USERNAME/robotology-superbuild/build/install .. && \
     cmake --build . --target install
-    
-# Adding custom worlds to gazebo
-COPY worlds /usr/share/gazebo-11/worlds
 
 
 # Environment setup for simulation
@@ -202,6 +199,9 @@ RUN mkdir -p /home/$USERNAME/ros2_workspace/src && cd /home/$USERNAME/ros2_works
     git clone -b humble https://github.com/ros-perception/pointcloud_to_laserscan && \
     cd .. && source /opt/ros/$ROS_DISTRO/setup.bash && colcon build --symlink-install --cmake-args -DCMAKE_CXX_FLAGS=-w
 ENV AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH:/opt/ros/iron
+
+# Adding custom worlds to gazebo
+RUN cp -r /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/worlds /usr/share/gazebo-11/worlds
     
 # Install BT Groot
 RUN sudo apt install -y qtbase5-dev libqt5svg5-dev libzmq3-dev libdw-dev && \
