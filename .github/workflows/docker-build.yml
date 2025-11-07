@@ -1,0 +1,72 @@
+name: Build Docker Image
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # allow manual runs
+
+
+env:
+  IMAGE_NAME: ergocub_navigation
+  REGISTRY: ghcr.io
+  USERNAME: ${{ github.actor }}
+  # Optional: define defaults for build args
+  GIT_USERNAME: "SimoneMic"
+  GIT_USER_EMAIL: "simone_micheletti@outlook.it"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up Docker Buildx (for advanced build features)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false  # set to true to push image
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+          build-args: |
+            GIT_USERNAME=${{ env.GIT_USERNAME }}
+            GIT_USER_EMAIL=${{ env.GIT_USER_EMAIL }}
+            RELEASE=iron
+            LAUNCHPAD_BUILD_ARCH=amd64
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      - name: Move new cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      # (Optional) Test if the image runs
+      - name: Run container test
+        run: |
+          docker run --rm ergocub_navigation:latest python --version
