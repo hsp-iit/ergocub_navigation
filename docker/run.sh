@@ -1,6 +1,6 @@
 #!/bin/bash
-NAME=vraghavan913/ecub_nav_tests
-TAG=test_v1
+NAME=ergocub_navigation
+TAG=latest
 
 sudo xhost +
 sudo docker run \

@@ -121,7 +121,10 @@ RUN sudo apt-get install -y build-essential git cmake cmake-curses-gui \
   gstreamer1.0-plugins-bad \
   gstreamer1.0-libav
 
-  RUN curl -sSL http://get.gazebosim.org | sh
+RUN sudo add-apt-repository ppa:openrobotics/gazebo11-gz-cli &&\
+    sudo apt update &&\
+    sudo apt-get install gazebo11 libgazebo11-dev -y
+
 
 
 
@@ -130,7 +133,7 @@ RUN sudo ln -s /usr/local/share/bash-completion/completions/yarp /usr/share/bash
 
 # Superbuild cloning and installing
 RUN git clone https://github.com/robotology/robotology-superbuild && \
-    cd robotology-superbuild && git checkout v2024.11.0  && \
+    cd robotology-superbuild && git checkout v2025.08.0  && \
     sudo chmod +x scripts/install_apt_dependencies.sh && \
     sudo chmod +x scripts/install_apt_python_dependencies.sh && \
     sudo bash ./scripts/install_apt_dependencies.sh 
@@ -201,9 +204,9 @@ RUN mkdir -p /home/$USERNAME/ros2_workspace/src && cd /home/$USERNAME/ros2_works
 ENV AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH:/opt/ros/iron
 
 # Adding custom worlds to gazebo
-RUN cp -r /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/worlds /usr/share/gazebo-11/worlds
+RUN sudo cp -r /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/worlds /usr/share/gazebo-11
 # XORG setup
-RUN cp /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/xorg.conf /etc/X11/xorg.conf
+RUN sudo cp /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/xorg.conf /etc/X11/xorg.conf
 
 # Install BT Groot
 RUN sudo apt install -y qtbase5-dev libqt5svg5-dev libzmq3-dev libdw-dev && \
@@ -230,7 +233,7 @@ CMD ["bash"]
 ENV AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH:/home/$USERNAME/robotology-superbuild/build/install
 RUN git clone https://github.com/robotology/yarp-devices-ros2 && \
     cd yarp-devices-ros2/ros2_interfaces_ws && \
-    git checkout 073d7dbf08306746c416ed77269ee0cc73986891 && \
+    git checkout v2.0.0 && \
     source /opt/ros/iron/setup.sh && colcon build && \
     cd .. && mkdir build && cd build && \
     source /opt/ros/$ROS_DISTRO/setup.bash && source /home/$USERNAME/yarp-devices-ros2/ros2_interfaces_ws/install/setup.bash && cmake .. -DYARP_ROS2_USE_SYSTEM_map2d_nws_ros2_msgs=ON -DYARP_ROS2_USE_SYSTEM_yarp_control_msgs=ON && make -j11 && \
@@ -245,7 +248,7 @@ ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:/home/$USERNAME/yarp-devices-ros2/build/sha
 RUN cd robotology-superbuild/src/ergocub-software &&\
     git remote add simomic https://github.com/SimoneMic/ergocub-software && \
     git fetch simomic && \
-    git switch ros2 && \
+    git stash && git switch ros2 && \
     cd ../../build/src/ergocub-software && \
     cmake . && make install
 
