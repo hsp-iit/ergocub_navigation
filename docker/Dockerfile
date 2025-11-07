@@ -35,7 +35,7 @@ RUN apt-get update  && apt-get install -y build-essential         cmake         
 RUN apt update && \
     apt install -y xfce4 xfce4-goodies xserver-xorg-video-dummy xserver-xorg-legacy && \
     sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config
-COPY ./xorg.conf /etc/X11/xorg.conf
+
 # Latest x11vnc
 RUN sed -Ei 's/^# deb-src /deb-src /' /etc/apt/sources.list && \
     apt update && \
@@ -202,7 +202,9 @@ ENV AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH:/opt/ros/iron
 
 # Adding custom worlds to gazebo
 RUN cp -r /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/worlds /usr/share/gazebo-11/worlds
-    
+# XORG setup
+RUN cp /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/xorg.conf /etc/X11/xorg.conf
+
 # Install BT Groot
 RUN sudo apt install -y qtbase5-dev libqt5svg5-dev libzmq3-dev libdw-dev && \
     git clone --recurse-submodules https://github.com/BehaviorTree/Groot.git && \
