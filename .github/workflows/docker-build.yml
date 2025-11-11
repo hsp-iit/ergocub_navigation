@@ -18,6 +18,7 @@ env:
 
 jobs:
   build:
+    name: Build Docker image on self-hosted runner
     runs-on: self-hosted
 
     steps:
@@ -54,7 +55,13 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
-      #- name: Move new cache
-      #  run: |
-      #    rm -rf /tmp/.buildx-cache
-      #    mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+      - name: Move new cache to old
+        if: always()
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Clean up Docker caches
+        if: always()
+        run: |
+          docker system prune -af --volumes || true
