@@ -64,4 +64,4 @@ jobs:
       - name: Clean up Docker caches
         if: always()
         run: |
-          docker system prune -f --volumes || true
+          docker builder prune -af || true
