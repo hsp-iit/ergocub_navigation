@@ -38,25 +38,13 @@ find_package(tf2_sensor_msgs REQUIRED)
 
 find_package(rclcpp_action REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
-find_package(tf2_eigen REQUIRED)
 
 find_package(rosidl_default_generators REQUIRED)
 
-
-#include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
-#include_directories(/opt/ros/humble/include/tf2)
-#include_directories(/opt/ros/humble/include/tf2_ros)
-#include_directories(/opt/ros/humble/include/laser_geometry)
-#include_directories(/opt/ros/humble/include/pcl_conversions)
-#include_directories(include)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
-include_directories(/opt/ros/iron/include/tf2_geometry_msgs)
-include_directories(/opt/ros/iron/include/tf2)
-include_directories(/opt/ros/iron/include/tf2_ros)
-include_directories(/opt/ros/iron/include/laser_geometry)
-include_directories(/opt/ros/iron/include/pcl_conversions)
+
 include_directories(include)
 add_subdirectory(interfaces)
 
@@ -66,7 +54,7 @@ add_subdirectory(interfaces)
 #  DEPENDENCIES geometry_msgs
 #)
 
-add_executable(planner_trigger_server src/planner_trigger_server.cpp)
+add_executable(planner_trigger_server src/navigation/walking_planning/planner_trigger_server.cpp)
 ament_target_dependencies(planner_trigger_server
   "YARP"
   "rclcpp"
@@ -74,7 +62,7 @@ ament_target_dependencies(planner_trigger_server
   "rclcpp_action"
 )
 
-add_executable(scan_filter src/ScanFilter.cpp)
+add_executable(scan_filter src/perception/laser_scan_filter/scan_filter.cpp)
 ament_target_dependencies(scan_filter
   "std_msgs"
   "tf2_ros"
@@ -90,7 +78,9 @@ ament_target_dependencies(scan_filter
 )
 target_link_libraries(scan_filter ${PCL_LIBRARIES})
 
-add_executable(footsteps_viewer src/FootstepsViewer/main.cpp src/FootstepsViewer/FootstepsViewerYarp.cpp src/FootstepsViewer/FootstepsViewerRos.cpp)
+add_executable(footsteps_viewer src/visualization/footsteps_viewer/main.cpp 
+                                src/visualization/footsteps_viewer/footsteps_viewer_yarp.cpp 
+                                src/visualization/footsteps_viewer/footsteps_viewer_ros.cpp)
 ament_target_dependencies(footsteps_viewer
   "YARP"
   "rclcpp"
@@ -103,7 +93,7 @@ ament_target_dependencies(footsteps_viewer
   "visualization_msgs"
 )
 
-#add_executable(base_projector src/BaseProjector.cpp)
+#add_executable(base_projector src/visualization/base_projector/base_projector.cpp)
 #ament_target_dependencies(base_projector
 #  "std_msgs"
 #  "tf2_ros"
@@ -113,7 +103,7 @@ ament_target_dependencies(footsteps_viewer
 #  "tf2_geometry_msgs"
 #)
 
-add_executable(odom_node src/OdomNode.cpp)
+add_executable(odom_node src/odom/odom_node.cpp)
 ament_target_dependencies(odom_node
   "YARP"
   "rclcpp"
@@ -126,19 +116,7 @@ ament_target_dependencies(odom_node
   "tf2_geometry_msgs"
 )
 
-#add_executable(path_converter src/PathConverter.cpp)
-#ament_target_dependencies(path_converter
-#  "YARP"
-#  "rclcpp"
-#  "nav_msgs"
-#  "tf2_ros"
-#  "tf2_msgs"
-#  "tf2"
-#  "nav2_util"
-#  "nav_2d_msgs"
-#)
-
-add_executable(pointcloud_filter src/PointcloudFilter.cpp)
+add_executable(pointcloud_filter src/perception/pointcloud_filter/pointcloud_filter.cpp)
 ament_target_dependencies(pointcloud_filter
   "std_msgs"
   "tf2_ros"
@@ -153,8 +131,8 @@ ament_target_dependencies(pointcloud_filter
 )
 target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
 
-add_executable(path_converter_v2 src/PathConverter_v2.cpp)
-ament_target_dependencies(path_converter_v2
+add_executable(path_converter src/navigation/walking_planning/path_converter.cpp)
+ament_target_dependencies(path_converter
   "YARP"
   "rclcpp"
   "nav_msgs"
@@ -165,8 +143,8 @@ ament_target_dependencies(path_converter_v2
   "rclcpp_lifecycle"
 )
 
-add_executable(phase_detector src/PhaseDetector.cpp src/MotorControl.cpp) 
-ament_target_dependencies(phase_detector
+add_executable(walking_phase_detector src/perception/walking_phase_detector/walking_phase_detector.cpp src/perception/walking_phase_detector/neck_motor_control.cpp) 
+ament_target_dependencies(walking_phase_detector
   "YARP"
   "rclcpp"
   "nav_msgs"
@@ -178,8 +156,9 @@ ament_target_dependencies(phase_detector
   "tf2_geometry_msgs"
 )
 
-add_executable(human_pose_goal_generator src/HumanPoseGoalGenerator/main.cpp src/HumanPoseGoalGenerator/GoalGenerator.cpp 
-                src/HumanPoseGoalGenerator/CommunicationWrapper.cpp)
+add_executable(human_pose_goal_generator src/navigation/human_pose_goal_generator/main.cpp 
+                                        src/navigation/human_pose_goal_generator/goal_generator.cpp
+                                        src/navigation/human_pose_goal_generator/yarp_communication_wrapper.cpp)
 ament_target_dependencies(human_pose_goal_generator
   "YARP"
   "rclcpp"
@@ -195,7 +174,7 @@ ament_target_dependencies(human_pose_goal_generator
   "rclcpp_action"
 )
 
-add_executable(plane_detector src/PlaneDetector/PlaneDetector.cpp)
+add_executable(plane_detector src/perception/plane_detector/plane_detector.cpp)
 ament_target_dependencies(plane_detector
   "rclcpp"
   "rclcpp_lifecycle"
@@ -208,7 +187,7 @@ ament_target_dependencies(plane_detector
   "pcl_ros"
   "tf2_eigen"
 )
-target_link_libraries(pointcloud_filter ${PCL_LIBRARIES})
+target_link_libraries(plane_detector ${PCL_LIBRARIES})
 
 set(dependencies
   rclcpp
@@ -263,8 +242,8 @@ install(TARGETS
   scan_filter
   footsteps_viewer
   pointcloud_filter
-  phase_detector
-  path_converter_v2
+  walking_phase_detector
+  path_converter
   human_pose_goal_generator
   plane_detector
   ergocub_local_human_avoidance_controller
