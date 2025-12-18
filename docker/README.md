@@ -13,8 +13,3 @@ Two scripts to build and run the docker image are included and can be used as be
 ./build_docker.sh "User Name" "User Git Email"
 ./run.sh
 ```
-
-The pre-built docker image capable of running the full stack out of the box can also be pulled using the following command.
-```
-docker pull vraghavan913/ecub_nav_tests:test_v1
-```
