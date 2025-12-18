@@ -1,7 +1,0 @@
-<library path="ergocub_local_human_avoidance_controller">
-  <class type="ergocub_local_human_avoidance::HumanAvoidanceController" base_class_type="nav2_core::Controller">
-    <description>
-      This is a plugin to allow Ergocub to manipulate objects and shift in the presence of a human
-    </description>
-  </class>
-</library>

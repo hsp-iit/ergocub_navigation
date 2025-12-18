@@ -49,11 +49,6 @@ include_directories(include)
 add_subdirectory(interfaces)
 
 
-#rosidl_generate_interfaces(${PROJECT_NAME}
-#  "srv/GetHumanExtremes.srv"
-#  DEPENDENCIES geometry_msgs
-#)
-
 add_executable(planner_trigger_server src/navigation/walking_planning/planner_trigger_server.cpp)
 ament_target_dependencies(planner_trigger_server
   "YARP"
@@ -204,22 +199,6 @@ set(dependencies
   YARP
 )
 
-
-add_library(ergocub_local_human_avoidance_controller SHARED
-        src/LocalHumanAvoidance.cpp src/ControlInterface.cpp)
-
-
-# prevent pluginlib from using boost
-target_compile_definitions(ergocub_local_human_avoidance_controller PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
-
-#rosidl_get_typesupport_target(ergocub_local_human_avoidance_controller ${PROJECT_NAME} "rosidl_typesupport_cpp")
-
-
-ament_target_dependencies(ergocub_local_human_avoidance_controller
-  ${dependencies} 
-)
-
-
 install(DIRECTORY include/
   DESTINATION include/
 )
@@ -246,7 +225,6 @@ install(TARGETS
   path_converter
   human_pose_goal_generator
   plane_detector
-  ergocub_local_human_avoidance_controller
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
@@ -274,19 +252,8 @@ install(DIRECTORY include/
   DESTINATION include/
 )
 
-install(FILES ergocub_local_human_avoidance_controller.xml
-  DESTINATION share/${PROJECT_NAME}
-)
-
 
 ament_export_include_directories(include)
-#rosidl_get_typesupport_target(cpp_typesupport_target
-#  ${PROJECT_NAME} rosidl_typesupport_cpp)
-#target_link_libraries(ergocub_local_human_avoidance_controller "${cpp_typesupport_target}")
-ament_export_libraries(ergocub_local_human_avoidance_controller)
 ament_export_dependencies(${dependencies})
-#ament_export_dependencies(rosidl_default_runtime)
-
-pluginlib_export_plugin_description_file(nav2_core ergocub_local_human_avoidance_controller.xml)
 
 ament_package()
