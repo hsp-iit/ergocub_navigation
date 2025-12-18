@@ -46,8 +46,6 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 include_directories(include)
-add_subdirectory(interfaces)
-
 
 add_executable(planner_trigger_server src/navigation/walking_planning/planner_trigger_server.cpp)
 ament_target_dependencies(planner_trigger_server
