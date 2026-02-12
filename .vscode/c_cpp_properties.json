@@ -4,12 +4,9 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/opt/ros/iron/include/**",
+                "/opt/ros/${ROS_DISTRO}/include/**",
                 "/usr/include/eigen3/**",
-                "/usr/include/pcl-1.12/**",
-                "/usr/local/src/robot/robotology-superbuild/build/install/include/",
-                "/opt/ros/iron/include/nav_msgs",
-                "~/robotology-superbuild/build/install/include/",
+                "~/robotology-superbuild/build/install/include/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

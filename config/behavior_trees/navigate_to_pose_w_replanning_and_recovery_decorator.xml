@@ -8,54 +8,74 @@
   recovery actions specific to planning / control as well as general system issues.
   This will be continuous if a kinematically valid planner is selected.
 -->
-<root main_tree_to_execute="MainTree">
+<root BTCPP_format="4" main_tree="MainTree">
   <BehaviorTree ID="MainTree">
     <ReactiveFallback name="MainFallback">
-      <GoalReachedConditionModded goal="{goal}" global_frame="map" robot_base_frame="geometric_unicycle"/> <!--name="is_goal_reached"-->
+      <GoalReachedConditionModded goal="{goal}"
+                                  global_frame="map"
+                                  robot_base_frame="geometric_unicycle"/>
+
       <RecoveryNode number_of_retries="3" name="NavigateRecovery">
         <PipelineSequence name="NavigateWithReplanning">
+
           <RateController hz="10.0">
             <RecoveryNode number_of_retries="3" name="ComputePathToPose">
+
               <DecoratorOnBool service_name="is_on_double_support_srv">
-                <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+                <ComputePathToPose goal="{goal}"
+                                   path="{path}"
+                                   planner_id="GridBased"/>
               </DecoratorOnBool>
-              <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+
+              <ClearEntireCostmap name="ClearGlobalCostmap-Context"
+                                  service_name="global_costmap/clear_entirely_global_costmap"/>
             </RecoveryNode>
           </RateController>
-          <!--<IsPathValidConditionModded server_timeout="10" path="{path}" />-->
+
           <RecoveryNode number_of_retries="3" name="FollowPath">
-            <FollowPath path="{path}" controller_id="FollowPath"/>
-            <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+            <FollowPath path="{path}"
+                        controller_id="FollowPath"/>
+
+            <ClearEntireCostmap name="ClearLocalCostmap-Context"
+                                service_name="local_costmap/clear_entirely_local_costmap"/>
           </RecoveryNode>
+
         </PipelineSequence>
+
         <ReactiveFallback name="RecoveryFallback">
           <GoalUpdated/>
+
           <RoundRobin name="RecoveryActions">
             <Sequence name="ClearingActions">
-              <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
-              <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
+              <ClearEntireCostmap name="ClearLocalCostmap-Subtree"
+                                  service_name="local_costmap/clear_entirely_local_costmap"/>
+
+              <ClearEntireCostmap name="ClearGlobalCostmap-Subtree"
+                                  service_name="global_costmap/clear_entirely_global_costmap"/>
             </Sequence>
-            <!--<Spin spin_dist="1.57"/>
-            <Wait wait_duration="5"/>
-            <BackUp backup_dist="0.30" backup_speed="0.05"/>-->
           </RoundRobin>
+
         </ReactiveFallback>
+
       </RecoveryNode>
     </ReactiveFallback>
   </BehaviorTree>
 
-  <TreeNodesModel>
+
+  <TreeNodes>
     <Decorator ID="DecoratorOnBool">
-      <input_port default="is_on_double_support_srv" name="service_name"/>
+      <input_port name="service_name"
+                  type="std::string"
+                  default_value="is_on_double_support_srv"/>
     </Decorator>
+
     <Condition ID="GoalReachedConditionModded">
-      <input_port name="global_frame" />
-      <input_port name="robot_base_frame" />
-      <input_port name="goal" />
+      <input_port name="goal"
+                  type="geometry_msgs::msg::PoseStamped"/>
+      <input_port name="global_frame"
+                  type="std::string"/>
+      <input_port name="robot_base_frame"
+                  type="std::string"/>
     </Condition>
-    <!--<Condition ID="IsPathValidConditionModded">
-      <input_port name="path"/>
-      <input_port name="server_timeout"/>
-    </Condition>-->
-  </TreeNodesModel>
+  </TreeNodes>
 </root>
