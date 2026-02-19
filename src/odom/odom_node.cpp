@@ -117,7 +117,7 @@ void OdomNode::PublishOdom()
     {
         if (!(m_odom_pub->is_activated()))
         {
-            RCLCPP_INFO(get_logger(), "Exiting PublishOdom: ublisher not active");
+            RCLCPP_INFO(get_logger(), "Exiting PublishOdom: publisher not active");
             return;
         }
 
@@ -127,7 +127,7 @@ void OdomNode::PublishOdom()
         double time = stamp.getTime();
         std::vector<geometry_msgs::msg::TransformStamped> tfBuffer;
 
-        // Optional extensive stuff
+        // Optional extensive info
         if (m_expose_ulterior_frames)
         {
             // virtual unicycle by the walking-controller odometry (where the walking-controller thinks to be)
@@ -232,7 +232,9 @@ void OdomNode::PublishOdom()
         odomTf.transform.translation.z = data->get(3).asList()->get(2).asFloat64();
 
         tf2::Quaternion qOdom;
-        qOdom.setRPY(data->get(3).asList()->get(3).asFloat64(), data->get(3).asList()->get(4).asFloat64(), data->get(3).asList()->get(5).asFloat64());
+        qOdom.setRPY(data->get(3).asList()->get(3).asFloat64(), 
+                     data->get(3).asList()->get(4).asFloat64(), 
+                     data->get(3).asList()->get(5).asFloat64());
         odomTf.transform.rotation.x = qOdom.x();
         odomTf.transform.rotation.y = qOdom.y();
         odomTf.transform.rotation.z = qOdom.z();
@@ -251,7 +253,6 @@ void OdomNode::PublishOdom()
         odom_msg.pose.pose.position.z = odomTf.transform.translation.z;
         tf2::Quaternion tmp_quat;
         tmp_quat.setRPY(0, 0, data->get(3).asList()->get(5).asFloat64());
-        // odom_msg.pose.pose.orientation=tf2::toMsg(tmp_quat);
         odom_msg.pose.pose.orientation = tf2::toMsg(qOdom);
         odom_msg.pose.covariance = m_pose_cov_matrix;
 
@@ -263,37 +264,37 @@ void OdomNode::PublishOdom()
         odom_msg.twist.twist.angular.z = 0.0;
 
         // Publish measured vel of the CoM
-        // geometry_msgs::msg::Twist measured_vel;
         try
         {
             odom_msg.twist.twist.linear.x = data->get(5).asList()->get(0).asFloat64();
             odom_msg.twist.twist.linear.y = data->get(5).asList()->get(1).asFloat64();
-            // odom_msg.twist.twist.linear.z = 0.0;    //data->get(5).asList()->get(2).asFloat64();
-            // odom_msg.twist.twist.angular.x = 0.0;   //data->get(5).asList()->get(3).asFloat64();
-            // odom_msg.twist.twist.angular.y = 0.0;   //data->get(5).asList()->get(4).asFloat64();
             odom_msg.twist.twist.angular.z = data->get(5).asList()->get(5).asFloat64();
         }
         catch (const std::exception &e)
         {
-            std::cerr << e.what() << '\n';
+            RCLCPP_ERROR_STREAM(this->get_logger(), "Got exception accessing odom vel of CoM: " << e.what());
+            return;
         }
         m_odom_pub->publish(odom_msg);
 
         // Should also publish the planned velocity for the root_link or CoM
-        geometry_msgs::msg::Twist planned_vel;
-        try
+        if (m_expose_ulterior_frames)
         {
-            planned_vel.linear.x = data->get(4).asList()->get(0).asFloat64();
-            planned_vel.linear.y = data->get(4).asList()->get(1).asFloat64();
-            planned_vel.linear.z = 0.0;
-            planned_vel.angular.x = 0.0;
-            planned_vel.angular.y = 0.0;
-            planned_vel.angular.z = 0.0; // data->get(4).asList()->get(2).asFloat64();
-            m_control_pub->publish(planned_vel);
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << e.what() << '\n';
+            geometry_msgs::msg::Twist planned_vel;
+            try
+            {
+                planned_vel.linear.x = data->get(4).asList()->get(0).asFloat64();
+                planned_vel.linear.y = data->get(4).asList()->get(1).asFloat64();
+                planned_vel.linear.z = 0.0;
+                planned_vel.angular.x = 0.0;
+                planned_vel.angular.y = 0.0;
+                planned_vel.angular.z = 0.0; // data->get(4).asList()->get(2).asFloat64();
+                m_control_pub->publish(planned_vel);
+            }
+            catch (const std::exception &e)
+            {
+                RCLCPP_WARN_STREAM(this->get_logger(), "Got exception accessing planned vel of CoM: " << e.what());
+            }
         }
 
         // Geometrical virtual unicycle computed for reference
@@ -318,7 +319,8 @@ void OdomNode::PublishOdom()
         stanceFootToSwingFoot_tf = m_tf_buffer_in->lookupTransform(swingFoot, stanceFoot, rclcpp::Time(0));
 
         // create a point in the swing foot frame center (0, 0, 0) and transform it in the stance foot frame
-        // if X-component is negative, it means that it's behind it
+        // if X-component is negative, it means that it's behind it 
+        // TODO: handle backward movement: decide based on planned_vel sign (on X dir)
         geometry_msgs::msg::PoseStamped swingFootCenter;
         swingFootCenter.header.frame_id = swingFoot;
         swingFootCenter.pose.position.x = .0;
@@ -330,7 +332,7 @@ void OdomNode::PublishOdom()
         swingFootCenter.pose.orientation.w = 1;
         swingFootCenter = m_tf_buffer_in->transform(swingFootCenter, stanceFoot);
         // now let's check the relative position of the transformed point:
-        if (swingFootCenter.pose.position.x > 0)
+        if (swingFootCenter.pose.position.x >= 0.0)
         {
             // if positive I take the swing foot as valid unicycle
             // let's take the yaw orientation of the swing foot
@@ -344,31 +346,33 @@ void OdomNode::PublishOdom()
             geometrycalVirtualUnicycle.transform.rotation.y = conversionQuat.y();
             geometrycalVirtualUnicycle.transform.rotation.z = conversionQuat.z();
             geometrycalVirtualUnicycle.transform.rotation.w = conversionQuat.w();
-            // translation -> take the halfway point on x and y
+            // translation -> take the halfway point on y
             geometrycalVirtualUnicycle.transform.translation.z = 0;
             geometrycalVirtualUnicycle.transform.translation.x = -stanceFootToSwingFoot_tf.transform.translation.x;
             geometrycalVirtualUnicycle.transform.translation.y = -stanceFootToSwingFoot_tf.transform.translation.y / 2;
+            m_last_swing_tf = geometrycalVirtualUnicycle;
         }
         else
         {
             // otherwise I keep the unicycle on the stance foot
-            if (stanceFoot == "l_sole")
-            {
-                geometrycalVirtualUnicycle.transform.translation.y = -m_nominalWidth / 2; // depends by the nominalWidth/2 parameter in the walking-controller
-            }
-            else
-            {
-                geometrycalVirtualUnicycle.transform.translation.y = m_nominalWidth / 2;
-            }
-            geometrycalVirtualUnicycle.transform.translation.x = 0.0;
-            geometrycalVirtualUnicycle.transform.translation.z = 0.0;
-            geometrycalVirtualUnicycle.transform.rotation.x = 0;
-            geometrycalVirtualUnicycle.transform.rotation.y = 0;
-            geometrycalVirtualUnicycle.transform.rotation.z = 0;
-            geometrycalVirtualUnicycle.transform.rotation.w = 1;
+            m_last_swing_tf.header.stamp = geometrycalVirtualUnicycle.header.stamp;
+            //if (stanceFoot == "l_sole")
+            //{
+            //    geometrycalVirtualUnicycle.transform.translation.y = -m_nominalWidth / 2; // depends by the nominalWidth/2 parameter in the walking-controller
+            //}
+            //else
+            //{
+            //    geometrycalVirtualUnicycle.transform.translation.y = m_nominalWidth / 2;
+            //}
+            //geometrycalVirtualUnicycle.transform.translation.x = 0.0;
+            //geometrycalVirtualUnicycle.transform.translation.z = 0.0;
+            //geometrycalVirtualUnicycle.transform.rotation.x = 0;
+            //geometrycalVirtualUnicycle.transform.rotation.y = 0;
+            //geometrycalVirtualUnicycle.transform.rotation.z = 0;
+            //geometrycalVirtualUnicycle.transform.rotation.w = 1;
         }
 
-        tfBuffer.push_back(geometrycalVirtualUnicycle);
+        tfBuffer.push_back(m_last_swing_tf);
         m_tf_broadcaster->sendTransform(tfBuffer);
     }
     catch (const std::exception &e)

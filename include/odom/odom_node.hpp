@@ -47,6 +47,8 @@ private:
     std::string m_odom_frame_name;  // frame name to give to the odom
     double m_delta_x = 0.1;         // offset used by the walking-controller for the reference of the virtual unicycle
     bool m_expose_ulterior_frames;  // flag to whether publish uterior frames for debug purposes, about internal measurements used in the walking controller
+    geometry_msgs::msg::TransformStamped m_last_swing_tf;
+
 
     std::array<double, 36UL> m_pose_cov_matrix = {0.1, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                         0.0, 0.1, 0.0, 0.0, 0.0, 0.0,
