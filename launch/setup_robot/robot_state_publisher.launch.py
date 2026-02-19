@@ -5,11 +5,8 @@ import os
 def generate_launch_description():
     #use_sim_time = LaunchConfiguration('use_sim_time', default=False)
     robotname = os.environ['YARP_ROBOT_NAME']
-    if robotname == 'ergoCubSN002':
-        robot_urdf = '/home/ecub_docker/ergocub-software/urdf/ergoCub/robots/ergoCubSN002/model.urdf'
-    else:
-        robot_urdf = f'/usr/local/src/robot/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/{robotname}/model.urdf'
-
+    robotology_src_path = os.environ['ROBOTOLOGY_SUPERBUILD_SOURCE_DIR']
+    robot_urdf = f"{robotology_src_path}/src/ergocub-software/urdf/ergoCub/robots/{robotname}/model.urdf"
     with open(robot_urdf, 'r') as infp:
         robot_desc = infp.read()
 
