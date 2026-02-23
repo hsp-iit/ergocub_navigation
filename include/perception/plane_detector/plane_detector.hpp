@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
  * SPDX-License-Identifier: BSD-3-Clause
+ * Author: Simone Micheletti
  */
 
 #ifndef SCAN_FILTER__HPP
@@ -29,13 +30,14 @@ private:
     std::string m_pub_topic = "/adjusted_depth_pc";           // name of the topic where the filtered pointcloud will be published
     std::string m_right_foot_topic = "/right_foot_heel_ft";
     std::string m_left_foot_topic = "/left_foot_heel_ft";
-    std::string m_frame_name = "compensated_realsense_frame";
+    std::string m_new_camera_frame_name = "compensated_realsense_frame";
+    std::string m_new_lidar_frame_name = "compensated_lidar_frame";
     std::string m_realsense_frame = "realsense";
     double m_wrench_threshold = 100.0;
     bool m_right_foot_contact, m_left_foot_contact;
     std::vector<std::tuple<double, double>> m_tf_vec;
     bool m_debug_publish = true;
-    geometry_msgs::msg::TransformStamped m_avg_tf;
+    //geometry_msgs::msg::TransformStamped m_avg_tf;
     int m_sample_size = 10;                  // how many timess collect RANSAC readings before averaging roll and pitch angles
     float m_filter_z_low = 0.2;             // minimum height to accept laser readings, from the reference frame, in meters
     float m_filter_z_high = 2.5;            // maximum height to accept laser readings, from the reference frame, in meters
@@ -51,11 +53,8 @@ private:
     // Unfortunately, message filters aren't available for lifecycle nodes
     //rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_right_foot_sub, m_left_foot_sub;
 
-    void pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in);
-    //void right_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
-    //void left_foot_callback(const geometry_msgs::msg::WrenchStamped::ConstPtr &msg);
+    void pc_callback(const sensor_msgs::msg::PointCloud2::UniquePtr& pc_in);
     geometry_msgs::msg::TransformStamped average_pitch(std::vector<std::tuple<double, double>> tf_vec_in, builtin_interfaces::msg::Time stmp);
-    std::vector<geometry_msgs::msg::TransformStamped> median_filter(std::vector<geometry_msgs::msg::TransformStamped> tf_vec_in);
 
 public:
     PlaneDetector(const rclcpp::NodeOptions & options);

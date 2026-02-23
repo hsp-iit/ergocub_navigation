@@ -49,6 +49,6 @@ def generate_launch_description():
         #depth_to_pointcloud,
         virtual_unicycle,
         amcl,
-        pointcloud_filter
-        #footprints_viewer,
+        #pointcloud_filter
+        footprints_viewer,
     ])

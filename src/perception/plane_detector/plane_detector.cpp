@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2026 Istituto Italiano di Tecnologia (IIT)
+ * SPDX-License-Identifier: BSD-3-Clause
+ * Author: Simone Micheletti
+ */
+
 #include "perception/plane_detector/plane_detector.hpp"
 #include <pcl_conversions/pcl_conversions.h>
 #include <iostream>
@@ -15,7 +21,7 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
-void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in)
+void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::UniquePtr& pc_in)
 {
     // TODO: Check if the robot is in double support
     //if (!(m_left_foot_contact && m_right_foot_contact))
@@ -55,7 +61,7 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     if (m_tf_vec.size() >= m_sample_size)
     {
         sensor_msgs::msg::PointCloud2 compensated_cloud = realsense_cloud;
-        compensated_cloud.header.frame_id = m_frame_name;
+        compensated_cloud.header.frame_id = m_new_camera_frame_name;
         m_pointcloud_pub->publish(compensated_cloud);
         return;
     }
@@ -103,11 +109,6 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
         RCLCPP_ERROR(get_logger(), "Could not estimate a planar model for the given cloud.");
         return;
     }
-    // Plane coefficients: 
-    //RCLCPP_INFO_STREAM(get_logger(), "Model coefficients: " << coefficients->values[0] << " " 
-    //                                    << coefficients->values[1] << " "
-    //                                    << coefficients->values[2] << " " 
-    //                                    << coefficients->values[3]);
 
     double A = coefficients->values[0];
     double B = coefficients->values[1];
@@ -133,22 +134,16 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
     }
     
     /*****************Get RPY angles from plane coeff*/
-    double tmp = std::sqrt(A*A + B*B + C*C);    // This should be = 1
-    double pitch = std::acos(A / tmp) - M_PI_2; // We remove M_PI_2 since Ransac adds a strange rotation
+    double tmp = std::sqrt(A*A + B*B + C*C);        // This should be = 1
+    double pitch = std::acos(A / tmp) - M_PI_2;
     double roll = - (std::acos(B / tmp) - M_PI_2);
     double yaw = std::acos(C / tmp);
     RCLCPP_INFO(get_logger(), "roll: %f pitch: %f yaw: %f ", roll, pitch, yaw);
-    // New computation
-    //double pitch_ = std::atan2(C, std::sqrt(A * A + B * B));
-    //double roll_ = std::atan2(B, A);
-    //double yaw_ = std::atan2(A, C);
-    //RCLCPP_INFO(get_logger(), "NEW FORMULATION roll: %f pitch: %f yaw: %f ", roll_, pitch_, yaw_);
     
     /*****************Publish static frame corrected by RPY angles*/
     geometry_msgs::msg::TransformStamped msg;
     msg.header.frame_id = m_realsense_frame;
-    //msg.header.frame_id = "";
-    msg.child_frame_id = m_frame_name;
+    msg.child_frame_id = m_new_camera_frame_name;
     msg.header.stamp = ground_cloud.header.stamp;
     msg.transform.translation.x = 0.0;
     msg.transform.translation.y = 0.0;
@@ -161,13 +156,17 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
 
     if (m_tf_vec.size() >= m_sample_size)
     {
-        m_avg_tf = average_pitch(m_tf_vec, ground_cloud.header.stamp);
-        m_static_tf_broadcaster->sendTransform(m_avg_tf);
-        auto m_avg_tf_ = tf2::eigenToTransform(tf2::transformToEigen(realsense_frame_to_XYZ.transform) * tf2::transformToEigen(m_avg_tf.transform));
-        m_avg_tf_.header.stamp = m_avg_tf.header.stamp;
-        m_avg_tf_.child_frame_id = "realsense_compensated";
-        m_avg_tf_.header.frame_id = m_avg_tf.child_frame_id;
-        m_static_tf_broadcaster->sendTransform(m_avg_tf_);
+        auto avg_tf = average_pitch(m_tf_vec, ground_cloud.header.stamp);
+        auto lidar_tf = avg_tf;
+        lidar_tf.child_frame_id = m_new_lidar_frame_name;
+        lidar_tf.header.frame_id = "head_laser_frame";
+        m_static_tf_broadcaster->sendTransform(avg_tf);
+        m_static_tf_broadcaster->sendTransform(lidar_tf);
+        auto avg_tf_xyz = tf2::eigenToTransform(tf2::transformToEigen(realsense_frame_to_XYZ.transform) * tf2::transformToEigen(avg_tf.transform));
+        avg_tf_xyz.header.stamp = avg_tf.header.stamp;
+        avg_tf_xyz.child_frame_id = "realsense_compensated";
+        avg_tf_xyz.header.frame_id = avg_tf.child_frame_id;
+        m_static_tf_broadcaster->sendTransform(avg_tf_xyz);
     }
     else
     {
@@ -176,15 +175,13 @@ void PlaneDetector::pc_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& p
 
     try
     {
-        //sensor_msgs::msg::PointCloud2 compensated_cloud = m_tf_buffer_in->transform(
-        //                                            realsense_cloud, "compensated_realsense_frame", tf2::durationFromSec(0.05));
         sensor_msgs::msg::PointCloud2 compensated_cloud = realsense_cloud;
-        compensated_cloud.header.frame_id = m_frame_name;
+        compensated_cloud.header.frame_id = m_new_camera_frame_name;
         m_pointcloud_pub->publish(compensated_cloud);
     }
     catch(const std::exception& e)
     {
-        std::cerr << e.what() << '\n';
+        RCLCPP_ERROR_STREAM(this->get_logger(), "[PlaneDetector::pc_callback] Exception: " << e.what());
     }
 }
 
@@ -199,7 +196,7 @@ geometry_msgs::msg::TransformStamped PlaneDetector::average_pitch(std::vector<st
     }
     avg_tf.header.frame_id = m_realsense_frame;
     avg_tf.header.stamp = stmp;
-    avg_tf.child_frame_id = m_frame_name;
+    avg_tf.child_frame_id = m_new_camera_frame_name;
     tf2::Quaternion q;
     double avg_roll = roll_sum/tf_vec_in.size();
     double avg_pitch = pitch_sum/tf_vec_in.size();
@@ -213,18 +210,7 @@ geometry_msgs::msg::TransformStamped PlaneDetector::average_pitch(std::vector<st
     return avg_tf;
 }
 
-std::vector<geometry_msgs::msg::TransformStamped> PlaneDetector::median_filter(std::vector<geometry_msgs::msg::TransformStamped> tf_vec_in)
-{
-    int filter_size = 3;
-    for (size_t i = 0; i < tf_vec_in.size(); i++)
-    {
-        /* code */
-    }
-    
-    
-}
-
-PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("floor_detector_node", options)
+PlaneDetector::PlaneDetector(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("plane_detector_node", options)
 {
     declare_parameter("head_frame", "realsense");
     declare_parameter("contact_frame", "r_sole");
@@ -342,7 +328,7 @@ int main(int argc, char** argv)
         rclcpp::NodeOptions options;
         auto node = std::make_shared<PlaneDetector>(options);
         executor.add_node(node->get_node_base_interface());
-        std::cout << "Starting up node. \n";
+        std::cout << "Starting up node." << std::endl;
         executor.spin();
         std::cout << "Shutting down" << std::endl;
         rclcpp::shutdown();

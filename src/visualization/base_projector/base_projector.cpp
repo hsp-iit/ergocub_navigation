@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
  * SPDX-License-Identifier: BSD-3-Clause
+ * Author: Simone Micheletti
  */
 
 #include "visualization/base_projector/base_projector.hpp"

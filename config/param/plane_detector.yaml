@@ -1,0 +1,8 @@
+plane_detector_node:
+  ros__parameters:
+    head_frame: "realsense"
+    contact_frame: "r_sole"
+    pointcloud_topic: "/camera/depth/color/points"
+    pub_topic: "/adjusted_depth_pc"
+    filter_z_low: -2.0
+    filter_z_high: -0.7

@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
  * SPDX-License-Identifier: BSD-3-Clause
+ * Author: Simone Micheletti
  */
 
 #ifndef POINTCLOUD_FILTER__HPP
@@ -44,9 +45,9 @@ private:
     geometry_msgs::msg::Vector3 m_imu_angular_velocity;
     std::mutex m_imu_mutex;
 
-    void depth_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in);
+    void depth_callback(const sensor_msgs::msg::PointCloud2::UniquePtr& pc_in);
 
-    void imu_callback(const sensor_msgs::msg::Imu::ConstPtr& imu_msg);
+    void imu_callback(const sensor_msgs::msg::Imu::UniquePtr& imu_msg);
 
 public:
     PointcloudFilter(const rclcpp::NodeOptions &options);

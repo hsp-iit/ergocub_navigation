@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
  * SPDX-License-Identifier: BSD-3-Clause
+ * Author: Simone Micheletti
  */
 
 #include "perception/pointcloud_filter/pointcloud_filter.hpp"
@@ -18,7 +19,7 @@
 using std::placeholders::_1;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::ConstPtr& pc_in)
+void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::UniquePtr& pc_in)
     {
         try
         {    
@@ -99,7 +100,7 @@ void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::Const
         }
     };
 
-void PointcloudFilter::imu_callback(const sensor_msgs::msg::Imu::ConstPtr& imu_msg)
+void PointcloudFilter::imu_callback(const sensor_msgs::msg::Imu::UniquePtr& imu_msg)
 {
     try
     {

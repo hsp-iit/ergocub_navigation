@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
  * SPDX-License-Identifier: BSD-3-Clause
+ * Author: Simone Micheletti
  */
 
 #ifndef SCAN_FILTER__HPP
@@ -32,6 +33,7 @@ class ScanFilter : public rclcpp_lifecycle::LifecycleNode
 private:
     // Parameter List
     std::string m_referece_frame = "geometric_unicycle";    // reference frame to which all the computations are performed
+    std::string m_source_frame = "compensated_lidar_frame"; // name of the frame compensated (in pitch and roll) by the visual calibration, if empty the one from the msg will be used
     std::string m_scan_topic = "/scan_local";               // topic name of the lidar scan
     std::string m_pub_topic = "/compensated_pc2";           // name of the topic where the filtered pointcloud will be published
     std::string m_imu_topic = "/head_imu";                  // name of the imu topic used to filter out high speed measurements
@@ -56,9 +58,9 @@ private:
     geometry_msgs::msg::Vector3 m_imu_angular_velocity;
     std::mutex m_imu_mutex;     // mutex used for imu readings
 
-    void scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan_in);
+    void scan_callback(const sensor_msgs::msg::LaserScan::UniquePtr& scan_in);
 
-    void imuCallback(const sensor_msgs::msg::Imu::ConstPtr& imu_msg);
+    void imuCallback(const sensor_msgs::msg::Imu::UniquePtr& imu_msg);
 
 public:
     ScanFilter(const rclcpp::NodeOptions & options);

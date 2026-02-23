@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "/opt/ros/${ROS_DISTRO}/include/**",
                 "/usr/include/eigen3/**",
-                "~/robotology-superbuild/build/install/include/**"
+                "~/robotology-superbuild/build/install/include/**",
+                "/usr/include/pcl-1.14"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

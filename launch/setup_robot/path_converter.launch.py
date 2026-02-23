@@ -31,7 +31,7 @@ def generate_launch_description():
             name = 'path_converter_v2_node',
             namespace='',
             package='ergocub_navigation',
-            executable='path_converter_v2',
+            executable='path_converter',
             output='screen',
             parameters=[path_converter_param_dir]
         )

@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
  * SPDX-License-Identifier: BSD-3-Clause
+ * Author: Simone Micheletti
  */
 
 #include "perception/laser_scan_filter/scan_filter.hpp"
@@ -13,7 +14,7 @@
 using std::placeholders::_1;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-ScanFilter::ScanFilter(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("scan_compensating_node", options)
+ScanFilter::ScanFilter(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("scan_node", options)
 {
     declare_parameter("referece_frame", "geometric_unicycle");
     declare_parameter("scan_topic", "/scan_local");
@@ -26,7 +27,7 @@ ScanFilter::ScanFilter(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::
     declare_parameter("imuVel_y_threshold", 0.4);
     declare_parameter("ms_wait", 400.0);
     declare_parameter("robot_on_crane", true);
-
+    declare_parameter("source_frame", "");
     
     m_tf_buffer_in = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer_in);
@@ -50,6 +51,7 @@ CallbackReturn ScanFilter::on_configure(const rclcpp_lifecycle::State &)
     m_imuVel_y_threshold = this->get_parameter("imuVel_y_threshold").as_double();
     m_ms_wait = this->get_parameter("ms_wait").as_double();
     m_robot_on_crane = this->get_parameter("robot_on_crane").as_bool();
+    m_source_frame = this->get_parameter("source_frame").as_string();
 
     RCLCPP_INFO(this->get_logger(), "Configuring with: referece_frame: %s scan_topic: %s pub_topic: %s imu_topic: %s robot_on_crane: %i",
                     m_referece_frame.c_str(), m_scan_topic.c_str(), m_pub_topic.c_str(), m_imu_topic.c_str(), (int)m_robot_on_crane);
@@ -114,7 +116,7 @@ CallbackReturn ScanFilter::on_error(const rclcpp_lifecycle::State & state)
     return CallbackReturn::SUCCESS;
 }
 
-void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan_in)
+void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::UniquePtr& scan_in)
     {
         try
         {
@@ -127,7 +129,7 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
         double delta_t = (std::chrono::duration<double, std::milli>(tp.time_since_epoch()).count() - std::chrono::duration<double, std::milli>(m_last_vibration_detection.time_since_epoch()).count());
         if (delta_t < m_ms_wait) 
         {
-            //RCLCPP_DEBUG(this->get_logger(), "Exiting scan callback, time passed: %f vs timeout: %f", delta_t, m_ms_wait);
+            RCLCPP_DEBUG(this->get_logger(), "Exiting scan callback, time passed: %f vs timeout: %f", delta_t, m_ms_wait);
             return;
         }
         
@@ -136,15 +138,25 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
             std::lock_guard<std::mutex>lock(m_imu_mutex);
             if (std::abs(m_imu_angular_velocity.x) > m_imuVel_x_threshold || std::abs(m_imu_angular_velocity.y) > m_imuVel_y_threshold)
             {
-                //RCLCPP_DEBUG(this->get_logger(), "Imu detected high velocities: x: %f y: %f", m_imu_angular_velocity.x, m_imu_angular_velocity.y);
+                RCLCPP_DEBUG(this->get_logger(), "Imu detected high velocities: x: %f y: %f", m_imu_angular_velocity.x, m_imu_angular_velocity.y);
                 m_last_vibration_detection = std::chrono::system_clock::now();
                 return;
             }
         }
+        // Select the proper lidar source frame based on config
+        std::string source_frame = "";
+        if (m_source_frame == "")   // If empty use the frame from the message by default
+        {
+            source_frame = scan_in->header.frame_id;
+        }
+        else
+        {
+            source_frame = m_source_frame;
+        }
 
         std::string transform_error;
         if (m_tf_buffer_in->canTransform(
-                scan_in->header.frame_id,
+                source_frame,
                 m_referece_frame,
                 tf2_ros::fromMsg(scan_in->header.stamp) + tf2::durationFromSec(scan_in->ranges.size() * scan_in->time_increment),
                 tf2::durationFromSec(0.02),  
@@ -154,7 +166,7 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
                 sensor_msgs::msg::PointCloud2 original_cloud;
                 sensor_msgs::msg::PointCloud2 transformed_cloud;
                 m_projector.projectLaser(*scan_in, original_cloud);
-                original_cloud.header.frame_id = scan_in->header.frame_id;
+                original_cloud.header.frame_id = source_frame;
                 //transform cloud from lidar frame to virtual_unicycle_base
                 try
                 {
@@ -171,7 +183,7 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
                 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered2 (new pcl::PointCloud<pcl::PointXYZ>);
 
                 pcl::fromROSMsg(transformed_cloud, *pcl_cloud);
-                // Exlude the points too close to the center for the crane - TODO verify it
+                // Exlude the points too close to the center for the crane
                 if(m_robot_on_crane)
                 {
                     int original_size = pcl_cloud->size();
@@ -189,7 +201,7 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
                     // Retrieve indices to all points in pcl_cloud except those referenced by indices close_points
                     filter.setNegative (true);
                     filter.filter(*pcl_cloud);
-                    RCLCPP_DEBUG(this->get_logger(), "Removed %f points", pcl_cloud->size() - original_size);
+                    RCLCPP_DEBUG(this->get_logger(), "Removed %li points", pcl_cloud->size() - original_size);
                 }
 
                 // Filter cloud
@@ -219,10 +231,6 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
                 pcl::toROSMsg(*cloud_filtered2, ros_cloud);
                 m_pointcloud_pub->publish(ros_cloud);
             }
-            else
-            {
-                //RCLCPP_ERROR(get_logger(), "Could not transform message: %s", transform_error.c_str());
-            }
         }
         catch(const std::exception& e)
         {
@@ -230,7 +238,7 @@ void ScanFilter::scan_callback(const sensor_msgs::msg::LaserScan::ConstPtr& scan
         }
     };
 
-void ScanFilter::imuCallback(const sensor_msgs::msg::Imu::ConstPtr& imu_msg)
+void ScanFilter::imuCallback(const sensor_msgs::msg::Imu::UniquePtr& imu_msg)
 {
     try
     {
@@ -242,9 +250,6 @@ void ScanFilter::imuCallback(const sensor_msgs::msg::Imu::ConstPtr& imu_msg)
         RCLCPP_ERROR(get_logger(), e.what());
     }
 };
-
-
-
 
 
 int main(int argc, char** argv)
@@ -263,7 +268,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout << "ROS2 not available. Shutting down node. \n";
+        std::cout << "ROS2 not available. Shutting down node." << std::endl;
     }
     
     return 0;

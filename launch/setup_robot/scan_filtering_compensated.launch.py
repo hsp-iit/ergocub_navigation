@@ -84,11 +84,6 @@ def generate_launch_description():
     
 
     return LaunchDescription([
-        #DeclareLaunchArgument(
-        #    'use_sim_time',
-        #    default_value='false',
-        #    description='Use simulation (Gazebo) clock if true'
-        #),
         DeclareLaunchArgument(
             name='scanner', 
             default_value='scanner',
@@ -103,10 +98,10 @@ def generate_launch_description():
             parameters=[{
                 'target_frame': 'geometric_unicycle',    #virtual_unicycle_base
                 'transform_tolerance': 0.03,        #0.01
-                'min_height': -0.2,  #-300
-                'max_height': 3.0,  #300
-                'angle_min': -2.7,   #-2.61799,  # -M_PI
-                'angle_max': 2.7,    #2.61799,  # M_PI
+                'min_height': -0.2,
+                'max_height': 3.0,
+                'angle_min': -2.7,    # -M_PI
+                'angle_max': 2.7,     # M_PI
                 'angle_increment': 0.003926991,  # 2M_PI/360.0
                 'scan_time': 0.05,
                 'range_min': 0.5,

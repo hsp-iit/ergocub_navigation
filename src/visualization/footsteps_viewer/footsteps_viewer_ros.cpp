@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2023-2023 Istituto Italiano di Tecnologia (IIT)
  * SPDX-License-Identifier: BSD-3-Clause
+ * Author: Simone Micheletti
  */
 
 #include "visualization/footsteps_viewer/footsteps_viewer_ros.hpp"
@@ -12,13 +13,11 @@ FootstepsViewerRos::FootstepsViewerRos() : rclcpp::Node("footstep_viewer_node")
 };
 
 bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
-        //std::cout << "publishMarkers" << std::endl;
-        //std::cout << data.size() << std::endl;
         auto leftSteps = data.get(0).asList();
         auto rightSteps = data.get(1).asList();
         if (leftSteps->size() == 0 || rightSteps->size()==0)
         {
-            RCLCPP_INFO(this->get_logger(), "One of the Step array is empty");
+            RCLCPP_WARN(this->get_logger(), "One of the Step array is empty");
             return false;
         }
 
@@ -39,8 +38,7 @@ bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
         right_marker_array.markers.clear();
         builtin_interfaces::msg::Time timestamp = now();
         //LEFT
-        std::cout << "Left Loop" << std::endl;
-        //RCLCPP_INFO(this->get_logger(), "Left Loop");
+        RCLCPP_DEBUG(this->get_logger(), "Left Loop");
         for (size_t i = 0; i < leftSteps->size(); ++i)
         {
             visualization_msgs::msg::Marker tmp_marker_msg;
@@ -78,15 +76,12 @@ bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
             //save marker in the array
             left_marker_array.markers.push_back(tmp_marker_msg);
         }
-        RCLCPP_INFO(this->get_logger(), "Publishing Left");
-        //std::cout << "Left Publish" << std::endl;
+        RCLCPP_DEBUG(this->get_logger(), "Publishing Left");
         m_leftFootprintsMarkersPub->publish(left_marker_array);
 
         //RIGHT
-        //std::cout << "Right Loop" << std::endl;
-        RCLCPP_INFO(this->get_logger(), "Right Loop");
+        RCLCPP_DEBUG(this->get_logger(), "Right Loop");
 
-        //tmp_marker_msg.points.clear();
         for (size_t i = 0; i < rightSteps->size(); ++i)
         {
             visualization_msgs::msg::Marker tmp_marker_msg;
@@ -125,9 +120,8 @@ bool FootstepsViewerRos::publishMarkers(const yarp::os::Bottle& data){
             right_marker_array.markers.push_back(tmp_marker_msg);
         }
 
-        RCLCPP_INFO(this->get_logger(), "Publishing Right");
-        //std::cout << "Right Publish" << std::endl;
+        RCLCPP_DEBUG(this->get_logger(), "Publishing Right");
         //publish
         m_rightFootprintsMarkersPub->publish(right_marker_array);
-        std::cout << "Exiting Pub" << std::endl;
+        RCLCPP_DEBUG(this->get_logger(), "Exiting Pub");
 };
