@@ -42,7 +42,7 @@ private:
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr m_state_sub;
 
     //Shifting path
-    double m_shift_enabled;     // flag if the possibility to shift the path of a fixed amount is enabled
+    bool m_shift_enabled;     // flag if the possibility to shift the path of a fixed amount is enabled
     double m_shift = 0.15;      // amount of meter to shift to the left or right
     bool m_shiftLeft;           // if true shift to the left, to the right otherwise
     bool m_shiftFlag = false;   // bool if the shift has been actuated

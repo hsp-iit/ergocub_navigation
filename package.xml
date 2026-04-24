@@ -2,10 +2,10 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>ergocub_navigation</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <version>1.0.0</version>
+  <description>ergoCub robot navigation stack</description>
   <maintainer email="simone_micheletti@outlook.it">user1</maintainer>
-  <license>TODO: License declaration</license>
+  <license>BSD 3-Clause License</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -34,10 +34,4 @@
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
-  <member_of_group>rosidl_interface_packages</member_of_group>
-
-  <export>
-    <nav2_core plugin="${prefix}/ergocub_human_avoidance_controller_plugin.xml" /> 
-    <build_type>ament_cmake</build_type>
-  </export>
 </package>

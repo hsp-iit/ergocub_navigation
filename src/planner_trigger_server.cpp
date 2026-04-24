@@ -32,11 +32,13 @@ class YarpTriggerProcessor : public yarp::os::PortReader
 {
 private:
     std::mutex m_mutex;
+    rclcpp::Clock::SharedPtr m_clock;
     int m_footsteps_counter;
     const int m_step_number = 1;
 public:
     YarpTriggerProcessor()
     {
+        m_clock = std::make_shared<rclcpp::Clock>(RCL_STEADY_TIME);
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "[is_on_double_support_srv] Created YarpTriggerProcessor");
         m_footsteps_counter = 0;
     };
@@ -50,7 +52,8 @@ public:
             yarp::os::Bottle b;
             bool ok = b.read(t_connection);
             if (!ok) {
-                std::cout << "Bad Yarp connection " << std::endl;
+                RCLCPP_WARN_THROTTLE(rclcpp::get_logger("planner_trigger_server"), *m_clock, 2000,
+                                     "Bad YARP connection");
                 return false;
             }
 
@@ -63,12 +66,14 @@ public:
             bool in_status = b.get(0).asBool();
             if (in_status)
             {
-                std::cout << "[is_on_double_support_srv] Red a trigger on YARP port" << std::endl;
+                RCLCPP_DEBUG_THROTTLE(rclcpp::get_logger("planner_trigger_server"), *m_clock, 1000,
+                                      "Read a trigger on YARP port");
                 ++ m_footsteps_counter;
                 if (m_footsteps_counter >= m_step_number)
                 {
                     state = true;
-                    std::cout << "[is_on_double_support_srv] Setting Replanning" << std::endl;
+                    RCLCPP_INFO_THROTTLE(rclcpp::get_logger("planner_trigger_server"), *m_clock, 1000,
+                                         "Setting replanning trigger");
                 }
                 else
                 {
@@ -106,7 +111,9 @@ int main(int argc, char **argv)
     walking_port.open(walking_sourceName);
     if (!yarp::os::Network::connect(walking_sourceName, walking_portName))
     {
-        std::cout << "[planner_trigger_server - main] unable to connect: " << walking_sourceName << " with " << walking_portName << std::endl;
+        RCLCPP_WARN(rclcpp::get_logger("planner_trigger_server"),
+                    "unable to connect: %s with %s",
+                    walking_sourceName.c_str(), walking_portName.c_str());
     }
 
     if (rclcpp::ok())
@@ -119,6 +126,11 @@ int main(int argc, char **argv)
                 "navigate_to_pose/_action/status",
                 rclcpp::SystemDefaultsQoS(),
                 [&node, &walking_sourceName, &walking_portName, &walking_port](const action_msgs::msg::GoalStatusArray::SharedPtr msg) {   
+                    // Check the msg if empty
+                    if (msg->status_list.size() < 1){
+                        RCLCPP_WARN( node->get_logger(), "Received empty status_list");
+                        return;
+                    }
                     RCLCPP_INFO( node->get_logger(), "GOAL STATUS: %i", msg->status_list.back().status);
                     // Reset trigger status
                     bool stop = false;
@@ -156,7 +168,9 @@ int main(int argc, char **argv)
                                 out.push_back(0.0);
                                 out.push_back(0.0);
                                 out.push_back(0.0);
-                                std::cout << "Passing Path i-th element: " << i << " X : " << out[3*i] << " Y: " << out[3*i+1] << " Angle: " << out[3*i+2] << std::endl;
+                                RCLCPP_DEBUG_THROTTLE(node->get_logger(), *node->get_clock(), 1000,
+                                                      "Passing stop path element %d X:%f Y:%f Angle:%f",
+                                                      i, out[3 * i], out[3 * i + 1], out[3 * i + 2]);
                             }
                             walking_port.write();
                         }

@@ -182,11 +182,13 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                     //std::cout << data->data()[0] << " " << data->data()[1] << " " << data->data()[2] << " " << std::endl;
                     if (data->get(0).asInt32() == 1)   //data->data()[0]
                     {
-                        std::cout << "Red from port" << std::endl;
+                        RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                                              "Read shift trigger from YARP port");
                         m_shiftFlag = true;
                         //m_shiftLeft = data->data()[1]==1 ? true : false;
                         m_shiftLeft = (bool)data->get(1).asInt32();
-                        std::cout << "m_shiftLeft: " << m_shiftLeft << std::endl;
+                        RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                                              "m_shiftLeft: %d", static_cast<int>(m_shiftLeft));
                         msg_counter = 0;
                     }
                     else
@@ -205,7 +207,8 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
             //}
         }
 
-        std::cout << "Original path size: " << msg_in->poses.size() << std::endl;
+        RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                      "Original path size: %zu", msg_in->poses.size());
         if (!m_goalReached)
         {
             nav_msgs::msg::Path transformed_plan = *msg_in;
@@ -231,9 +234,12 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                     double roll, pitch, yaw;
                     conversion_matrix.getRPY(roll, pitch, yaw);
                     out.push_back(yaw);
-                    std::cout << "Passing Path i-th element: " << i << " X : " << out[3*i] << " Y: " << out[3*i+1] << " Angle: " << out[3*i+2] << std::endl;
+                    RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                                          "Passing path element %d X:%f Y:%f Angle:%f",
+                                          i, out[3 * i], out[3 * i + 1], out[3 * i + 2]);
                 }
-                std::cout << "Original path size: " << transformed_plan.poses.size() << std::endl;
+                RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                                      "Transformed path size: %zu", transformed_plan.poses.size());
                 //std::cout << "Writing port buffer" << std::endl;
                 m_port.write();            
             }
@@ -261,9 +267,12 @@ void PathConverter_v2::msg_callback(const nav_msgs::msg::Path::ConstPtr& msg_in)
                     double roll, pitch, yaw;
                     conversion_matrix.getRPY(roll, pitch, yaw);
                     out.push_back(yaw);
-                    std::cout << "Passing Path i-th element: " << i << " X : " << out[3*(i + j)] << " Y: " << out[3*(i + j)+1] << " Angle: " << out[3*(i + j)+2] << std::endl;
+                    RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                                          "Passing path element %d X:%f Y:%f Angle:%f",
+                                          i, out[3 * (i + j)], out[3 * (i + j) + 1], out[3 * (i + j) + 2]);
                 }
-                std::cout << "Original path size: " << transformed_plan.poses.size() << std::endl;
+                RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                                      "Transformed path size: %zu", transformed_plan.poses.size());
                 //std::cout << "Writing port buffer" << std::endl;
                 m_port.write();   
             }
@@ -374,16 +383,22 @@ nav_msgs::msg::Path PathConverter_v2::transformPlan(const nav_msgs::msg::Path::C
         double min = 1e10;
         std::vector<geometry_msgs::msg::PoseStamped>::const_iterator index_found;
         geometry_msgs::msg::TransformStamped robot_path_pose = m_tf_buffer->lookupTransform("map","geometric_unicycle", rclcpp::Time(0));  //pose of the center of the feet on the path in the map frame geometric_unicycle
-        std::cout << "robot_path_pose: X " << robot_path_pose.transform.translation.x << " Y: " << robot_path_pose.transform.translation.y << std::endl;
+        RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                              "robot_path_pose X:%f Y:%f",
+                              robot_path_pose.transform.translation.x,
+                              robot_path_pose.transform.translation.y);
         for (auto it = transformed_plan_.poses.begin(); it != transformed_plan_.poses.end(); ++it)
         {
             double distance = sqrt(pow(robot_path_pose.transform.translation.x - it->pose.position.x, 2) + pow(robot_path_pose.transform.translation.y - it->pose.position.y, 2));  //distance of the center of the feet from each path pose
-            std::cout << "Distance: " << distance << std::endl;
+            RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                                  "Distance: %f", distance);
             if (distance < min)
             {
                 min = distance;
                 index_found = it;
-                std::cout << "Found min at index: " << std::distance(transformed_plan_.poses.begin() , it) << std::endl;
+                RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                                      "Found min at index: %ld",
+                                      std::distance(transformed_plan_.poses.begin(), it));
             }
         }
         //erase the previous poses up to the point on the path where the robot is supposed to be closer
@@ -405,7 +420,8 @@ nav_msgs::msg::Path PathConverter_v2::transformPlan(const nav_msgs::msg::Path::C
     
     if (m_shift_enabled && m_shiftFlag)
     {
-        std::cout << "Shifting Plan" << std::endl;
+        RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 1000,
+                              "Shifting plan");
         //std::shared_ptr<nav_msgs::msg::Path> p =  std::make_shared<nav_msgs::msg::Path>(transformed_plan_);
         transformed_plan_ = shiftPlan(transformed_plan_, m_shiftLeft);
     }
@@ -421,6 +437,10 @@ nav_msgs::msg::Path PathConverter_v2::shiftPlan(const nav_msgs::msg::Path &path,
 {
     nav_msgs::msg::Path path_out;
     path_out.header = path.header;
+    if (path.poses.size() <= 2){
+        RCLCPP_INFO(this->get_logger(), "Not enough poses in path to shift, returning original path");
+        return path;
+    }
     path_out.poses.resize(path.poses.size() - 2);
 
     double delta; //how much I need to shift the path

@@ -117,13 +117,25 @@ void OdomNode::PublishOdom()
     {
         if (!(m_odom_pub->is_activated()))
         {
-            RCLCPP_INFO(get_logger(), "Exiting PublishOdom: ublisher not active");
+            RCLCPP_INFO(get_logger(), "Exiting PublishOdom: publisher not active");
             return;
         }
 
-        yarp::os::Bottle *data = port.read(true);
+        yarp::os::Bottle *data = port.read(false);
+        if (data == nullptr)
+        {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                                 "No data received from YARP port yet");
+            return;
+        }
+
         yarp::os::Stamp stamp;
-        port.getEnvelope(stamp);
+        if (!port.getEnvelope(stamp))
+        {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                                 "Missing YARP envelope on odometry data");
+            return;
+        }
         double time = stamp.getTime();
         std::vector<geometry_msgs::msg::TransformStamped> tfBuffer;
 
@@ -177,48 +189,57 @@ void OdomNode::PublishOdom()
             tfReference.transform.translation.y = tf.transform.translation.y;
             tfReference.transform.translation.z = 0.0;
 
-            // Orientation Computation to make them planar
-            geometry_msgs::msg::TransformStamped footToRootTF;
-            if (data->get(2).asString() == "left")
+            try
             {
-                footToRootTF = m_tf_buffer_in->lookupTransform("root_link", "l_sole", rclcpp::Time(0));
+                // Orientation Computation to make them planar
+                geometry_msgs::msg::TransformStamped footToRootTF;
+                if (data->get(2).asString() == "left")
+                {
+                    footToRootTF = m_tf_buffer_in->lookupTransform("root_link", "l_sole", rclcpp::Time(0));
+                }
+                else
+                {
+                    footToRootTF = m_tf_buffer_in->lookupTransform("root_link", "r_sole", rclcpp::Time(0));
+                }
+
+                // Conversion for extracting only YAW
+                tf2::Quaternion tfGround; // quat of the root_link to chest frame tf
+                tf2::fromMsg(footToRootTF.transform.rotation, tfGround);
+                // Conversion from quat to rpy -> possible computational errors due to matricies
+                tf2::Matrix3x3 m(tfGround);
+                double roll, pitch, yaw;
+                m.getRPY(roll, pitch, yaw);
+
+                tf2::Quaternion q;
+                q.setRPY(0, 0, yaw);
+                tfReference.transform.rotation.x = tf.transform.rotation.x = q.x();
+                tfReference.transform.rotation.y = tf.transform.rotation.y = q.y();
+                tfReference.transform.rotation.z = tf.transform.rotation.z = q.z();
+                tfReference.transform.rotation.w = tf.transform.rotation.w = q.w();
+
+                tfBuffer.push_back(tf);
+                tfBuffer.push_back(tfReference);
+
+                // Computation of the position of the virtual unicycle computed from the walking-controller in the odom frame
+                geometry_msgs::msg::TransformStamped tfReference_fromOdom;
+                tfReference_fromOdom.header.stamp = tf.header.stamp;
+                tfReference_fromOdom.child_frame_id = "odom_virtual_unicycle_reference";
+                tfReference_fromOdom.header.frame_id = m_odom_frame_name;
+
+                // Virtual unicycle base pub in odom frame
+                tfReference_fromOdom.transform.translation.x = data->get(1).asList()->get(0).asFloat64();
+                tfReference_fromOdom.transform.translation.y = data->get(1).asList()->get(1).asFloat64();
+                tfReference_fromOdom.transform.translation.z = 0.0;
+
+                tfReference_fromOdom.transform.rotation = tf_fromOdom.transform.rotation;
+
+                tfBuffer.push_back(tfReference_fromOdom);
             }
-            else
+            catch (const std::exception &e)
             {
-                footToRootTF = m_tf_buffer_in->lookupTransform("root_link", "r_sole", rclcpp::Time(0));
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                                     "Skipping optional virtual unicycle TFs: %s", e.what());
             }
-            // Conversion for extracting only YAW
-            tf2::Quaternion tfGround; // quat of the root_link to chest frame tf
-            tf2::fromMsg(footToRootTF.transform.rotation, tfGround);
-            // Conversion from quat to rpy -> possible computational errors due to matricies
-            tf2::Matrix3x3 m(tfGround);
-            double roll, pitch, yaw;
-            m.getRPY(roll, pitch, yaw);
-
-            tf2::Quaternion q;
-            q.setRPY(0, 0, yaw);
-            tfReference.transform.rotation.x = tf.transform.rotation.x = q.x();
-            tfReference.transform.rotation.y = tf.transform.rotation.y = q.y();
-            tfReference.transform.rotation.z = tf.transform.rotation.z = q.z();
-            tfReference.transform.rotation.w = tf.transform.rotation.w = q.w();
-
-            tfBuffer.push_back(tf);
-            tfBuffer.push_back(tfReference);
-
-            // Computation of the position of the virtual unicycle computed from the walking-controller in the odom frame
-            geometry_msgs::msg::TransformStamped tfReference_fromOdom;
-            tfReference_fromOdom.header.stamp = tf.header.stamp;
-            tfReference_fromOdom.child_frame_id = "odom_virtual_unicycle_reference";
-            tfReference_fromOdom.header.frame_id = m_odom_frame_name;
-
-            // Virtual unicycle base pub in odom frame
-            tfReference_fromOdom.transform.translation.x = data->get(1).asList()->get(0).asFloat64();
-            tfReference_fromOdom.transform.translation.y = data->get(1).asList()->get(1).asFloat64();
-            tfReference_fromOdom.transform.translation.z = 0.0;
-
-            tfReference_fromOdom.transform.rotation = tf_fromOdom.transform.rotation;
-
-            tfBuffer.push_back(tfReference_fromOdom);
         }
 
         // Odom Computation
@@ -315,7 +336,20 @@ void OdomNode::PublishOdom()
             swingFoot = "l_sole";
         }
         geometrycalVirtualUnicycle.header.frame_id = stanceFoot;
-        stanceFootToSwingFoot_tf = m_tf_buffer_in->lookupTransform(swingFoot, stanceFoot, rclcpp::Time(0));
+        try
+        {
+            stanceFootToSwingFoot_tf = m_tf_buffer_in->lookupTransform(swingFoot, stanceFoot, rclcpp::Time(0));
+        }
+        catch (const std::exception &e)
+        {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                                 "Skipping geometric_unicycle TF: %s", e.what());
+            if (!tfBuffer.empty())
+            {
+                m_tf_broadcaster->sendTransform(tfBuffer);
+            }
+            return;
+        }
 
         // create a point in the swing foot frame center (0, 0, 0) and transform it in the stance foot frame
         // if X-component is negative, it means that it's behind it
@@ -369,7 +403,10 @@ void OdomNode::PublishOdom()
         }
 
         tfBuffer.push_back(geometrycalVirtualUnicycle);
-        m_tf_broadcaster->sendTransform(tfBuffer);
+        if (!tfBuffer.empty())
+        {
+            m_tf_broadcaster->sendTransform(tfBuffer);
+        }
     }
     catch (const std::exception &e)
     {

@@ -4,7 +4,7 @@
  */
 
 #ifndef ODOM_NODE__HPP
-#define PATH_CONVERTER__V2__HPP
+#define ODOM_NODE__HPP
 
 #include "yarp/os/Bottle.h"
 #include "yarp/os/Port.h"
