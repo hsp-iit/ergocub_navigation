@@ -1,6 +1,6 @@
 #!/bin/bash
 NAME=ergocub_navigation
-TAG=latest
+TAG=jazzy
 
 sudo xhost +
 sudo docker run \
