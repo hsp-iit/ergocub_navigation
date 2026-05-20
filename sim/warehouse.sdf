@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='ASCII'?>
 <sdf version='1.7'>
   <world name='warehouse'>
-    <physics type="ode">
+    <!--<physics type="ode">
       <max_step_size>0.003</max_step_size>
       <real_time_factor>1.0</real_time_factor>
       <real_time_update_rate>1000</real_time_update_rate>
       <gravity>0 0 -9.8</gravity>
-    </physics>
+    </physics>-->
     <plugin name='gz::sim::systems::Physics' filename='libgz-sim-physics-system.so'/>
     <plugin name='gz::sim::systems::UserCommands' filename='libgz-sim-user-commands-system.so'/>
     <plugin name='gz::sim::systems::SceneBroadcaster' filename='libgz-sim-scene-broadcaster-system.so'/>
@@ -15,6 +15,7 @@
     </plugin>
     <plugin name="gz::sim::systems::Imu" filename="libgz-sim-imu-system.so"/>
     <plugin name="gz::sim::systems::NavSat" filename="libgz-sim-navsat-system.so"/>
+    <plugin filename="gz-sim-forcetorque-system" name="gz::sim::systems::ForceTorque"/>
 
     <scene>
       <ambient>1 1 1 1</ambient>
@@ -267,6 +268,13 @@
       </uri>
       <name>Person 2 - Walking</name>
       <pose>-12 15 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>
+      /home/ecub_docker/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubGazeboSN001_minContacts/model.urdf
+      </uri>
+      <name>ergoCub</name>
+      <pose>0 0 0.9 0 0 0</pose>
     </include>
 
   </world>
