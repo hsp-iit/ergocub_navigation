@@ -28,7 +28,7 @@ RUN dpkg --add-architecture i386 && \
     libegl1-mesa-dev \
     libegl1-mesa-dev:i386 \
     libgles2-mesa-dev \
-    libgles2-mesa-dev:i386 && \ 
+    libgles2-mesa-dev:i386 && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -151,7 +151,7 @@ RUN git config --global user.name "${GIT_USERNAME}" && git config --global user.
 ### Robotology Superbuild Install Section
 ARG BUILD_TYPE=Release
 
-# Superbuild cloning and installing
+# Superbuild cloning
 RUN sudo apt update && git clone https://github.com/robotology/robotology-superbuild && \
     cd robotology-superbuild && git checkout v2025.11.0  && \
     sudo chmod +x scripts/install_apt_dependencies.sh && \
@@ -159,10 +159,6 @@ RUN sudo apt update && git clone https://github.com/robotology/robotology-superb
     sudo bash ./scripts/install_apt_dependencies.sh &&\
     sudo apt clean && \
     sudo rm -rf /var/lib/apt/lists/*
-    
-RUN cd robotology-superbuild && git checkout v2025.11.0 && mkdir build && cd build && \
-    export OpenCV_DIR=/usr/lib/x86_64-linux-gnu/cmake/opencv4 && cmake -DROBOTOLOGY_ENABLE_CORE=ON -DROBOTOLOGY_ENABLE_DYNAMICS=ON -DROBOTOLOGY_ENABLE_DYNAMICS_FULL_DEPS=ON .. && \
-    make -j8 && make install -j8
 
 # Gz-sim
 RUN git clone https://github.com/CLIUtils/CLI11 && \
@@ -173,6 +169,13 @@ RUN git clone https://github.com/CLIUtils/CLI11 && \
     cmake .. && \
     cmake --build . && \
     sudo cmake --install .
+
+RUN cd robotology-superbuild && git checkout v2025.11.0 && mkdir build && cd build && \
+    export OpenCV_DIR=/usr/lib/x86_64-linux-gnu/cmake/opencv4 && cmake -DROBOTOLOGY_ENABLE_CORE=ON \
+    -DROBOTOLOGY_ENABLE_DYNAMICS=ON \
+    -DROBOTOLOGY_ENABLE_DYNAMICS_FULL_DEPS=ON \
+    -DROBOTOLOGY_USES_GZ=ON .. && \
+    make -j8 && make install -j8
 
 RUN sudo ln -s /usr/local/share/bash-completion/completions/yarp /usr/share/bash-completion/completions
 # Environment setup for simulation
@@ -189,10 +192,11 @@ ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:/home/$USERNAME/robotology-superbuild/build
 ENV PATH=${PATH}:/home/$USERNAME/robotology-superbuild/build/install/bin
 ENV GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:/home/$USERNAME/robotology-superbuild/build/install/lib
 ENV YARP_ROBOT_NAME=ergoCubGazeboV1
-ENV PYTHONPATH=${PYTHONPATH}:/home/$USERNAME/$USERNAME/robotology-superbuild/build/install/lib/python3
-ENV GZ_SIM_YARP_PLUGINS_SOURCE_DIR=${robotology_install_folder}/gz-sim-yarp-plugins
+ENV PYTHONPATH=${PYTHONPATH}:/home/$USERNAME/robotology-superbuild/build/install/lib/python3
+ENV GZ_SIM_YARP_PLUGINS_SOURCE_DIR=/home/$USERNAME/gz-sim-yarp-plugins
 ENV GZ_SIM_YARP_PLUGINS_DIR=${GZ_SIM_YARP_PLUGINS_SOURCE_DIR}/build
 ENV GZ_SIM_SYSTEM_PLUGIN_PATH=${GZ_SIM_SYSTEM_PLUGIN_PATH}:${GZ_SIM_YARP_PLUGINS_DIR}/lib
+ENV GZ_SIM_RESOURCE_PATH=${GZ_SIM_RESOURCE_PATH}:/home/ecub_docker/robotology-superbuild/src/ergocub-software/urdf
 
 RUN git clone https://github.com/robotology/gz-sim-yarp-plugins &&\
     cd gz-sim-yarp-plugins && git checkout v0.5.3 && mkdir build && cd build && \
@@ -202,16 +206,15 @@ RUN git clone https://github.com/robotology/gz-sim-yarp-plugins &&\
 RUN echo "export PATH=$PATH:/home/$USERNAME/robotology-superbuild/build/install/bin" >> ~/.bashrc && \
     echo "alias goToBuildSuperbuild='cd ../../build/src/${PWD##*/}'" >> ~/.bashrc && \
     echo "alias 0_yarpserver='yarpserver --write'" >> ~/.bashrc && \
-    echo "alias 1_clock_export='export YARP_CLOCK=/clock'" >> ~/.bashrc && \
-    echo "alias 2_gazebo='export YARP_CLOCK=/clock && gazebo -s libgazebo_yarp_clock.so -s libgazebo_ros_init.so'" >> ~/.bashrc && \
-    echo "alias 3_gazebo_warehouse='export YARP_CLOCK=/clock && gazebo worlds/SmallWarehouseScen3.world -s libgazebo_yarp_clock.so -s libgazebo_ros_init.so'" >> ~/.bashrc && \
-    echo "alias walking_retargeting='YARP_CLOCK=/clock WalkingModule --from /home/$USERNAME/robotology-superbuild/src/walking-controllers/src/WalkingModule/app/robots/ergoCubGazeboV1/dcm_walking_iFeel_joint_retargeting.ini'" >> ~/.bashrc && \
+    echo "alias 1_gazebo_warehouse='export YARP_CLOCK=/clock && gz sim /home/ecub_docker/ros2_workspace/src/ergocub_navigation/sim/warehouse.sdf --verbose'" >> ~/.bashrc && \
+    echo "alias 2_spawn_robot='ros2 run ros_gz_sim create -file /home/ecub_docker/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubGazeboSN001_minContacts/model.urdf -name ergocub -z 0.8'" >> ~/.bashrc && \
+    echo "alias walking_retargeting='WalkingModule --from /home/$USERNAME/robotology-superbuild/src/walking-controllers/src/WalkingModule/app/robots/ergoCubGazeboV1/dcm_walking_iFeel_joint_retargeting.ini'" >> ~/.bashrc && \
     echo "alias launch_wbd_interface='yarprobotinterface --config /home/$USERNAME/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/launch_wholebodydynamics_ecub.xml'" >> ~/.bashrc && \
     echo "alias merge_ports='yarp merge --input /wholeBodyDynamics/right_foot_front/cartesianEndEffectorWrench:o /wholeBodyDynamics/left_foot_front/cartesianEndEffectorWrench:o --output /feetWrenches'" >> ~/.bashrc && \
     echo "alias col_build='colcon build --symlink-install'" >> ~/.bashrc && \
     echo "source /opt/ros/jazzy/setup.bash" >> /home/$USERNAME/.bashrc && \
     echo "source /home/$USERNAME/ros2_workspace/install/setup.bash" >> /home/$USERNAME/.bashrc && \
-    echo "source /home/$USERNAME/robotology-superbuild/build/install/share/robotology-superbuild/setup.sh" >> ~/.bashrc
+    echo "export LD_LIBRARY_PATH=/home/ecub_docker/robotology-superbuild/build/install/lib:$LD_LIBRARY_PATH" >> /home/$USERNAME/.bashrc
 
 EXPOSE 8080
 EXPOSE 8888
@@ -227,7 +230,7 @@ SHELL ["/bin/bash", "-c"]
 RUN mkdir -p /home/$USERNAME/ros2_workspace/src && cd /home/$USERNAME/ros2_workspace && \
     /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.sh && colcon build"  && \
     cd src && \
-    git clone -b jazzy https://github.com/hsp-iit/ergocub_navigation.git && \
+    git clone -b gz-sim https://github.com/hsp-iit/ergocub_navigation.git && \
     git clone -b jazzy https://github.com/hsp-iit/bt_nav2_ergocub.git && \
     git clone -b jazzy https://github.com/ros-perception/pointcloud_to_laserscan && \
     git clone -b jazzy https://github.com/SimoneMic/theta_star_oriented && \
@@ -238,7 +241,7 @@ ENV AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH:/opt/ros/jazzy
 RUN sudo cp -r /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/worlds /usr/share/gazebo-11
 # XORG setup
 RUN sudo cp /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/xorg.conf /etc/X11/xorg.conf
-    
+
 # Update walking-comtrollers in robotology superbuild to work in navigation
 RUN cd robotology-superbuild/src/walking-controllers && git remote add SimoneMic https://github.com/SimoneMic/walking-controllers && \
     git fetch SimoneMic && \
@@ -246,7 +249,6 @@ RUN cd robotology-superbuild/src/walking-controllers && git remote add SimoneMic
     cd ../../build/src/walking-controllers && make install -j8 && cd .
 
 # yarp-devices-ros2
-#CMD ["bash"]
 ENV AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH:/home/$USERNAME/robotology-superbuild/build/install
 RUN git clone https://github.com/robotology/yarp-devices-ros2 && \
     cd yarp-devices-ros2/ros2_interfaces_ws && \
@@ -255,38 +257,15 @@ RUN git clone https://github.com/robotology/yarp-devices-ros2 && \
     cd .. && mkdir build && cd build && \
     source /opt/ros/$ROS_DISTRO/setup.bash && source /home/$USERNAME/yarp-devices-ros2/ros2_interfaces_ws/install/setup.bash && cmake .. -DYARP_ROS2_USE_SYSTEM_map2d_nws_ros2_msgs=ON -DYARP_ROS2_USE_SYSTEM_yarp_control_msgs=ON && make -j11 && \
     echo "source /home/$USERNAME/yarp-devices-ros2/ros2_interfaces_ws/install/local_setup.bash" >> ~/.bashrc
-ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:/home/$USERNAME/yarp-devices-ros2/build/share/yarp:/home/$USERNAME/yarp-devices-ros2/build/share/yarp-devices-ros2   
+ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:/home/$USERNAME/yarp-devices-ros2/build/share/yarp:/home/$USERNAME/yarp-devices-ros2/build/share/yarp-devices-ros2
 
 # ergocub-software for ros2
 RUN cd robotology-superbuild/src/ergocub-software &&\
     git remote add simomic https://github.com/SimoneMic/ergocub-software && \
     git fetch simomic && \
-    git stash && git switch ros2 && \
+    git stash && git switch gz_sim && \
     cd ../../build/src/ergocub-software && \
     cmake . && make install
 
-# ergocub-gaze-controller and rpc interfaces
-#RUN git clone https://github.com/hsp-iit/ergocub-rpc-interfaces && \
-#    cd ergocub-rpc-interfaces/ecub_gaze_controller/cpp_library && mkdir build && cd build && \
-#    cmake .. && \
-#    sudo make install -j6 && \
-#    cd && \
-#    git clone https://github.com/SimoneMic/ergocub-gaze-control && \
-#    cd ergocub-gaze-control && mkdir build && cd build && \
-#    cmake -DCMAKE_INSTALL_PREFIX=/home/$USERNAME/robotology-superbuild/build/install .. && \
-#    make install -j5 && \
-#    cd && echo "alias run_gaze_controller='cd /home/ecub_docker/ergocub-gaze-control/build/bin && ./ergocub-gaze-control /home/ecub_docker/ergocub-gaze-control/ecub_config.ini'" >> ~/.bashrc
-
-# Hospital world for gazebo
-#RUN git clone https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps && cd Dataset-of-Gazebo-Worlds-Models-and-Maps/worlds/hospital && \
-#    unzip models_part1.zip && unzip models_part2.zip && unzip models_part3.zip && unzip models_part4.zip && \
-#    mkdir models && \
-#    cp -a models_part1/. models && cp -a models_part2/. models && cp -a models_part3/. models && cp -a models_part4/. models && \
-#    rm -rf models_part1 && rm -rf models_part2 && rm -rf models_part3 && rm -rf models_part4 && \
-#    echo "export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/home/ecub_docker/Dataset-of-Gazebo-Worlds-Models-and-Maps/worlds/hospital/models" >> ~/.bashrc && \
-#    echo "export GAZEBO_RESOURCE_PATH=$GAZEBO_RESOURCE_PATH:/home/ecub_docker/Dataset-of-Gazebo-Worlds-Models-and-Maps/worlds/hospital" >> ~/.bashrc && \
-#    echo "alias 9_gazebo_hospital='export YARP_CLOCK=/clock && gazebo /home/ecub_docker/Dataset-of-Gazebo-Worlds-Models-and-Maps/worlds/hospital/hospital.world -s libgazebo_yarp_clock.so -s libgazebo_ros_init.so'" >> ~/.bashrc
-
-RUN sudo updatedb
-
-
+RUN echo "source /home/$USERNAME/robotology-superbuild/build/install/share/robotology-superbuild/setup.sh" >> ~/.bashrc &&\
+    sudo updatedb
