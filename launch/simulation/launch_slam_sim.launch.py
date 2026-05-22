@@ -7,18 +7,24 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
-    map_server = IncludeLaunchDescription(
+    setup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/simulation/amcl/map_server_sim.launch.py'])
+            '/simulation/setup_robot_sim.launch.py'])
         )
-    amcl = IncludeLaunchDescription(
+    navigation = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/simulation/amcl/amcl_sim.launch.py'])
+            '/slam/nav2_stack_slam_sim.launch.py'])
+        )
+    slam = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('ergocub_navigation'), 'launch'),
+            '/slam/slam_online_async.launch.py'])
         )
 
     return LaunchDescription([
-        map_server,
-        amcl
+        setup,
+        slam,
+        navigation
     ])

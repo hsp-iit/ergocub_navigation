@@ -82,7 +82,7 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'),
             'param',
             'simulation/ergoCub_nav2_sim.yaml')
-            
+
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
         default_value=param_dir,
@@ -220,7 +220,7 @@ def generate_launch_description():
                              'node_names': lifecycle_nodes}]),
         ],
     )
-    
+
     #start_lifecycle_manager_cmd = Node(
     #         package='nav2_lifecycle_manager',
     #         executable='lifecycle_manager',
@@ -246,7 +246,7 @@ def generate_launch_description():
     #         output='screen',
     #         emulate_tty=True,
     #         parameters=[params_file])
-    
+
     # Create the launch description and populate
     ld = LaunchDescription()
 
@@ -261,7 +261,7 @@ def generate_launch_description():
     ld.add_action(declare_use_composition_cmd)
     ld.add_action(declare_container_name_cmd)
     ld.add_action(declare_use_respawn_cmd)
-    
+
     #Keepout filter stuff
     #ld.add_action(start_lifecycle_manager_cmd)
     #ld.add_action(start_map_server_cmd)

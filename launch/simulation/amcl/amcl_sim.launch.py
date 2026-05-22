@@ -11,14 +11,14 @@ package_name = 'ergocub_navigation'
 
 def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    
+
     param_file_name = 'ergoCub_amcl_sim' + '.yaml'
 
     param_dir=os.path.join(
             get_package_share_directory(package_name),
             'param/simulation',
             param_file_name)
-      
+
     amcl_params = os.path.join(os.getcwd(), param_dir)
 
     return LaunchDescription([
