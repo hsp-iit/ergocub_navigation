@@ -17,9 +17,14 @@ def generate_launch_description():
             get_package_share_directory('ergocub_navigation'), 'launch'),
             '/simulation/nav2_stack_sim.launch.py'])
         )
-    
+    localization = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('ergocub_navigation'), 'launch'),
+            '/simulation/setup_localization_sim.launch.py'])
+        )
 
     return LaunchDescription([
         setup,
+        localization,
         navigation
     ])

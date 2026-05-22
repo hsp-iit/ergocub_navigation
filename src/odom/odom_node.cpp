@@ -74,6 +74,39 @@ CallbackReturn OdomNode::on_activate(const rclcpp_lifecycle::State &)
     m_odom_pub->on_activate();
     m_control_pub->on_activate();
 
+    // Init first frame:
+    m_last_swing_tf.header.frame_id = "r_sole";
+    m_last_swing_tf.child_frame_id = "geometric_unicycle";
+    bool init = false;
+    while (!init)
+    {
+        try
+        {
+            auto stanceFootToSwingFoot_tf = m_tf_buffer_in->lookupTransform("l_sole", m_last_swing_tf.header.frame_id, rclcpp::Time(0));
+            tf2::Quaternion conversionQuat;
+            tf2::fromMsg(stanceFootToSwingFoot_tf.transform.rotation, conversionQuat);
+            tf2::Matrix3x3 matrix(conversionQuat);
+            double r, p, y;
+            matrix.getRPY(r, p, y);
+            conversionQuat.setRPY(0.0, 0.0, y);
+            m_last_swing_tf.transform.rotation.x = conversionQuat.x();
+            m_last_swing_tf.transform.rotation.y = conversionQuat.y();
+            m_last_swing_tf.transform.rotation.z = conversionQuat.z();
+            m_last_swing_tf.transform.rotation.w = conversionQuat.w();
+            // translation -> take the halfway point on y
+            m_last_swing_tf.transform.translation.z = 0;
+            m_last_swing_tf.transform.translation.x = stanceFootToSwingFoot_tf.transform.translation.x;
+            m_last_swing_tf.transform.translation.y = - stanceFootToSwingFoot_tf.transform.translation.y / 2;
+            init = true;
+        }
+        catch(const std::exception& e)
+        {
+            RCLCPP_WARN_STREAM(this->get_logger(), e.what());
+            init = false;
+            return CallbackReturn::FAILURE;
+        }
+    }
+
     return CallbackReturn::SUCCESS;
 }
 
@@ -113,6 +146,7 @@ CallbackReturn OdomNode::on_error(const rclcpp_lifecycle::State &state)
 
 void OdomNode::PublishOdom()
 {
+    std::vector<geometry_msgs::msg::TransformStamped> tfBuffer;
     try
     {
         if (!(m_odom_pub->is_activated()))
@@ -125,7 +159,6 @@ void OdomNode::PublishOdom()
         yarp::os::Stamp stamp;
         port.getEnvelope(stamp);
         double time = stamp.getTime();
-        std::vector<geometry_msgs::msg::TransformStamped> tfBuffer;
 
         // Optional extensive info
         if (m_expose_ulterior_frames)
@@ -232,8 +265,8 @@ void OdomNode::PublishOdom()
         odomTf.transform.translation.z = data->get(3).asList()->get(2).asFloat64();
 
         tf2::Quaternion qOdom;
-        qOdom.setRPY(data->get(3).asList()->get(3).asFloat64(), 
-                     data->get(3).asList()->get(4).asFloat64(), 
+        qOdom.setRPY(data->get(3).asList()->get(3).asFloat64(),
+                     data->get(3).asList()->get(4).asFloat64(),
                      data->get(3).asList()->get(5).asFloat64());
         odomTf.transform.rotation.x = qOdom.x();
         odomTf.transform.rotation.y = qOdom.y();
@@ -319,7 +352,7 @@ void OdomNode::PublishOdom()
         stanceFootToSwingFoot_tf = m_tf_buffer_in->lookupTransform(swingFoot, stanceFoot, rclcpp::Time(0));
 
         // create a point in the swing foot frame center (0, 0, 0) and transform it in the stance foot frame
-        // if X-component is negative, it means that it's behind it 
+        // if X-component is negative, it means that it's behind it
         // TODO: handle backward movement: decide based on planned_vel sign (on X dir)
         geometry_msgs::msg::PoseStamped swingFootCenter;
         swingFootCenter.header.frame_id = swingFoot;
@@ -356,28 +389,14 @@ void OdomNode::PublishOdom()
         {
             // otherwise I keep the unicycle on the stance foot
             m_last_swing_tf.header.stamp = geometrycalVirtualUnicycle.header.stamp;
-            //if (stanceFoot == "l_sole")
-            //{
-            //    geometrycalVirtualUnicycle.transform.translation.y = -m_nominalWidth / 2; // depends by the nominalWidth/2 parameter in the walking-controller
-            //}
-            //else
-            //{
-            //    geometrycalVirtualUnicycle.transform.translation.y = m_nominalWidth / 2;
-            //}
-            //geometrycalVirtualUnicycle.transform.translation.x = 0.0;
-            //geometrycalVirtualUnicycle.transform.translation.z = 0.0;
-            //geometrycalVirtualUnicycle.transform.rotation.x = 0;
-            //geometrycalVirtualUnicycle.transform.rotation.y = 0;
-            //geometrycalVirtualUnicycle.transform.rotation.z = 0;
-            //geometrycalVirtualUnicycle.transform.rotation.w = 1;
         }
-
         tfBuffer.push_back(m_last_swing_tf);
         m_tf_broadcaster->sendTransform(tfBuffer);
     }
     catch (const std::exception &e)
     {
         RCLCPP_ERROR(this->get_logger(), e.what());
+        tfBuffer.clear();
     }
 }
 

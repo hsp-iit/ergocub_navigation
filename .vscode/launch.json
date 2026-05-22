@@ -1,0 +1,61 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to ROS2 C++ node",
+      "type": "cppdbg",
+      "request": "attach",
+      "program": "${workspaceFolder}/../../install/ergocub_navigation/lib/ergocub_navigation/odom_node",
+      "processId": "${command:pickProcess}",
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "Debug Launch ROS 2 C++ node with params",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/../../install/ergocub_navigation/lib/ergocub_navigation/odom_node",
+      "args": [
+             "--ros-args",
+             "--params-file",
+             "${workspaceFolder}/../../install/ergocub_navigation/share/ergocub_navigation/param/odom.yaml"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "AMENT_PREFIX_PATH",
+          "value": "${env:AMENT_PREFIX_PATH}"
+        },
+        {
+          "name": "LD_LIBRARY_PATH",
+          "value": "${env:LD_LIBRARY_PATH}"
+        },
+        {
+          "name": "RMW_IMPLEMENTATION",
+          "value": "${env:RMW_IMPLEMENTATION}"
+        },
+        {
+          "name": "ROS_DOMAIN_ID",
+          "value": "${env:ROS_DOMAIN_ID}"
+        }
+      ],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}
+
