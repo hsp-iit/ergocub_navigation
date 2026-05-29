@@ -184,14 +184,9 @@ ENV WalkingControllers_INSTALL_DIR=/home/$USERNAME/robotology-superbuild/build/i
 ENV YARP_DATA_DIRS=$YARP_DATA_DIRS:$WalkingControllers_INSTALL_DIR/share/yarp
 ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:/home/$USERNAME/robotology-superbuild/build/install/share/iCub
 ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:/home/$USERNAME/robotology-superbuild/build/install/share/ergoCub
-ENV GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:/home/$USERNAME/robotology-superbuild/build/install/share/iCub/robots:/home/$USERNAME/robotology-superbuild/build/install/share/ergoCub/robots
-ENV GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:/home/$USERNAME/robotology-superbuild/build/install/share:/usr/share/gazebo-11/models
-ENV GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:/home/ecub_docker/ergocub-bimanual/gazebo/worlds
-ENV GAZEBO_RESOURCE_PATH=/usr/share/gazebo-11/worlds:/usr/share/gazebo-11
 ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:/home/$USERNAME/robotology-superbuild/build/install/share/ICUBcontrib
 ENV PATH=${PATH}:/home/$USERNAME/robotology-superbuild/build/install/bin
-ENV GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:/home/$USERNAME/robotology-superbuild/build/install/lib
-ENV YARP_ROBOT_NAME=ergoCubGazeboV1
+ENV YARP_ROBOT_NAME=ergoCubGazeboSN001_minContacts
 ENV PYTHONPATH=${PYTHONPATH}:/home/$USERNAME/robotology-superbuild/build/install/lib/python3
 ENV GZ_SIM_YARP_PLUGINS_SOURCE_DIR=/home/$USERNAME/gz-sim-yarp-plugins
 ENV GZ_SIM_YARP_PLUGINS_DIR=${GZ_SIM_YARP_PLUGINS_SOURCE_DIR}/build
@@ -203,18 +198,19 @@ RUN git clone https://github.com/robotology/gz-sim-yarp-plugins &&\
     /bin/bash -c "source /opt/ros/jazzy/setup.bash; cmake .. -DBUILD_gz-sim-yarp-worldinterface-system=ON && make -j8"
 
 # Bashrc setup
-RUN echo "export PATH=$PATH:/home/$USERNAME/robotology-superbuild/build/install/bin" >> ~/.bashrc && \
-    echo "alias goToBuildSuperbuild='cd ../../build/src/${PWD##*/}'" >> ~/.bashrc && \
+RUN echo "export PATH=\$PATH:/home/$USERNAME/robotology-superbuild/build/install/bin" >> ~/.bashrc && \
+    echo "alias goToBuildSuperbuild='cd ../../build/src/\${PWD##*/}'" >> ~/.bashrc && \
     echo "alias 0_yarpserver='yarpserver --write'" >> ~/.bashrc && \
     echo "alias 1_gazebo_warehouse='export YARP_CLOCK=/clock && gz sim /home/ecub_docker/ros2_workspace/src/ergocub_navigation/sim/warehouse.sdf --verbose'" >> ~/.bashrc && \
     echo "alias 2_spawn_robot='ros2 run ros_gz_sim create -file /home/ecub_docker/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubGazeboSN001_minContacts/model.urdf -name ergocub -z 0.8'" >> ~/.bashrc && \
-    echo "alias walking_retargeting='WalkingModule --from /home/$USERNAME/robotology-superbuild/src/walking-controllers/src/WalkingModule/app/robots/ergoCubGazeboV1/dcm_walking_iFeel_joint_retargeting.ini'" >> ~/.bashrc && \
+    echo "alias walking_retargeting='export YARP_CLOCK=/clock WalkingModule --from /home/$USERNAME/robotology-superbuild/src/walking-controllers/src/WalkingModule/app/robots/ergoCubGazeboV1/dcm_walking_iFeel_joint_retargeting.ini'" >> ~/.bashrc && \
     echo "alias launch_wbd_interface='yarprobotinterface --config /home/$USERNAME/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/launch_wholebodydynamics_ecub.xml'" >> ~/.bashrc && \
     echo "alias merge_ports='yarp merge --input /wholeBodyDynamics/right_foot_front/cartesianEndEffectorWrench:o /wholeBodyDynamics/left_foot_front/cartesianEndEffectorWrench:o --output /feetWrenches'" >> ~/.bashrc && \
     echo "alias col_build='colcon build --symlink-install'" >> ~/.bashrc && \
     echo "source /opt/ros/jazzy/setup.bash" >> /home/$USERNAME/.bashrc && \
     echo "source /home/$USERNAME/ros2_workspace/install/setup.bash" >> /home/$USERNAME/.bashrc && \
-    echo "export LD_LIBRARY_PATH=/home/ecub_docker/robotology-superbuild/build/install/lib:$LD_LIBRARY_PATH" >> /home/$USERNAME/.bashrc
+    echo "export LD_LIBRARY_PATH=/home/ecub_docker/robotology-superbuild/build/install/lib:\$LD_LIBRARY_PATH" >> /home/$USERNAME/.bashrc
+
 
 EXPOSE 8080
 EXPOSE 8888
