@@ -163,7 +163,6 @@ local_costmap:
       trinary_costmap: true
       plugins:
       - obstacle_layer
-      - voxel_layer
       - inflation_layer
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
@@ -191,41 +190,6 @@ local_costmap:
           marking: true
           data_type: "LaserScan"
           inf_is_valid: false
-      voxel_layer:
-        plugin: nav2_costmap_2d::VoxelLayer
-        enabled: true
-        footprint_clearing_enabled: true
-        max_obstacle_height: 2.0
-        publish_voxel_map: false
-        origin_z: 0.0
-        z_resolution: 0.2
-        z_voxels: 8
-        unknown_threshold: 15
-        mark_threshold: 2
-        observation_sources: pointcloud_mark pointcloud_clear
-        combination_method: 1
-        pointcloud_mark:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
-          max_obstacle_height: 2.0
-          min_obstacle_height: 0.15
-          obstacle_max_range: 7.0
-          obstacle_min_range: 0.3
-          raytrace_max_range: 8.0
-          raytrace_min_range: 0.2
-          clearing: false
-          marking: true
-          data_type: "PointCloud2"
-        pointcloud_clear:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
-          max_obstacle_height: 4.8
-          min_obstacle_height: -4.8
-          obstacle_max_range: 8.0
-          obstacle_min_range: 0.0
-          raytrace_max_range: 12.0
-          raytrace_min_range: 0.0
-          clearing: true
-          marking: false
-          data_type: "PointCloud2"
 
   local_costmap_client:
     ros__parameters:
@@ -266,7 +230,7 @@ global_costmap:
         footprint_clearing_enabled: True
         max_obstacle_height: 2.0
         combination_method: 1
-        observation_sources: scan scan_clear_right scan_clear_left pointcloud_mark pointcloud_clear
+        observation_sources: scan pointcloud_mark pointcloud_clear
         scan:
           topic: /filtered_scan_compensated
           obstacle_max_range: 20.0
@@ -279,32 +243,8 @@ global_costmap:
           marking: false
           data_type: "LaserScan"
           inf_is_valid: false
-        scan_clear_right:
-          topic: /rear_scan_compensated_right
-          obstacle_max_range: 20.0
-          obstacle_min_range: 0.3
-          raytrace_max_range: 22.2
-          raytrace_min_range: 0.2
-          max_obstacle_height: 2.0
-          min_obstacle_height: 0.0
-          clearing: false
-          marking: false
-          data_type: "LaserScan"
-          inf_is_valid: false
-        scan_clear_left:
-          topic: /rear_scan_compensated_left
-          obstacle_max_range: 20.0
-          obstacle_min_range: 0.3
-          raytrace_max_range: 22.2
-          raytrace_min_range: 0.2
-          max_obstacle_height: 2.0
-          min_obstacle_height: 0.0
-          clearing: false
-          marking: false
-          data_type: "LaserScan"
-          inf_is_valid: false
         pointcloud_mark:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
+          topic: /camera/depth/color/points
           max_obstacle_height: 2.0
           min_obstacle_height: 0.3  #0.15
           obstacle_max_range: 6.0
@@ -315,7 +255,7 @@ global_costmap:
           marking: true
           data_type: "PointCloud2"
         pointcloud_clear:  # no frame set, uses frame from message
-          topic: /imu_filtered_depth
+          topic: /camera/depth/color/points
           max_obstacle_height: 3.5
           min_obstacle_height: -3.5
           obstacle_max_range: 7.0
