@@ -198,18 +198,8 @@ RUN git clone https://github.com/robotology/gz-sim-yarp-plugins &&\
     /bin/bash -c "source /opt/ros/jazzy/setup.bash; cmake .. -DBUILD_gz-sim-yarp-worldinterface-system=ON && make -j8"
 
 # Bashrc setup
-RUN echo "export PATH=\$PATH:/home/$USERNAME/robotology-superbuild/build/install/bin" >> ~/.bashrc && \
-    echo "alias goToBuildSuperbuild='cd ../../build/src/\${PWD##*/}'" >> ~/.bashrc && \
-    echo "alias 0_yarpserver='yarpserver --write'" >> ~/.bashrc && \
-    echo "alias 1_gazebo_warehouse='export YARP_CLOCK=/clock && gz sim /home/ecub_docker/ros2_workspace/src/ergocub_navigation/sim/warehouse.sdf --verbose'" >> ~/.bashrc && \
-    echo "alias 2_spawn_robot='ros2 run ros_gz_sim create -file /home/ecub_docker/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubGazeboSN001_minContacts/model.urdf -name ergocub -z 0.8'" >> ~/.bashrc && \
-    echo "alias walking_retargeting='export YARP_CLOCK=/clock WalkingModule --from /home/$USERNAME/robotology-superbuild/src/walking-controllers/src/WalkingModule/app/robots/ergoCubGazeboV1/dcm_walking_iFeel_joint_retargeting.ini'" >> ~/.bashrc && \
-    echo "alias launch_wbd_interface='yarprobotinterface --config /home/$USERNAME/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/launch_wholebodydynamics_ecub.xml'" >> ~/.bashrc && \
-    echo "alias merge_ports='yarp merge --input /wholeBodyDynamics/right_foot_front/cartesianEndEffectorWrench:o /wholeBodyDynamics/left_foot_front/cartesianEndEffectorWrench:o --output /feetWrenches'" >> ~/.bashrc && \
-    echo "alias col_build='colcon build --symlink-install'" >> ~/.bashrc && \
-    echo "source /opt/ros/jazzy/setup.bash" >> /home/$USERNAME/.bashrc && \
-    echo "source /home/$USERNAME/ros2_workspace/install/setup.bash" >> /home/$USERNAME/.bashrc && \
-    echo "export LD_LIBRARY_PATH=/home/ecub_docker/robotology-superbuild/build/install/lib:\$LD_LIBRARY_PATH" >> /home/$USERNAME/.bashrc
+COPY docker/bashrc-additions.sh /tmp/bashrc-additions.sh
+RUN cat /tmp/bashrc-additions.sh >> ~/.bashrc && rm /tmp/bashrc-additions.sh
 
 
 EXPOSE 8080
