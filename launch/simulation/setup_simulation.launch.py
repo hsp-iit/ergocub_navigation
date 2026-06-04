@@ -86,7 +86,7 @@ def generate_launch_description():
     joint_states_republisher = ExecuteProcess(
         cmd=[
             "python3",
-            "/home/ecub_docker/ros2_workspace/src/ergocub_navigation/src/sim/joint_states_republisher.py",
+            "/home/ecub_docker/ros2_workspace/src/ergocub_navigation/sim/joint_states_republisher.py",
         ],
         output="screen",
     )
