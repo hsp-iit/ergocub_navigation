@@ -137,19 +137,6 @@ ament_target_dependencies(path_converter
   "rclcpp_lifecycle"
 )
 
-add_executable(walking_phase_detector src/perception/walking_phase_detector/walking_phase_detector.cpp src/perception/walking_phase_detector/neck_motor_control.cpp) 
-ament_target_dependencies(walking_phase_detector
-  "YARP"
-  "rclcpp"
-  "nav_msgs"
-  "tf2_ros"
-  "tf2_msgs"
-  "tf2"
-  "sensor_msgs"
-  "rclcpp_lifecycle"
-  "tf2_geometry_msgs"
-)
-
 add_executable(head_orientation_controller
     src/navigation/head_orientation_controller/head_orientation_controller.cpp)
 ament_target_dependencies(head_orientation_controller
@@ -235,7 +222,6 @@ install(TARGETS
   scan_filter
   footsteps_viewer
   pointcloud_filter
-  walking_phase_detector
   path_converter
   human_pose_goal_generator
   plane_detector
