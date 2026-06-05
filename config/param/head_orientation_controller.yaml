@@ -1,0 +1,33 @@
+head_orientation_controller_node:
+  ros__parameters:
+    # Nav2 global plan topic
+    plan_topic: "/plan"
+
+    # TF frames
+    robot_base_frame: "geometric_unicycle"
+    map_frame: "map"
+
+    # Side length (meters) of the square centered on the robot.
+    # The node looks toward the first path point that exits this square.
+    lookahead_size: 2.0
+
+    # Timer rate for sending head commands
+    update_rate_hz: 10.0
+
+    # Fixed downward pitch applied to all gaze directions (degrees).
+    # Positive = looking downward (toward the floor for obstacle detection).
+    pitch_angle_deg: 15.0
+
+    # Hard limits for neck motion (degrees)
+    max_yaw_deg: 60.0     # max left/right rotation from forward
+    max_pitch_deg: 30.0   # max downward pitch
+    min_pitch_deg: -10.0  # max upward pitch (negative = up)
+
+    # Safety fallback: seconds without a new /plan before returning home.
+    # The primary trigger is the navigate_to_pose action status (immediate).
+    # This only fires if Nav2 crashes without updating the action status.
+    plan_timeout_sec: 5.0
+
+    # YARP RPC ports
+    head_rpc_server: "/mc-ergocub-head-controller/rpc:i"
+    head_rpc_client: "/head_orientation_controller/rpc:o"

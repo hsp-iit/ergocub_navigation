@@ -7,6 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(action_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
@@ -149,7 +150,22 @@ ament_target_dependencies(walking_phase_detector
   "tf2_geometry_msgs"
 )
 
-add_executable(human_pose_goal_generator src/navigation/human_pose_goal_generator/main.cpp 
+add_executable(head_orientation_controller
+    src/navigation/head_orientation_controller/head_orientation_controller.cpp)
+ament_target_dependencies(head_orientation_controller
+  "YARP"
+  "rclcpp"
+  "rclcpp_lifecycle"
+  "action_msgs"
+  "nav_msgs"
+  "tf2_ros"
+  "tf2_msgs"
+  "tf2"
+  "tf2_geometry_msgs"
+  "geometry_msgs"
+)
+
+add_executable(human_pose_goal_generator src/navigation/human_pose_goal_generator/main.cpp
                                         src/navigation/human_pose_goal_generator/goal_generator.cpp
                                         src/navigation/human_pose_goal_generator/yarp_communication_wrapper.cpp)
 ament_target_dependencies(human_pose_goal_generator
@@ -223,6 +239,7 @@ install(TARGETS
   path_converter
   human_pose_goal_generator
   plane_detector
+  head_orientation_controller
   DESTINATION lib/${PROJECT_NAME})
 
 # install the launch directory
