@@ -31,9 +31,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os
-
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 
 import launch_ros.actions
@@ -41,13 +38,13 @@ import launch_ros.descriptions
 
 
 def generate_launch_description():
-    #default_rviz = os.path.join(get_package_share_directory('depth_image_proc'),
-    #                            'launch', 'rviz/point_cloud_xyzrgb.rviz')
+    # default_rviz = os.path.join(get_package_share_directory('depth_image_proc'),
+    #                             'launch', 'rviz/point_cloud_xyzrgb.rviz')
     return LaunchDescription([
         # install realsense from https://github.com/intel/ros2_intel_realsense
-        #launch_ros.actions.Node(
-        #    package='realsense_ros2_camera', node_executable='realsense_ros2_camera',
-        #    output='screen'),
+        # launch_ros.actions.Node(
+        #     package='realsense_ros2_camera', node_executable='realsense_ros2_camera',
+        #     output='screen'),
 
         # launch plugin through rclcpp_components container
         launch_ros.actions.ComposableNodeContainer(
@@ -63,7 +60,7 @@ def generate_launch_description():
                     name='point_cloud_xyz_node',
                     remappings=[('camera_info', '/camera_rgbd/depth/camera_info'),
                                 ('image_rect', '/camera_rgbd/depth/image_rect'),
-                                #('image', '/camera_rgbd/depth/image_rect'),
+                                # ('image', '/camera_rgbd/depth/image_rect'),
                                 ('points', '/camera_rgbd/depth/points')
                                 ]
                 ),

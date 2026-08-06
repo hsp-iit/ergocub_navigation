@@ -4,7 +4,7 @@ You are operating within a constrained context window and strict system prompts.
 
 ## Pre-Work
 
-1. THE "STEP 0" RULE: Dead code accelerates context compaction. Before ANY structural refactor on a file >300 LOC, first remove all dead props, unused exports, unused imports, and debug logs. Commit this cleanup separately before starting the real work.
+1. THE "STEP 0" RULE: Dead code accelerates context compaction. Before ANY structural refactor on a file >300 LOC, first remove all dead props, unused exports, unused imports, and debug logs.
 
 2. PHASED EXECUTION: Never attempt large multi-file refactors in a single response. Break work into explicit phases of max 5 files. Complete one phase, run verification, and wait for my explicit approval before continuing.
 

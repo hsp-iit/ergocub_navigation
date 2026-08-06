@@ -1,0 +1,13 @@
+# Referenced by launch/plane_detector.launch.py, which is reached from the full
+# robot bringup. The file was missing, so the node silently ran on the defaults
+# compiled into src/perception/plane_detector/plane_detector.cpp; those defaults
+# are reproduced here so the values are visible and tunable without a rebuild.
+plane_detector:
+  ros__parameters:
+    use_sim_time: false
+    head_frame: "realsense"
+    contact_frame: "r_sole"
+    pointcloud_topic: "/camera/depth/color/points"
+    pub_topic: "/adjusted_depth_pc"
+    filter_z_low: -2.0
+    filter_z_high: -0.7

@@ -1,113 +1,120 @@
-from launch import LaunchDescription
-from launch.actions import ExecuteProcess, RegisterEventHandler, TimerAction, SetEnvironmentVariable
-from launch_ros.actions import Node
-from launch.event_handlers import OnProcessExit
+"""
+Bring up gz-sim with ergoCub spawned and its YARP sensor modules running.
 
-def generate_launch_description():
-    set_yarp_clock = SetEnvironmentVariable(
-        name="YARP_CLOCK",
-        value="/clock"
-    )
+Paths are resolved from the package share directory and the robotology-superbuild
+environment variables; they used to be absolute /home/ecub_docker/... literals.
+"""
+
+import os
+
+from ergocub_navigation.launch_utils import pkg_share
+from launch import LaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    OpaqueFunction,
+    RegisterEventHandler,
+    SetEnvironmentVariable,
+    TimerAction,
+)
+from launch.event_handlers import OnProcessExit
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
+# yarprobotinterface device configs started once the robot is in the world, in
+# order, one second apart. The original file staggered them 1.5s..5.5s.
+YARP_MODULES = ('head_imu_ros2.xml',
+                'depth_compressed_ros2.xml',
+                'lidar_compressed_ros2.xml')
+
+
+def _robot_urdf(context):
+    model = LaunchConfiguration('model').perform(context)
+    superbuild = LaunchConfiguration('superbuild_src').perform(context)
+    return os.path.join(superbuild, 'src', 'ergocub-software', 'urdf', 'ergoCub',
+                        'robots', model, 'model.urdf')
+
+
+def _simulation(context, *args, **kwargs):
+    superbuild = LaunchConfiguration('superbuild_src').perform(context)
+    robot_urdf = _robot_urdf(context)
+    world = LaunchConfiguration('world_sdf').perform(context)
+
+    for path in (robot_urdf, world):
+        if not os.path.isfile(path):
+            raise RuntimeError(f'File not found: {path}')
 
     gazebo = ExecuteProcess(
-        cmd=[
-            "gz", "sim",
-            "/home/ecub_docker/ros2_workspace/src/ergocub_navigation/sim/ionic.sdf",
-            "--verbose",
-            "-r"
-        ],
-        output="screen",
+        cmd=['gz', 'sim', world, '--verbose', '-r'],
+        output='screen',
     )
 
     clock_bridge = Node(
-        package="ros_gz_bridge",
-        executable="parameter_bridge",
-        name="clock_bridge",
-        arguments=[
-            "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
-        ],
-        output="screen",
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='clock_bridge',
+        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+        output='screen',
     )
 
     spawn_robot_after_clock = ExecuteProcess(
-        cmd=[
-            "bash", "-lc",
-            """
+        cmd=['bash', '-lc', f"""
             until timeout 2 ros2 topic echo /clock --once > /dev/null 2>&1; do
                 echo "Waiting for /clock before spawning ergoCub..."
                 sleep 0.5
             done
 
             ros2 run ros_gz_sim create \
-              -file /home/ecub_docker/robotology-superbuild/src/ergocub-software/urdf/ergoCub/robots/ergoCubGazeboSN001_minContacts/model.urdf \
+              -file {robot_urdf} \
               -name ergocub \
-              -z 0.8
-            """
-        ],
-        output="screen",
+              -z {LaunchConfiguration('spawn_height').perform(context)}
+            """],
+        output='screen',
     )
 
     wholebodydynamics = ExecuteProcess(
-        cmd=[
-            "yarprobotinterface",
-            "--config",
-            "/home/ecub_docker/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/launch_wholebodydynamics_ecub.xml"
-        ],
-        output="screen",
+        cmd=['yarprobotinterface', '--config',
+             os.path.join(superbuild, 'src', 'ergocub-software', 'urdf', 'ergoCub',
+                          'conf', 'launch_wholebodydynamics_ecub.xml')],
+        output='screen',
     )
 
-    head_imu = ExecuteProcess(
-        cmd=[
-            "yarprobotinterface",
-            "--config",
-            "/home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/yarp/simulation/head_imu_ros2.xml"
-        ],
-        output="screen",
-    )
+    staged = [TimerAction(period=1.5, actions=[wholebodydynamics])]
+    for i, module in enumerate(YARP_MODULES):
+        staged.append(TimerAction(period=2.5 + i, actions=[ExecuteProcess(
+            cmd=['yarprobotinterface', '--config',
+                 pkg_share('yarp', 'simulation', module)],
+            output='screen')]))
+    staged.append(TimerAction(period=2.5 + len(YARP_MODULES), actions=[ExecuteProcess(
+        cmd=['python3', pkg_share('sim', 'joint_states_republisher.py')],
+        output='screen')]))
 
-    depth_compressed_ros2 = ExecuteProcess(
-        cmd=[
-            "yarprobotinterface",
-            "--config",
-            "/home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/yarp/simulation/depth_compressed_ros2.xml"
-        ],
-        output="screen",
-    )
-
-    lidar_compressed_ros2 = ExecuteProcess(
-        cmd=[
-            "yarprobotinterface",
-            "--config",
-            "/home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/yarp/simulation/lidar_compressed_ros2.xml"
-        ],
-        output="screen",
-    )
-
-    joint_states_republisher = ExecuteProcess(
-        cmd=[
-            "python3",
-            "/home/ecub_docker/ros2_workspace/src/ergocub_navigation/sim/joint_states_republisher.py",
-        ],
-        output="screen",
-    )
-
-    start_modules_after_spawn = RegisterEventHandler(
-        OnProcessExit(
-            target_action=spawn_robot_after_clock,
-            on_exit=[
-                TimerAction(period=1.5, actions=[wholebodydynamics]),
-                TimerAction(period=2.5, actions=[head_imu]),
-                TimerAction(period=3.5, actions=[depth_compressed_ros2]),
-                TimerAction(period=4.5, actions=[lidar_compressed_ros2]),
-                TimerAction(period=5.5, actions=[joint_states_republisher]),
-            ],
-        )
-    )
-
-    return LaunchDescription([
-        set_yarp_clock,
+    return [
         gazebo,
         clock_bridge,
         spawn_robot_after_clock,
-        start_modules_after_spawn
+        RegisterEventHandler(OnProcessExit(
+            target_action=spawn_robot_after_clock,
+            on_exit=staged,
+        )),
+    ]
+
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            'model', default_value=os.environ.get('YARP_ROBOT_NAME', ''),
+            description='Robot model directory under ergocub-software/urdf/ergoCub/robots'),
+        DeclareLaunchArgument(
+            'superbuild_src',
+            default_value=os.environ.get('ROBOTOLOGY_SUPERBUILD_SOURCE_DIR', ''),
+            description='Path to the robotology-superbuild source directory'),
+        DeclareLaunchArgument(
+            'world_sdf', default_value=pkg_share('sim', 'ionic.sdf'),
+            description='Gazebo world SDF to load'),
+        DeclareLaunchArgument(
+            'spawn_height', default_value='0.8',
+            description='Z offset the robot is spawned at'),
+        SetEnvironmentVariable(name='YARP_CLOCK', value='/clock'),
+        OpaqueFunction(function=_simulation),
     ])
