@@ -1,35 +1,22 @@
-import os
+"""
+Robot, AMCL localization.
 
-from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node
+setup_robot + setup_localization (map + amcl) + nav2 with the keepout filters +
+plane_detector + pointcloud_filter + planner_trigger_server + RViz, matching the
+pre-refactor launch_all.launch.py.
+
+This is bringup.launch.py's default profile, so the wrapper passes nothing; see
+that file for the full argument list.
+"""
+
+from ergocub_navigation.launch_utils import include
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+
 
 def generate_launch_description():
-    setup = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/setup_robot.launch.py'])
-        )
-    navigation = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/nav2_stack.launch.py'])
-        )
-    plane_detector = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/plane_detector.launch.py'])
-        )
-
     return LaunchDescription([
-        plane_detector,
-        Node(
-            package='ergocub_navigation',
-            executable='planner_trigger_server',
-            output='screen'
-            ),
-        setup,
-        navigation
+        include('bringup.launch.py', {
+            'world': 'robot',
+            'localization': 'amcl',
+        }),
     ])

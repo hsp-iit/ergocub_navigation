@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-from ament_index_python.packages import get_package_share_directory
-
+from ergocub_navigation.launch_utils import bool_param, pkg_share
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction, SetEnvironmentVariable
 from launch.conditions import IfCondition
@@ -27,16 +24,18 @@ from nav2_common.launch import RewrittenYaml
 
 
 def generate_launch_description():
-    # Get the launch directory
-    #bringup_dir = get_package_share_directory('nav2_bringup')
-
     namespace = LaunchConfiguration('namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
     autostart = LaunchConfiguration('autostart')
     params_file = LaunchConfiguration('params_file')
+    bt_xml = LaunchConfiguration('bt_xml')
     use_composition = LaunchConfiguration('use_composition')
     container_name = LaunchConfiguration('container_name')
     use_respawn = LaunchConfiguration('use_respawn')
+    use_keepout = LaunchConfiguration('use_keepout')
+    keepout_mask = LaunchConfiguration('keepout_mask')
+    keepout_topic = LaunchConfiguration('keepout_topic')
+    global_frame = LaunchConfiguration('global_frame')
 
     lifecycle_nodes = ['controller_server',
                        'smoother_server',
@@ -54,10 +53,17 @@ def generate_launch_description():
     remappings = [('/tf', 'tf'),
                   ('/tf_static', 'tf_static')]
 
-    # Create our own temporary YAML files that include substitutions
+    # Create our own temporary YAML files that include substitutions.
+    #
+    # default_nav_to_pose_bt_xml is injected here rather than stored in the params
+    # YAML, which is what used to force an absolute source-tree path. It is given
+    # as a full dotted path on purpose: RewrittenYaml only *inserts* a missing key
+    # when the rewrite path contains 'ros__parameters' (see add_params), whereas a
+    # bare leaf name can only replace a key that already exists.
     param_substitutions = {
         'use_sim_time': use_sim_time,
-        'autostart': autostart}
+        'autostart': autostart,
+        'bt_navigator.ros__parameters.default_nav_to_pose_bt_xml': bt_xml}
 
     configured_params = RewrittenYaml(
         source_file=params_file,
@@ -68,41 +74,49 @@ def generate_launch_description():
     stdout_linebuf_envvar = SetEnvironmentVariable(
         'RCUTILS_LOGGING_BUFFERED_STREAM', '1')
 
-    declare_namespace_cmd = DeclareLaunchArgument(
-        'namespace',
-        default_value='',
-        description='Top-level namespace')
-
-    declare_use_sim_time_cmd = DeclareLaunchArgument(
-        'use_sim_time',
-        default_value='False',
-        description='Use simulation (Gazebo) clock if true')
-
-    param_dir=os.path.join(
-            get_package_share_directory('ergocub_navigation'),
-            'param',
-            'ergoCub_nav2.yaml')
-            
-    declare_params_file_cmd = DeclareLaunchArgument(
-        'params_file',
-        default_value=param_dir,
-        description='Full path to the ROS2 parameters file to use for all launched nodes')
-
-    declare_autostart_cmd = DeclareLaunchArgument(
-        'autostart', default_value='true',
-        description='Automatically startup the nav2 stack')
-
-    declare_use_composition_cmd = DeclareLaunchArgument(
-        'use_composition', default_value='False',
-        description='Use composed bringup if True')
-
-    declare_container_name_cmd = DeclareLaunchArgument(
-        'container_name', default_value='nav2_container',
-        description='the name of conatiner that nodes will load in if use composition')
-
-    declare_use_respawn_cmd = DeclareLaunchArgument(
-        'use_respawn', default_value='False',
-        description='Whether to respawn if a node crashes. Applied when composition is disabled.')
+    declare_cmds = [
+        DeclareLaunchArgument(
+            'namespace', default_value='',
+            description='Top-level namespace'),
+        DeclareLaunchArgument(
+            'use_sim_time', default_value='False',
+            description='Use simulation (Gazebo) clock if true'),
+        DeclareLaunchArgument(
+            'params_file', default_value=pkg_share('param', 'ergoCub_nav2.yaml'),
+            description='Full path to the ROS2 parameters file to use for all launched nodes'),
+        DeclareLaunchArgument(
+            'bt_xml',
+            default_value=pkg_share(
+                'behavior_trees',
+                'navigate_to_pose_w_replanning_and_recovery_decorator.xml'),
+            description='Behavior tree XML used by bt_navigator'),
+        DeclareLaunchArgument(
+            'autostart', default_value='true',
+            description='Automatically startup the nav2 stack'),
+        DeclareLaunchArgument(
+            'use_composition', default_value='False',
+            description='Use composed bringup if True'),
+        DeclareLaunchArgument(
+            'container_name', default_value='nav2_container',
+            description='Name of the container that nodes will load in if use_composition'),
+        DeclareLaunchArgument(
+            'use_respawn', default_value='False',
+            description='Whether to respawn if a node crashes. '
+                        'Applied when composition is disabled.'),
+        DeclareLaunchArgument(
+            'use_keepout', default_value='False',
+            description='Start the costmap filter servers that serve the keepout mask'),
+        DeclareLaunchArgument(
+            'keepout_mask',
+            default_value=pkg_share('maps', 'floor0_ergoCub_modded_keepout_full.yaml'),
+            description='Map YAML served as the keepout filter mask'),
+        DeclareLaunchArgument(
+            'keepout_topic', default_value='/keepout_filter_mask',
+            description='Topic the keepout filter mask is published on'),
+        DeclareLaunchArgument(
+            'global_frame', default_value='map',
+            description='Frame the keepout filter mask is published in'),
+    ]
 
     load_nodes = GroupAction(
         condition=IfCondition(PythonExpression(['not ', use_composition])),
@@ -165,8 +179,8 @@ def generate_launch_description():
                 executable='lifecycle_manager',
                 name='lifecycle_manager_navigation',
                 output='screen',
-                parameters=[{'use_sim_time': use_sim_time},
-                            {'autostart': autostart},
+                parameters=[{'use_sim_time': bool_param(use_sim_time)},
+                            {'autostart': bool_param(autostart)},
                             {'node_names': lifecycle_nodes}])
         ]
     )
@@ -215,61 +229,53 @@ def generate_launch_description():
                 package='nav2_lifecycle_manager',
                 plugin='nav2_lifecycle_manager::LifecycleManager',
                 name='lifecycle_manager_navigation',
-                parameters=[{'use_sim_time': use_sim_time,
-                             'autostart': autostart,
+                parameters=[{'use_sim_time': bool_param(use_sim_time),
+                             'autostart': bool_param(autostart),
                              'node_names': lifecycle_nodes}]),
         ],
     )
-    
-    start_lifecycle_manager_cmd = Node(
-             package='nav2_lifecycle_manager',
-             executable='lifecycle_manager',
-             name='lifecycle_manager_costmap_filters',
-             output='screen',
-             emulate_tty=True,
-             parameters=[{'use_sim_time': use_sim_time},
-                         {'autostart': True},
-                         {'node_names': ['filter_mask_server', 'costmap_filter_info_server']}])
 
-    start_map_server_cmd = Node(
-             package='nav2_map_server',
-             executable='map_server',
-             name='filter_mask_server',
-             output='screen',
-             emulate_tty=True,
-             parameters=[{'use_sim_time': use_sim_time},
-                        {'frame_id': "map"},
-                        {'topic_name': "/keepout_filter_mask"},
-                        {'yaml_filename': os.path.join(get_package_share_directory('ergocub_navigation') + "/maps/floor0_ergoCub_modded_keepout_full.yaml")}])
+    # Costmap filters serving the keepout mask. Previously this block was live in
+    # nav2_stack.launch.py, commented out in three of its copies and deleted from a
+    # fourth; it is now a single conditional group.
+    load_keepout_filters = GroupAction(
+        condition=IfCondition(use_keepout),
+        actions=[
+            Node(
+                package='nav2_map_server',
+                executable='map_server',
+                name='filter_mask_server',
+                output='screen',
+                emulate_tty=True,
+                parameters=[{'use_sim_time': bool_param(use_sim_time)},
+                            {'frame_id': global_frame},
+                            {'topic_name': keepout_topic},
+                            {'yaml_filename': keepout_mask}]),
+            Node(
+                package='nav2_map_server',
+                executable='costmap_filter_info_server',
+                name='costmap_filter_info_server',
+                output='screen',
+                emulate_tty=True,
+                parameters=[configured_params]),
+            Node(
+                package='nav2_lifecycle_manager',
+                executable='lifecycle_manager',
+                name='lifecycle_manager_costmap_filters',
+                output='screen',
+                emulate_tty=True,
+                parameters=[{'use_sim_time': bool_param(use_sim_time)},
+                            {'autostart': True},
+                            {'node_names': ['filter_mask_server',
+                                            'costmap_filter_info_server']}]),
+        ]
+    )
 
-    start_costmap_filter_info_server_cmd = Node(
-             package='nav2_map_server',
-             executable='costmap_filter_info_server',
-             name='costmap_filter_info_server',
-             output='screen',
-             emulate_tty=True,
-             parameters=[params_file])
-    
-    # Create the launch description and populate
     ld = LaunchDescription()
-
-    # Set environment variables
     ld.add_action(stdout_linebuf_envvar)
-
-    # Declare the launch options
-    ld.add_action(declare_namespace_cmd)
-    ld.add_action(declare_use_sim_time_cmd)
-    ld.add_action(declare_params_file_cmd)
-    ld.add_action(declare_autostart_cmd)
-    ld.add_action(declare_use_composition_cmd)
-    ld.add_action(declare_container_name_cmd)
-    ld.add_action(declare_use_respawn_cmd)
-    
-    ld.add_action(start_lifecycle_manager_cmd)
-    ld.add_action(start_map_server_cmd)
-    ld.add_action(start_costmap_filter_info_server_cmd)
-
-    # Add the actions to launch all of the navigation nodes
+    for cmd in declare_cmds:
+        ld.add_action(cmd)
+    ld.add_action(load_keepout_filters)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
 

@@ -3,40 +3,66 @@
 <package format="3">
   <name>ergocub_navigation</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="simone_micheletti@outlook.it">user1</maintainer>
+  <description>
+    ROS 2 navigation stack for the ergoCub humanoid, bridging Nav2 to the
+    YARP-based walking controllers. Provides odometry from the unicycle
+    publisher, IMU-compensated laser scan and depth filtering, a Nav2 plan to
+    walking-coordinator path converter, and bringup for the real robot and for
+    gz-sim.
+  </description>
+  <maintainer email="simone_micheletti@outlook.it">Simone Micheletti</maintainer>
   <license>BSD 3-Clause License</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <build_depend>action_msgs</build_depend>
-  <build_depend>rclcpp</build_depend>
-  <build_depend>lifecycle_msgs</build_depend>
-  <build_depend>rclcpp_lifecycle</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>tf2_ros</build_depend>
-  <build_depend>tf2_msgs</build_depend>
-  <build_depend>nav_msgs</build_depend>
-  <build_depend>laser_geometry</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <buildtool_depend>rosidl_default_generators</buildtool_depend>
-  
+  <depend>action_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>laser_geometry</depend>
+  <depend>lifecycle_msgs</depend>
+  <depend>nav_2d_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>nav2_common</depend>
+  <depend>nav2_core</depend>
+  <depend>nav2_costmap_2d</depend>
+  <depend>nav2_msgs</depend>
+  <depend>nav2_util</depend>
+  <depend>pcl_conversions</depend>
+  <depend>pcl_ros</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_eigen</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>tf2_kdl</depend>
+  <depend>tf2_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_sensor_msgs</depend>
+  <depend>visualization_msgs</depend>
 
-  <exec_depend>action_msgs</exec_depend>
-  <exec_depend>rclcpp</exec_depend>
-  <exec_depend>rclcpp_lifecycle</exec_depend>
-  <exec_depend>lifecycle_msgs</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
-  <exec_depend>tf2_msgs</exec_depend>
-  <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>laser_geometry</exec_depend>
-  <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>rosidl_default_runtime</exec_depend>
+  <!-- Started by the launch files rather than linked against. -->
+  <exec_depend>nav2_amcl</exec_depend>
+  <exec_depend>nav2_behaviors</exec_depend>
+  <exec_depend>nav2_bt_navigator</exec_depend>
+  <exec_depend>nav2_controller</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
+  <exec_depend>nav2_map_server</exec_depend>
+  <exec_depend>nav2_planner</exec_depend>
+  <exec_depend>nav2_smoother</exec_depend>
+  <exec_depend>nav2_waypoint_follower</exec_depend>
+  <exec_depend>pointcloud_to_laserscan</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
 
+  <test_depend>ament_cmake_pytest</test_depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
-  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <export>
     <build_type>ament_cmake</build_type>
