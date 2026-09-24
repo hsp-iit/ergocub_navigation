@@ -277,7 +277,7 @@ void HeadOrientationController::timerCallback()
     const double min_pitch_rad = m_min_pitch_deg * M_PI / 180.0;
     pitch_rad = std::clamp(pitch_rad, min_pitch_rad, max_pitch_rad);
 
-    // 6. Build R = Rz(yaw) × Ry(−pitch)
+    // 6. Build R = Rz(yaw) × Ry(pitch)  (positive pitch tilts head_x downward)
     //    Columns are head_x, head_y, head_z expressed in robot root frame.
     //    Identity = head looking forward (+x), identity = home position.
     //

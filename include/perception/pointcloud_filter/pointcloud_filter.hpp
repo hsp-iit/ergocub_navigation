@@ -33,7 +33,10 @@ private:
     std::chrono::system_clock::time_point m_last_vibration_detection;
     bool m_extract_removed_indices;
     bool m_set_negative;
+    double m_voxel_leaf_size = 0.0;     //voxel grid downsampling, disabled if <= 0
+    int m_voxel_min_points_per_voxel = 1;
 
+    const rclcpp::Duration m_tf_timeout = rclcpp::Duration::from_seconds(0.1);
     std::shared_ptr<tf2_ros::TransformListener> m_tf_listener{nullptr};
     std::unique_ptr<tf2_ros::Buffer> m_tf_buffer;
 

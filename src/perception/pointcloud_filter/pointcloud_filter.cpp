@@ -8,6 +8,8 @@
 #include "pcl_conversions/pcl_conversions.h"
 #include "pcl/point_types.h"
 #include "pcl/filters/crop_box.h"
+#include "pcl/filters/voxel_grid.h"
+#include "pcl/filters/filter.h"
 #include "pcl/ModelCoefficients.h"
 #include <pcl/filters/extract_indices.h>
 #include "pcl_ros/transforms.hpp"
@@ -43,21 +45,36 @@ void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::Const
             }
             //TOO SLOW
             pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
             pcl::fromROSMsg(*pc_in, *in_cloud);
-            //Transform cloud into filter's reference frame
+            //The simulated camera flags its clouds as dense while they contain NaNs,
+            //which makes the PCL filters skip their NaN checks and return garbage.
+            //removeNaNFromPointCloud is a no-op on dense clouds, so clear the flag first.
+            in_cloud->is_dense = false;
+            std::vector<int> finite_indices;
+            pcl::removeNaNFromPointCloud(*in_cloud, *in_cloud, finite_indices);
+            //Downsample first, so the transform and crop run on the reduced cloud
+            if (m_voxel_leaf_size > 0.0)
+            {
+                pcl::PointCloud<pcl::PointXYZ>::Ptr downsampled (new pcl::PointCloud<pcl::PointXYZ>);
+                pcl::VoxelGrid<pcl::PointXYZ> voxelFilter;
+                voxelFilter.setInputCloud(in_cloud);
+                voxelFilter.setLeafSize(m_voxel_leaf_size, m_voxel_leaf_size, m_voxel_leaf_size);
+                voxelFilter.setMinimumPointsNumberPerVoxel(m_voxel_min_points_per_voxel);
+                voxelFilter.filter(*downsampled);
+                in_cloud = downsampled;
+            }
+            //Transform cloud into filter's reference frame, at the cloud's own stamp.
+            //The cloud is usually a few ms newer than the latest TF, so wait for it.
             try
             {
-                auto tf=m_tf_buffer->lookupTransform(in_cloud->header.frame_id, m_filter_reference_frame, now());
-                if(! pcl_ros::transformPointCloud(m_filter_reference_frame, *in_cloud, *in_cloud, *m_tf_buffer))
-                {
-                    std::cout << "Unable to transform pcl_ros" << std::endl;
-                    return;
-                }
+                auto tf = m_tf_buffer->lookupTransform(m_filter_reference_frame, pc_in->header.frame_id,
+                                                       pc_in->header.stamp, m_tf_timeout);
+                pcl_ros::transformPointCloud(*in_cloud, *in_cloud, tf);
+                in_cloud->header.frame_id = m_filter_reference_frame;
             }
-            catch(const std::exception& e)
+            catch(const tf2::TransformException& e)
             {
-                std::cerr << e.what() << '\n';
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "%s", e.what());
                 return;
             }
             // Create the filtering object
@@ -80,7 +97,11 @@ void PointcloudFilter::depth_callback(const sensor_msgs::msg::PointCloud2::Const
             m_filtered_pointcloud_pub->publish(pc_out);
             
  
-            //Echo the message
+            //Echo the message, unless nobody listens: it is the full-resolution cloud
+            if (m_unfiltered_pub->get_subscription_count() == 0)
+            {
+                return;
+            }
             sensor_msgs::msg::PointCloud2 pc_out_unfiltered;
             pc_out_unfiltered.header = pc_in->header;
             pc_out_unfiltered.data = pc_in->data;
@@ -129,6 +150,8 @@ PointcloudFilter::PointcloudFilter(const rclcpp::NodeOptions & options) : rclcpp
     declare_parameter("ms_wait", 500.0);
     declare_parameter("extract_removed_indices", true);
     declare_parameter("set_negative", true);
+    declare_parameter("voxel_leaf_size", 0.0);
+    declare_parameter("voxel_min_points_per_voxel", 1);
 
     m_last_vibration_detection = std::chrono::system_clock::now();
     m_tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -152,11 +175,15 @@ CallbackReturn PointcloudFilter::on_configure(const rclcpp_lifecycle::State &)
     m_ms_wait = this->get_parameter("ms_wait").as_double();
     m_extract_removed_indices = this->get_parameter("extract_removed_indices").as_bool();
     m_set_negative = this->get_parameter("set_negative").as_bool();
+    m_voxel_leaf_size = this->get_parameter("voxel_leaf_size").as_double();
+    m_voxel_min_points_per_voxel = this->get_parameter("voxel_min_points_per_voxel").as_int();
 
     RCLCPP_INFO(get_logger(), "Configuring with: depth_topic: %s pub_topic: %s pub_unfiltered_topic: %s imu_topic: %s filter_reference_frame: %s",
                     m_depth_topic.c_str(), m_pub_topic.c_str(), m_pub_unfiltered_topic.c_str(), m_imu_topic.c_str(), m_filter_reference_frame.c_str());
     RCLCPP_INFO(get_logger(), "box_x: %f box_y: %f box_z: %f box_w: %f imuVel_x_threshold: %f imuVel_y_threshold: %f ms_wait: %f extract_removed_indices: %i set_negative: %i",
                     m_box_x, m_box_y, m_box_z, m_box_w, m_imuVel_x_threshold, m_imuVel_y_threshold, m_ms_wait, (int)m_extract_removed_indices, (int)m_set_negative);
+    RCLCPP_INFO(get_logger(), "voxel_leaf_size: %f voxel_min_points_per_voxel: %i",
+                    m_voxel_leaf_size, m_voxel_min_points_per_voxel);
 
     //Subscribers
     m_raw_depth_sub = this->create_subscription<sensor_msgs::msg::PointCloud2> (
