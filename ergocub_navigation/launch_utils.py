@@ -17,7 +17,7 @@ from launch.actions import (
 )
 from launch.events import matches_action
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import LifecycleNode
+from launch_ros.actions import LifecycleNode, Node
 from launch_ros.event_handlers import OnStateTransition
 from launch_ros.events.lifecycle import ChangeState
 from launch_ros.parameter_descriptions import ParameterValue
@@ -111,6 +111,22 @@ def lifecycle_bringup(name, executable, param_file, extra_parameters=None,
     return [on_unconfigured, on_inactive, node, configure]
 
 
+def sim_pointcloud_filter():
+    """
+    IMU-gated, voxel-downsampled depth pointcloud for the costmaps in simulation.
+
+    The simulated camera publishes ~9.8 MB clouds that the costmaps' best-effort
+    subscriptions lose; pointcloud_filter reads them reliably and publishes a
+    small cloud on /imu_filtered_depth. See param/simulation/depth_filter.yaml.
+    """
+    return lifecycle_bringup(
+        name='pointcloud_filter_node',
+        executable='pointcloud_filter',
+        param_file=pkg_share('param', 'simulation', 'depth_filter.yaml'),
+        extra_parameters={'use_sim_time': True},
+    )
+
+
 # --- pointcloud_to_laserscan projectors -------------------------------------
 #
 # Values transcribed verbatim from the four inline dicts that used to live in
@@ -185,8 +201,6 @@ SCAN_PROJECTORS = {
 
 def scan_projector_nodes(profile, use_sim_time):
     """Node actions for every pointcloud_to_laserscan projector in a profile."""
-    from launch_ros.actions import Node
-
     nodes = []
     for spec in SCAN_PROJECTORS[profile]:
         params = dict(SCAN_PROJECTOR_COMMON)

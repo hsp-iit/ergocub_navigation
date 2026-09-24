@@ -1,0 +1,27 @@
+# Simulation copy of param/depth_filter.yaml, with voxel downsampling enabled.
+#
+# The simulated depth camera publishes ~9.8 MB clouds (307200 points). The nav2
+# costmap layers subscribe best-effort, so a single lost UDP fragment drops a
+# whole cloud; after a lifecycle reset the global costmap stopped receiving any.
+# This node subscribes reliably and publishes a downsampled cloud the costmaps
+# can take best-effort without losses.
+pointcloud_filter_node:
+  ros__parameters:
+    use_sim_time: true
+    depth_topic: "/camera/depth/color/points"
+    pub_topic: "/imu_filtered_depth"
+    pub_unfiltered_topic: "/imu_unfiltered_depth"
+    imu_topic: "/head_imu"
+    filter_reference_frame: "chest"
+    box_x: 0.5
+    box_y: 0.4
+    box_z: 0.5
+    box_w: 1.0
+    imuVel_x_threshold: 0.3
+    imuVel_y_threshold: 0.3
+    ms_wait: 500.0
+    extract_removed_indices: true
+    set_negative: true
+    # Matches the costmap resolution (~20k points instead of 307k).
+    voxel_leaf_size: 0.05
+    voxel_min_points_per_voxel: 1
