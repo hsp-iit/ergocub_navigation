@@ -46,10 +46,12 @@ private:
     std::string m_map_frame;
     double m_lookahead_size{2.0};
     double m_update_rate_hz{10.0};
-    double m_pitch_angle_deg{15.0};
+    double m_pitch_angle_deg{30.0};
     double m_max_yaw_deg{60.0};
     double m_max_pitch_deg{30.0};
     double m_min_pitch_deg{-10.0};
+    double m_min_lookahead_dist{0.5};
+    double m_max_yaw_rate_deg_s{90.0};
     std::string m_head_rpc_server;
     std::string m_head_rpc_client;
 
@@ -72,6 +74,7 @@ private:
     rclcpp::Time m_last_plan_time{0, 0, RCL_ROS_TIME};
     double m_plan_timeout_sec{5.0};       // safety fallback
     std::atomic<bool> m_navigation_active{false};  // primary: set by action status
+    double m_last_yaw_rad{0.0};           // last commanded yaw, reset when homing
 
     // Callbacks
     void planCallback(const nav_msgs::msg::Path::SharedPtr msg);

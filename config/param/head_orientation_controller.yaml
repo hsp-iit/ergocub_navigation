@@ -11,12 +11,19 @@ head_orientation_controller_node:
     # The node looks toward the first path point that exits this square.
     lookahead_size: 2.0
 
+    # Below this distance (meters) the lookahead point is too close to compute a stable
+    # direction: the head looks along the goal heading (or holds its last yaw) instead.
+    min_lookahead_dist: 0.5
+
+    # Maximum yaw rate of the commanded gaze (deg/s), filters the sway of the base frame.
+    max_yaw_rate_deg_s: 90.0
+
     # Timer rate for sending head commands
     update_rate_hz: 10.0
 
     # Fixed downward pitch applied to all gaze directions (degrees).
     # Positive = looking downward (toward the floor for obstacle detection).
-    pitch_angle_deg: 15.0
+    pitch_angle_deg: 30.0
 
     # Hard limits for neck motion (degrees)
     max_yaw_deg: 60.0     # max left/right rotation from forward

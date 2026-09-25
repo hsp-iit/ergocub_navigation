@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "tf2/utils.hpp"
+
 using std::placeholders::_1;
 
 HeadOrientationController::HeadOrientationController(const rclcpp::NodeOptions & options)
@@ -18,13 +20,15 @@ HeadOrientationController::HeadOrientationController(const rclcpp::NodeOptions &
     declare_parameter("map_frame",         "map");
     declare_parameter("lookahead_size",    2.0);
     declare_parameter("update_rate_hz",    10.0);
-    declare_parameter("pitch_angle_deg",   15.0);
-    declare_parameter("max_yaw_deg",       45.0);
-    declare_parameter("max_pitch_deg",     10.0);
-    declare_parameter("min_pitch_deg",     -30.0);
+    declare_parameter("pitch_angle_deg",   30.0);
+    declare_parameter("max_yaw_deg",       60.0);
+    declare_parameter("max_pitch_deg",     30.0);
+    declare_parameter("min_pitch_deg",     -10.0);
     declare_parameter("head_rpc_server",   "/mc-ergocub-head-controller/rpc:i");
     declare_parameter("head_rpc_client",   "/head_orientation_controller/rpc:o");
     declare_parameter("plan_timeout_sec",  5.0);
+    declare_parameter("min_lookahead_dist", 0.5);
+    declare_parameter("max_yaw_rate_deg_s", 90.0);
 
     m_tf_buffer   = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     m_tf_listener = std::make_shared<tf2_ros::TransformListener>(*m_tf_buffer);
@@ -50,6 +54,8 @@ HeadOrientationController::on_configure(const rclcpp_lifecycle::State &)
     m_head_rpc_server   = get_parameter("head_rpc_server").as_string();
     m_head_rpc_client   = get_parameter("head_rpc_client").as_string();
     m_plan_timeout_sec  = get_parameter("plan_timeout_sec").as_double();
+    m_min_lookahead_dist = get_parameter("min_lookahead_dist").as_double();
+    m_max_yaw_rate_deg_s = get_parameter("max_yaw_rate_deg_s").as_double();
 
     RCLCPP_INFO(get_logger(),
         "Configuring — plan: %s | base: %s | map: %s | lookahead: %.2f m | "
@@ -240,6 +246,7 @@ void HeadOrientationController::timerCallback()
     //    Uses L∞ norm: max(|x|, |y|) > half_size
     const double half_size = m_lookahead_size / 2.0;
     geometry_msgs::msg::Point lookahead_pt;
+    geometry_msgs::msg::Quaternion goal_orientation;
     bool found_exit = false;
 
     for (const auto & stamped_pose : plan->poses)
@@ -264,12 +271,40 @@ void HeadOrientationController::timerCallback()
         geometry_msgs::msg::PoseStamped last_robot;
         tf2::doTransform(plan->poses.back(), last_robot, tf_map_to_robot);
         lookahead_pt = last_robot.pose.position;
+        goal_orientation = last_robot.pose.orientation;
     }
 
     // 4. Compute yaw, clamp to [-max_yaw, +max_yaw]
-    double yaw_rad = std::atan2(lookahead_pt.y, lookahead_pt.x);
+    double yaw_rad;
+    if (std::hypot(lookahead_pt.x, lookahead_pt.y) >= m_min_lookahead_dist)
+    {
+        yaw_rad = std::atan2(lookahead_pt.y, lookahead_pt.x);
+    }
+    else
+    {
+        // Point too close: atan2 is dominated by localization noise and gait sway.
+        // Look along the goal heading instead, or hold the last yaw if it is not valid.
+        tf2::Quaternion q;
+        tf2::fromMsg(goal_orientation, q);
+        yaw_rad = (found_exit || q.length2() < 0.5) ? m_last_yaw_rad : tf2::getYaw(q);
+    }
+
+    // yaw_rad is in (-π, π]: its sign is the shortest turn, i.e. the side the robot steers to.
+    // Only for targets almost straight behind (yaw ≈ ±π) keep the current side, so that
+    // noise does not make the clamped command jump between the two limits.
+    constexpr double behind_hysteresis_rad = 20.0 * M_PI / 180.0;
+    if (std::abs(yaw_rad) > M_PI - behind_hysteresis_rad && yaw_rad * m_last_yaw_rad < 0.0)
+    {
+        yaw_rad = -yaw_rad;
+    }
+
     const double max_yaw_rad = m_max_yaw_deg * M_PI / 180.0;
     yaw_rad = std::clamp(yaw_rad, -max_yaw_rad, max_yaw_rad);
+
+    // Rate limit to filter the residual sway of the base frame.
+    const double max_step_rad = m_max_yaw_rate_deg_s * M_PI / 180.0 / m_update_rate_hz;
+    yaw_rad = std::clamp(yaw_rad, m_last_yaw_rad - max_step_rad, m_last_yaw_rad + max_step_rad);
+    m_last_yaw_rad = yaw_rad;
 
     // 5. Compute pitch (positive = downward), clamp
     double pitch_rad = m_pitch_angle_deg * M_PI / 180.0;
@@ -292,6 +327,10 @@ void HeadOrientationController::timerCallback()
     const double r31 =     -sp,  r32 =   0,  r33 =      cp;
 
     // 7. Send to head controller
+    RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000,
+        "Desired head RPY [deg]: roll %.1f | pitch %.1f | yaw %.1f",
+        0.0, pitch_rad * 180.0 / M_PI, yaw_rad * 180.0 / M_PI);
+
     sendOrientationMatrix(r11, r12, r13,
                           r21, r22, r23,
                           r31, r32, r33);
@@ -323,6 +362,7 @@ bool HeadOrientationController::sendOrientationMatrix(
 // Home the head looking straight (0, 0, 0)
 bool HeadOrientationController::sendGoHome()
 {
+    m_last_yaw_rad = 0.0;
     if (!m_yarp_connected) { return false; }
 
     yarp::os::Bottle cmd;
