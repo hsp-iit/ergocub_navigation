@@ -82,9 +82,10 @@ CallbackReturn OdomNode::on_activate(const rclcpp_lifecycle::State &)
     {
         try
         {
-            auto stanceFootToSwingFoot_tf = m_tf_buffer_in->lookupTransform("l_sole", m_last_swing_tf.header.frame_id, rclcpp::Time(0));
+            // pose of the swing foot (l_sole) expressed in the stance foot frame (r_sole)
+            auto swingFootInStanceFoot_tf = m_tf_buffer_in->lookupTransform(m_last_swing_tf.header.frame_id, "l_sole", rclcpp::Time(0));
             tf2::Quaternion conversionQuat;
-            tf2::fromMsg(stanceFootToSwingFoot_tf.transform.rotation, conversionQuat);
+            tf2::fromMsg(swingFootInStanceFoot_tf.transform.rotation, conversionQuat);
             tf2::Matrix3x3 matrix(conversionQuat);
             double r, p, y;
             matrix.getRPY(r, p, y);
@@ -95,8 +96,8 @@ CallbackReturn OdomNode::on_activate(const rclcpp_lifecycle::State &)
             m_last_swing_tf.transform.rotation.w = conversionQuat.w();
             // translation -> take the halfway point on y
             m_last_swing_tf.transform.translation.z = 0;
-            m_last_swing_tf.transform.translation.x = stanceFootToSwingFoot_tf.transform.translation.x;
-            m_last_swing_tf.transform.translation.y = - stanceFootToSwingFoot_tf.transform.translation.y / 2;
+            m_last_swing_tf.transform.translation.x = swingFootInStanceFoot_tf.transform.translation.x;
+            m_last_swing_tf.transform.translation.y = swingFootInStanceFoot_tf.transform.translation.y / 2;
             init = true;
         }
         catch(const std::exception& e)
@@ -380,9 +381,12 @@ void OdomNode::PublishOdom()
             geometrycalVirtualUnicycle.transform.rotation.z = conversionQuat.z();
             geometrycalVirtualUnicycle.transform.rotation.w = conversionQuat.w();
             // translation -> take the halfway point on y
+            // stanceFootToSwingFoot_tf holds the stance foot pose in the swing foot frame: negating its translation gives
+            // the swing foot position in the stance frame only when the feet are parallel. Use the transformed swing foot
+            // center instead, which is correct also while turning.
             geometrycalVirtualUnicycle.transform.translation.z = 0;
-            geometrycalVirtualUnicycle.transform.translation.x = -stanceFootToSwingFoot_tf.transform.translation.x;
-            geometrycalVirtualUnicycle.transform.translation.y = -stanceFootToSwingFoot_tf.transform.translation.y / 2;
+            geometrycalVirtualUnicycle.transform.translation.x = swingFootCenter.pose.position.x;
+            geometrycalVirtualUnicycle.transform.translation.y = swingFootCenter.pose.position.y / 2;
             m_last_swing_tf = geometrycalVirtualUnicycle;
         }
         else

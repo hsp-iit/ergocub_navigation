@@ -207,8 +207,8 @@ global_costmap:
       global_frame: map
       robot_base_frame: geometric_unicycle #virtual_unicycle_base
       use_sim_time: True
-      #robot_radius: 0.3   #0.4
-      footprint: "[ [0.2, 0.35], [0.2, -0.35], [-0.2, -0.35], [-0.2, 0.35] ]"
+      robot_radius: 0.35   #0.4
+      #footprint: "[ [0.2, 0.35], [0.2, -0.35], [-0.2, -0.35], [-0.2, 0.35] ]"
       resolution: 0.05
       trinary_costmap: true
       always_send_full_costmap: True
@@ -294,7 +294,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
-        cost_scaling_factor: 1.5    #2.5
+        cost_scaling_factor: 0.5    #2.5
         inflation_radius: 4.0    #0.55
         inflate_unknown: false
         inflate_around_unknown: false
@@ -317,6 +317,8 @@ planner_server:
     planner_plugins: ['GridBased']
     use_sim_time: True
     expected_planner_frequency: 10.0   #20.0
+    cost_exponent: 4.0
+    w_traversal_cost: 10.0
     GridBased:
       plugin: "nav2_theta_star_oriented_planner::ThetaStarOrientedPlanner"
 
