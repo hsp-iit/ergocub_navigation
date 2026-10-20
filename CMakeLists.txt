@@ -7,6 +7,8 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+find_package(action_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
@@ -20,7 +22,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(laser_geometry REQUIRED)
 find_package(pcl_conversions REQUIRED)
-FIND_PACKAGE(YARP COMPONENTS os sig dev REQUIRED)
+find_package(YARP COMPONENTS os sig dev REQUIRED)
 find_package(PCL 1.2 REQUIRED)
 find_package(pcl_ros REQUIRED)
 
@@ -39,11 +41,14 @@ find_package(tf2_sensor_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
-find_package(rosidl_default_generators REQUIRED)
+find_package(nav2_msgs REQUIRED)
 
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
+
+# Shared helpers imported by the launch files (ergocub_navigation.launch_utils)
+ament_python_install_package(${PROJECT_NAME})
 
 include_directories(include)
 
@@ -71,8 +76,8 @@ ament_target_dependencies(scan_filter
 )
 target_link_libraries(scan_filter ${PCL_LIBRARIES})
 
-add_executable(footsteps_viewer src/visualization/footsteps_viewer/main.cpp 
-                                src/visualization/footsteps_viewer/footsteps_viewer_yarp.cpp 
+add_executable(footsteps_viewer src/visualization/footsteps_viewer/main.cpp
+                                src/visualization/footsteps_viewer/footsteps_viewer_yarp.cpp
                                 src/visualization/footsteps_viewer/footsteps_viewer_ros.cpp)
 ament_target_dependencies(footsteps_viewer
   "YARP"
@@ -136,20 +141,22 @@ ament_target_dependencies(path_converter
   "rclcpp_lifecycle"
 )
 
-add_executable(walking_phase_detector src/perception/walking_phase_detector/walking_phase_detector.cpp src/perception/walking_phase_detector/neck_motor_control.cpp) 
-ament_target_dependencies(walking_phase_detector
+add_executable(head_orientation_controller
+    src/navigation/head_orientation_controller/head_orientation_controller.cpp)
+ament_target_dependencies(head_orientation_controller
   "YARP"
   "rclcpp"
+  "rclcpp_lifecycle"
+  "action_msgs"
   "nav_msgs"
   "tf2_ros"
   "tf2_msgs"
   "tf2"
-  "sensor_msgs"
-  "rclcpp_lifecycle"
   "tf2_geometry_msgs"
+  "geometry_msgs"
 )
 
-add_executable(human_pose_goal_generator src/navigation/human_pose_goal_generator/main.cpp 
+add_executable(human_pose_goal_generator src/navigation/human_pose_goal_generator/main.cpp
                                         src/navigation/human_pose_goal_generator/goal_generator.cpp
                                         src/navigation/human_pose_goal_generator/yarp_communication_wrapper.cpp)
 ament_target_dependencies(human_pose_goal_generator
@@ -211,6 +218,12 @@ if(BUILD_TESTING)
   # a copyright and license is added to all source files
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  # Resolves every launch file's include graph and checks that the params, maps
+  # and behaviour trees they name are actually installed. Runs against the
+  # install space, so it needs no robot and no simulator.
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(test_launch_files test/test_launch_files.py)
 endif()
 
 install(TARGETS
@@ -219,37 +232,25 @@ install(TARGETS
   scan_filter
   footsteps_viewer
   pointcloud_filter
-  walking_phase_detector
   path_converter
   human_pose_goal_generator
   plane_detector
+  head_orientation_controller
   DESTINATION lib/${PROJECT_NAME})
 
-# install the launch directory
+# Runtime data. Note the config/ prefix is stripped, so these land as
+# share/ergocub_navigation/{maps,param,rviz,behavior_trees,yarp} and are addressed
+# from the launch files via launch_utils.pkg_share().
 install(DIRECTORY
   launch
-  DESTINATION share/${PROJECT_NAME}/
-)
-# install the maps directory
-install(DIRECTORY
   config/maps
-  DESTINATION share/${PROJECT_NAME}/
-)
-# install the param directory
-install(DIRECTORY
   config/param
-  DESTINATION share/${PROJECT_NAME}/
-)
-# install the RVIZ directory
-install(DIRECTORY
   config/rviz
+  config/behavior_trees
+  config/yarp
+  sim
   DESTINATION share/${PROJECT_NAME}/
 )
-
-install(DIRECTORY include/
-  DESTINATION include/
-)
-
 
 ament_export_include_directories(include)
 ament_export_dependencies(${dependencies})

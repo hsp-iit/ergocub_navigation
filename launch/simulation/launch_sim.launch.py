@@ -1,25 +1,19 @@
-import os
+"""
+Simulation, AMCL localization.
 
-from ament_index_python.packages import get_package_share_directory
+Thin wrapper around bringup.launch.py; see that file for the full argument list.
+"""
 
+from ergocub_navigation.launch_utils import include, sim_pointcloud_filter
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+
 
 def generate_launch_description():
-    setup = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/simulation/setup_robot_sim.launch.py'])
-        )
-    navigation = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('ergocub_navigation'), 'launch'),
-            '/simulation/nav2_stack_sim.launch.py'])
-        )
-    
-
     return LaunchDescription([
-        setup,
-        navigation
+        include('bringup.launch.py', {
+            'world': 'sim',
+            'localization': 'amcl',
+            'use_planner_trigger': 'true',
+        }),
+        *sim_pointcloud_filter(),
     ])

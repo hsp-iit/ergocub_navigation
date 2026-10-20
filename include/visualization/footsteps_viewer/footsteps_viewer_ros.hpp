@@ -26,7 +26,10 @@ private:
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr m_leftFootprintsMarkersPub;
     const std::string m_rightFootprintsTopicName = "/footstep_viewer_node/right_footprints";
     const std::string m_leftFootprintsTopicName = "/footstep_viewer_node/left_footprints";
-    
+    rclcpp::Time m_lastPublishTime{0, 0, RCL_ROS_TIME};
+    bool m_throttleEnabled{false};
+    double m_publishPeriodMs{100.0};
+
 public:
     FootstepsViewerRos();
 

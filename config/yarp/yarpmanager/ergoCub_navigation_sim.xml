@@ -1,0 +1,20 @@
+<application>
+    <name>ergoCub navigation sim</name>
+    <dependencies>
+    </dependencies>
+    <module>
+        <name>yarprobotinterface</name>
+        <parameters>--config /home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/yarp/simulation/depth_compressed_ros2.xml </parameters>
+        <node>dockersim</node>
+    </module>
+    <module>
+        <name>yarprobotinterface</name>
+        <parameters>--config /home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/yarp/simulation/head_imu_ros2.xml </parameters>
+        <node>dockersim</node>
+    </module>
+    <module>
+        <name>yarprobotinterface</name>
+        <parameters>--config /home/ecub_docker/ros2_workspace/src/ergocub_navigation/config/yarp/simulation/lidar_compressed_ros2.xml </parameters>
+        <node>dockersim</node>
+    </module>
+</application>

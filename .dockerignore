@@ -1,0 +1,9 @@
+.git
+.github
+.claude
+.vscode
+build
+install
+log
+**/__pycache__
+**/*.py[cod]
