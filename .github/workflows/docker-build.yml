@@ -15,11 +15,15 @@ env:
   # Optional: define defaults for build args
   GIT_USERNAME: "SimoneMic"
   GIT_USER_EMAIL: "simone_micheletti@outlook.it"
+  # Local tag of the image under test, removed at the end of the job
+  CI_IMAGE: ergocub_navigation:ci-${{ github.run_id }}
 
 jobs:
   build:
-    name: Build Docker image on self-hosted runner
+    name: Build Docker image and test on self-hosted runner
     runs-on: self-hosted
+    # Pull requests from forks would run untrusted code on the self-hosted runner
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       # Checkout the repository
@@ -30,7 +34,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      
+
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
@@ -39,21 +43,35 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
+      # The build context is the checkout, so the image contains the commit under test
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./docker/Dockerfile
+          file: ./docker/Dockerfile_jazzy
           push: false  # set to true to push image
+          load: true   # make the image available to the test step
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.CI_IMAGE }}
           build-args: |
             GIT_USERNAME=${{ env.GIT_USERNAME }}
             GIT_USER_EMAIL=${{ env.GIT_USER_EMAIL }}
-            RELEASE=iron
-            LAUNCHPAD_BUILD_ARCH=amd64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      # Only the launch file checks: the ament linters are not clean on this codebase yet.
+      # bash -c skips ~/.bashrc, so the superbuild setup (ROBOTOLOGY_SUPERBUILD_SOURCE_DIR,
+      # needed by the launch files to find the URDF) is sourced explicitly.
+      - name: Run tests
+        run: |
+          docker run --rm ${{ env.CI_IMAGE }} bash -c '
+            source /opt/ros/jazzy/setup.bash &&
+            source ~/robotology-superbuild/build/install/share/robotology-superbuild/setup.sh &&
+            cd ~/ros2_workspace &&
+            source install/setup.bash &&
+            colcon test --packages-select ergocub_navigation --ctest-args -R test_launch_files &&
+            colcon test-result --verbose'
 
       - name: Move new cache to old
         if: always()
@@ -64,4 +82,5 @@ jobs:
       - name: Clean up Docker caches
         if: always()
         run: |
+          docker image rm -f ${{ env.CI_IMAGE }} ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest || true
           docker builder prune -af || true

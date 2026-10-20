@@ -209,14 +209,15 @@ EXPOSE 10000/tcp 10000/udp
 
 # Nav2
 RUN sudo apt update && sudo apt install -y ros-jazzy-navigation2 ros-jazzy-nav2-bringup ros-jazzy-perception ros-jazzy-slam-toolbox \
+    ros-jazzy-ament-cmake-pytest ros-jazzy-ament-lint-auto ros-jazzy-ament-lint-common \
     && sudo apt clean && \
     sudo rm -rf /var/lib/apt/lists/*
-# Adding pointcloud to laserscan and ergocub_navigation on ROS2 WS
+# Adding pointcloud to laserscan and the other navigation dependencies on ROS2 WS.
+# ergocub_navigation itself is copied from the build context at the end of the file.
 SHELL ["/bin/bash", "-c"]
 RUN mkdir -p /home/$USERNAME/ros2_workspace/src && cd /home/$USERNAME/ros2_workspace && \
     /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.sh && colcon build"  && \
     cd src && \
-    git clone -b gz-sim https://github.com/hsp-iit/ergocub_navigation.git && \
     git clone -b jazzy https://github.com/hsp-iit/bt_nav2_ergocub.git && \
     git clone -b jazzy https://github.com/ros-perception/pointcloud_to_laserscan && \
     git clone -b jazzy https://github.com/SimoneMic/theta_star_oriented && \
@@ -224,9 +225,9 @@ RUN mkdir -p /home/$USERNAME/ros2_workspace/src && cd /home/$USERNAME/ros2_works
 ENV AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH:/opt/ros/jazzy
 
 # Adding custom worlds to gazebo
-RUN sudo cp -r /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/worlds /usr/share/gazebo-11
+COPY docker/worlds /usr/share/gazebo-11/worlds
 # XORG setup
-RUN sudo cp /home/$USERNAME/ros2_workspace/src/ergocub_navigation/docker/xorg.conf /etc/X11/xorg.conf
+COPY docker/xorg.conf /etc/X11/xorg.conf
 
 # Update walking-comtrollers in robotology superbuild to work in navigation
 RUN cd robotology-superbuild/src/walking-controllers && git remote add SimoneMic https://github.com/SimoneMic/walking-controllers && \
@@ -255,3 +256,9 @@ RUN cd robotology-superbuild/src/ergocub-software &&\
 
 RUN echo "source /home/$USERNAME/robotology-superbuild/build/install/share/robotology-superbuild/setup.sh" >> ~/.bashrc &&\
     sudo updatedb
+
+# ergocub_navigation from the build context (the repository root), kept last so that
+# source changes do not invalidate the cached layers above
+COPY --chown=ecub_docker:ecub_docker . /home/$USERNAME/ros2_workspace/src/ergocub_navigation
+RUN cd /home/$USERNAME/ros2_workspace && source /opt/ros/$ROS_DISTRO/setup.bash && source install/setup.bash && \
+    colcon build --symlink-install --packages-select ergocub_navigation
